@@ -227,7 +227,7 @@ export const Profile = () => {
                         <FaHistory style={{ color: 'var(--color-primary)' }} />
                     </div>
                     <div style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--text-main)' }}>
-                        {stats.loading ? '...' : stats.totalOperations}
+                        {profile.totalUsage || 0}
                         <span style={{ fontSize: '1rem', color: 'var(--text-muted)', fontWeight: 500, marginLeft: '0.5rem' }}>
                             Total Operations
                         </span>

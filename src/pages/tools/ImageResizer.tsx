@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { FileUploader } from '../../components/FileUploader';
 import { useUser } from '../../contexts/UserContext';
+import { useToast } from '../../contexts/ToastContext';
 import { FaDownload, FaExpand } from 'react-icons/fa';
 
 export const ImageResizer = () => {
     const { checkLimit, incrementUsage } = useUser();
+    const toast = useToast();
     const [file, setFile] = useState<File | null>(null);
     const [resizedImage, setResizedImage] = useState<string | null>(null);
     const [width, setWidth] = useState<number>(0);
@@ -40,7 +42,7 @@ export const ImageResizer = () => {
 
     const handleResize = async () => {
         if (!checkLimit()) {
-            alert("Daily limit reached! Please upgrade to continue.");
+            toast.error("Daily limit reached! Please upgrade to continue.");
             return;
         }
         if (!file) return;

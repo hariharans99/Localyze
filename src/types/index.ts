@@ -16,6 +16,7 @@ export interface UserProfile {
     subscriptionId?: string;
     subscriptionStatus?: 'active' | 'canceled' | 'past_due';
     usage: UserUsage;
+    totalUsage?: number; // Cumulative total of all operations ever
     createdAt: string;
 }
 

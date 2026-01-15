@@ -193,9 +193,36 @@ export const ImageConverter = () => {
                             </button>
                         </div>
 
-                        <div style={{ marginBottom: '2rem', fontSize: '0.875rem', color: 'var(--text-muted)', backgroundColor: 'var(--bg-app)', padding: '1rem', borderRadius: 'var(--radius-md)' }}>
-                            <p><strong>Supported Inputs:</strong> JPEG, PNG, WebP, BMP, TIFF, HEIC, AVIF, SVG, ICO</p>
-                            <p style={{ marginTop: '0.5rem' }}><strong>Note:</strong> Browsers restrict export formats. Conversions to complex formats like PSD/RAW are not supported in-browser to ensure performance.</p>
+                        <div style={{ marginBottom: '2rem', backgroundColor: 'var(--bg-app)', padding: '1.5rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
+                            <h4 style={{ marginBottom: '1rem', fontSize: '0.9rem', color: 'var(--text-main)' }}>📥 Supported Input Formats</h4>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1rem' }}>
+                                {['PNG', 'JPG', 'WebP', 'BMP', 'TIFF', 'HEIC', 'AVIF', 'SVG', 'ICO'].map(fmt => (
+                                    <span key={fmt} style={{
+                                        padding: '0.25rem 0.75rem',
+                                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                                        color: '#10b981',
+                                        borderRadius: 'var(--radius-full)',
+                                        fontSize: '0.75rem',
+                                        fontWeight: 600
+                                    }}>{fmt}</span>
+                                ))}
+                            </div>
+                            <h4 style={{ marginBottom: '1rem', fontSize: '0.9rem', color: 'var(--text-main)' }}>📤 Supported Output Formats</h4>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1rem' }}>
+                                {['PNG', 'JPG', 'WebP', 'BMP', 'AVIF', 'ICO'].map(fmt => (
+                                    <span key={fmt} style={{
+                                        padding: '0.25rem 0.75rem',
+                                        backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                                        color: 'var(--color-primary)',
+                                        borderRadius: 'var(--radius-full)',
+                                        fontSize: '0.75rem',
+                                        fontWeight: 600
+                                    }}>{fmt}</span>
+                                ))}
+                            </div>
+                            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>
+                                ⚠️ TIFF, HEIC & SVG cannot be output formats due to browser limitations.
+                            </p>
                         </div>
 
                         <div style={{ marginBottom: '2rem' }}>

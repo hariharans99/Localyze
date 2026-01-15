@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { type User, onAuthStateChanged, signInWithPopup, signOut as firebaseSignOut } from 'firebase/auth';
-import { doc, setDoc, onSnapshot, addDoc, collection } from 'firebase/firestore';
+import { doc, setDoc, onSnapshot, addDoc, collection, getCountFromServer } from 'firebase/firestore';
 import { auth, db, googleProvider } from '../lib/firebase';
 import type { UserProfile } from '../types';
 
@@ -46,6 +46,27 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
                             }
                             await setDoc(userRef, { planExpiresAt: expiresAt.toISOString() }, { merge: true });
                             profileData.planExpiresAt = expiresAt.toISOString();
+                        }
+
+                        // Migration: Initialize totalUsage from history collection count
+                        if (profileData.totalUsage === undefined) {
+                            console.log("Migrating existing user: initializing totalUsage from history");
+                            try {
+                                const historyRef = collection(db, 'users', firebaseUser.uid, 'history');
+                                const snapshot = await getCountFromServer(historyRef);
+                                const historyCount = snapshot.data().count || 0;
+                                // Also add any current daily usage that might not be in history
+                                const dailyCount = profileData.usage?.count || 0;
+                                const initialTotal = Math.max(historyCount, dailyCount);
+                                await setDoc(userRef, { totalUsage: initialTotal }, { merge: true });
+                                profileData.totalUsage = initialTotal;
+                            } catch (e) {
+                                console.error("Failed to migrate totalUsage:", e);
+                                // Default to daily count if history fetch fails
+                                const initialTotal = profileData.usage?.count || 0;
+                                await setDoc(userRef, { totalUsage: initialTotal }, { merge: true });
+                                profileData.totalUsage = initialTotal;
+                            }
                         }
 
                         setProfile(profileData);
@@ -157,8 +178,25 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
             return true;
         }
 
-        if (profile.plan !== 'free') return true;
+        if (profile.plan !== 'free') {
+            // Paid users: track usage but don't limit
+            let newCount = profile.usage.count;
+            if (profile.usage.date !== today) {
+                newCount = 0; // Reset for new day
+            }
+            const currentTotal = profile.totalUsage || 0;
+            const userRef = doc(db, 'users', user.uid);
+            await setDoc(userRef, {
+                usage: {
+                    count: newCount + 1,
+                    date: today
+                },
+                totalUsage: currentTotal + 1
+            }, { merge: true });
+            return true;
+        }
 
+        // Free users: track and limit
         let newCount = profile.usage.count;
 
         if (profile.usage.date !== today) {
@@ -167,13 +205,15 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         if (newCount >= 2) return false;
 
+        const currentTotal = profile.totalUsage || 0;
         // Optimistic update handled by Firestore subscription, but we write to DB
         const userRef = doc(db, 'users', user.uid);
         await setDoc(userRef, {
             usage: {
                 count: newCount + 1,
                 date: today
-            }
+            },
+            totalUsage: currentTotal + 1
         }, { merge: true });
 
         return true;

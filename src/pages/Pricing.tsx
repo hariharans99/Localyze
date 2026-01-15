@@ -2,16 +2,18 @@ import { FaCheck, FaTimes } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 
 import { useUser } from '../contexts/UserContext';
+import { useToast } from '../contexts/ToastContext';
 import { openRazorpay } from '../lib/razorpay';
 
 export const Pricing = () => {
 
     const { user, signInWithGoogle, upgradePlan, profile } = useUser();
     const navigate = useNavigate();
+    const toast = useToast();
 
     const handlePayment = (plan: 'weekly' | 'monthly', amount: number) => {
         if (!user) {
-            alert("Please sign in first to purchase a plan.");
+            toast.info("Please sign in first to purchase a plan.");
             signInWithGoogle();
             return;
         }
@@ -22,13 +24,13 @@ export const Pricing = () => {
 
         if (hasActivePaidPlan) {
             const expiryDate = new Date(profile.planExpiresAt!).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-            alert(`You already have an active ${profile.plan === 'weekly' ? 'Weekly Pass' : 'Pro Monthly'} plan.\n\nPlease wait until it expires on ${expiryDate} before purchasing a new plan.`);
+            toast.error(`You already have an active ${profile.plan === 'weekly' ? 'Weekly Pass' : 'Pro Monthly'} plan. Wait until ${expiryDate} to purchase.`);
             return;
         }
 
         const razorpayKey = import.meta.env.VITE_RAZORPAY_KEY_ID;
         if (!razorpayKey) {
-            alert("Razorpay Key ID is missing! Please set VITE_RAZORPAY_KEY_ID in .env");
+            toast.error("Razorpay Key ID is missing! Please set VITE_RAZORPAY_KEY_ID in .env");
             return;
         }
 
@@ -38,7 +40,6 @@ export const Pricing = () => {
             currency: 'INR',
             name: 'Localyze Pro',
             description: `${plan === 'weekly' ? '7 Days' : '30 Days'} Premium Access`,
-            // image: 'https://via.placeholder.com/150', // Removed to fix network error
             prefill: {
                 name: user.displayName || '',
                 email: user.email || ''
@@ -55,14 +56,14 @@ export const Pricing = () => {
                     await upgradePlan(plan, response.razorpay_payment_id);
 
                     if (hasActivePaidPlan) {
-                        alert(`Payment Successful! Your ${plan} plan will activate after your current plan expires.`);
+                        toast.success(`Payment Successful! Your ${plan} plan will activate after your current plan expires.`);
                     } else {
-                        alert(`Payment Successful! You are now on the ${plan} plan.`);
+                        toast.success(`Payment Successful! You are now on the ${plan === 'weekly' ? 'Weekly Pass' : 'Pro Monthly'} plan.`);
                     }
                     navigate('/');
                 } catch (e) {
                     console.error(e);
-                    alert('Failed to activate plan.');
+                    toast.error('Failed to activate plan. Please contact support.');
                 }
             }
         });

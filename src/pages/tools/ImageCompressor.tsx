@@ -2,16 +2,20 @@ import { useState } from 'react';
 import imageCompression from 'browser-image-compression';
 import { FileUploader } from '../../components/FileUploader';
 import { useUser } from '../../contexts/UserContext';
+import { useToast } from '../../contexts/ToastContext';
 import { FaDownload, FaCog } from 'react-icons/fa';
 
 export const ImageCompressor = () => {
     const { checkLimit, incrementUsage } = useUser();
+    const toast = useToast();
     const [file, setFile] = useState<File | null>(null);
     const [compressedFile, setCompressedFile] = useState<File | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
     const [options, setOptions] = useState({
         maxSizeMB: 1,
-        useWebWorker: true
+        useWebWorker: true,
+        maxIteration: 20, // More iterations for better accuracy
+        alwaysKeepResolution: true // Don't reduce resolution, focus on quality
     });
 
     const handleFileSelect = (selectedFile: File) => {
@@ -21,20 +25,28 @@ export const ImageCompressor = () => {
 
     const handleCompress = async () => {
         if (!checkLimit()) {
-            alert("Daily limit reached! Please upgrade to continue.");
+            toast.error("Daily limit reached! Please upgrade to continue.");
             return;
         }
 
         if (!file) return;
+
+        // If file is already smaller than target, skip compression
+        if (file.size / 1024 / 1024 <= options.maxSizeMB) {
+            toast.info(`File is already ${(file.size / 1024 / 1024).toFixed(2)} MB, under your target of ${options.maxSizeMB} MB.`);
+            setCompressedFile(file);
+            return;
+        }
 
         setIsProcessing(true);
         try {
             const compressed = await imageCompression(file, options);
             setCompressedFile(compressed);
             await incrementUsage();
+            toast.success("Image compressed successfully!");
         } catch (error) {
             console.error(error);
-            alert("Compression failed.");
+            toast.error("Compression failed. Please try again.");
         } finally {
             setIsProcessing(false);
         }
