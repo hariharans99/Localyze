@@ -32,7 +32,7 @@ export const Navbar = () => {
                 position: 'relative'
             }}>
                 <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '1.25rem', fontWeight: 700 }}>
-                    <img src="/logo.png" alt="Localyze" style={{ height: '36px', width: 'auto' }} />
+                    <img src="/logo_brand_v2.png" alt="Localyze" style={{ height: '40px', width: 'auto' }} />
                     <span style={{ background: 'linear-gradient(to right, #6366f1, #a855f7)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Localyze</span>
                 </Link>
 
