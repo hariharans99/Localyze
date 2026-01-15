@@ -3,7 +3,7 @@ import { jsPDF } from 'jspdf';
 import { FileUploader } from '../../components/FileUploader';
 import { useUser } from '../../contexts/UserContext';
 import { useToast } from '../../contexts/ToastContext';
-import { FaDownload, FaFilePdf, FaTrash, FaArrowUp, FaArrowDown, FaCog } from 'react-icons/fa';
+import { FaDownload, FaTrash, FaArrowUp, FaArrowDown, FaCog } from 'react-icons/fa';
 
 interface PdfSettings {
     pageSize: 'a4' | 'fit';

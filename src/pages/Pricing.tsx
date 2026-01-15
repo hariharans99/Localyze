@@ -223,7 +223,7 @@ export const Pricing = () => {
                                         if (plan.id === 'free') return;
                                         handlePayment(plan.id as 'weekly' | 'monthly', plan.amount);
                                     }}
-                                    disabled={isDisabled}
+                                    disabled={!!isDisabled}
                                     style={{
                                         width: '100%',
                                         padding: '1rem',

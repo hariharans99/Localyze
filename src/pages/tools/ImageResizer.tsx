@@ -14,10 +14,13 @@ export const ImageResizer = () => {
     const [aspectRatio, setAspectRatio] = useState<number>(0);
     const [maintainAspect, setMaintainAspect] = useState(true);
 
-    const handleFileSelect = (selectedFile: File) => {
-        setFile(selectedFile);
+    const handleFileSelect = (selectedFile: File | File[]) => {
+        const file = Array.isArray(selectedFile) ? selectedFile[0] : selectedFile;
+        if (!file) return;
+
+        setFile(file);
         const img = new Image();
-        img.src = URL.createObjectURL(selectedFile);
+        img.src = URL.createObjectURL(file);
         img.onload = () => {
             setWidth(img.width);
             setHeight(img.height);

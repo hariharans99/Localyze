@@ -10,6 +10,8 @@ import UTIF from 'utif';
 // @ts-ignore
 const decodeTiff = UTIF.decode;
 // @ts-ignore
+const decodeImage = UTIF.decodeImage;
+// @ts-ignore
 const toRisTiff = UTIF.toRGBA8;
 
 export const ImageConverter = () => {
@@ -21,8 +23,12 @@ export const ImageConverter = () => {
     const [quality, setQuality] = useState(0.92);
     const [isProcessing, setIsProcessing] = useState(false);
 
-    const handleFileSelect = (selectedFile: File) => {
-        setFile(selectedFile);
+    const handleFileSelect = (selectedFile: File | File[]) => {
+        if (Array.isArray(selectedFile)) {
+            if (selectedFile.length > 0) setFile(selectedFile[0]);
+        } else {
+            setFile(selectedFile);
+        }
         setConvertedImage(null);
     };
 
@@ -47,7 +53,7 @@ export const ImageConverter = () => {
                         const ifds = decodeTiff(buffer);
                         if (ifds.length === 0) throw new Error("Invalid TIFF");
                         const ifd = ifds[0];
-                        decodeTiff(buffer, ifds);
+                        decodeImage(buffer, ifd);
                         const rgba = toRisTiff(ifd);
 
                         const canvas = document.createElement('canvas');
@@ -123,16 +129,7 @@ export const ImageConverter = () => {
         }
     };
 
-    const handleDownload = () => {
-        if (convertedImage) {
-            const link = document.createElement('a');
-            link.href = convertedImage;
-            link.download = `converted-image.${getExtension(format)}`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
-    };
+
 
     const supportedFormats = [
         { mime: 'image/jpeg', label: 'JPEG' },
@@ -164,12 +161,7 @@ export const ImageConverter = () => {
             <div style={{ marginBottom: '2rem' }}>
                 {!file ? (
                     <FileUploader
-                        onFileSelect={(selectedFile) => {
-                            if (selectedFile instanceof File) {
-                                setFile(selectedFile);
-                                setConvertedImage(null);
-                            }
-                        }}
+                        onFileSelect={handleFileSelect}
                         accept="image/*,.heic,.heif,.avif,.tiff,.tif"
                         label="Upload Image to Convert"
                     />

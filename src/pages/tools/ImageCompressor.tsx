@@ -18,8 +18,12 @@ export const ImageCompressor = () => {
         alwaysKeepResolution: true // Don't reduce resolution, focus on quality
     });
 
-    const handleFileSelect = (selectedFile: File) => {
-        setFile(selectedFile);
+    const handleFileSelect = (selectedFile: File | File[]) => {
+        if (Array.isArray(selectedFile)) {
+            if (selectedFile.length > 0) setFile(selectedFile[0]);
+        } else {
+            setFile(selectedFile);
+        }
         setCompressedFile(null);
     };
 
