@@ -1,17 +1,28 @@
 import { FaCheck, FaTimes } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
-import { useTheme } from '../contexts/ThemeContext';
+
 import { useUser } from '../contexts/UserContext';
 import { openRazorpay } from '../lib/razorpay';
 
 export const Pricing = () => {
-    const { isDark } = useTheme();
+
     const { user, signInWithGoogle, upgradePlan, profile } = useUser();
     const navigate = useNavigate();
 
     const handlePayment = (plan: 'weekly' | 'monthly', amount: number) => {
         if (!user) {
+            alert("Please sign in first to purchase a plan.");
             signInWithGoogle();
+            return;
+        }
+
+        // Check if user already has an active paid plan
+        const now = new Date();
+        const hasActivePaidPlan = profile && profile.plan !== 'free' && profile.planExpiresAt && new Date(profile.planExpiresAt) > now;
+
+        if (hasActivePaidPlan) {
+            const expiryDate = new Date(profile.planExpiresAt!).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+            alert(`You already have an active ${profile.plan === 'weekly' ? 'Weekly Pass' : 'Pro Monthly'} plan.\n\nPlease wait until it expires on ${expiryDate} before purchasing a new plan.`);
             return;
         }
 
@@ -37,10 +48,18 @@ export const Pricing = () => {
             },
             handler: async (response: any) => {
                 try {
-                    // In a real app, verify signature on backend here
+                    // Check if user has active paid plan
+                    const now = new Date();
+                    const hasActivePaidPlan = profile && profile.plan !== 'free' && profile.planExpiresAt && new Date(profile.planExpiresAt) > now;
+
                     await upgradePlan(plan, response.razorpay_payment_id);
-                    alert(`Payment Successful! You are now on the ${plan} plan.`);
-                    navigate('/tools');
+
+                    if (hasActivePaidPlan) {
+                        alert(`Payment Successful! Your ${plan} plan will activate after your current plan expires.`);
+                    } else {
+                        alert(`Payment Successful! You are now on the ${plan} plan.`);
+                    }
+                    navigate('/');
                 } catch (e) {
                     console.error(e);
                     alert('Failed to activate plan.');
@@ -49,15 +68,7 @@ export const Pricing = () => {
         });
     };
 
-    const handleSubscribe = (planId: string) => {
-        if (!user) {
-            navigate('/login');
-            return;
-        }
-        // TODO: Integrate Razorpay
-        console.log(`Subscribing to ${planId}`);
-        alert(`Razorpay integration coming soon! You selected: ${planId}`);
-    };
+
 
     const plans = [
         {
@@ -87,7 +98,8 @@ export const Pricing = () => {
             features: [
                 'Unlimited Usage',
                 'No Ads',
-                'High Speed Processing'
+                'High Speed Processing',
+                'Secure Local Processing'
             ],
             notIncluded: [],
             color: 'var(--color-primary)'
@@ -103,7 +115,8 @@ export const Pricing = () => {
                 'Unlimited Usage',
                 'No Ads',
                 'High Speed Processing',
-                'Early Access to New Tools'
+                'Early Access to New Tools',
+                'Secure Local Processing'
             ],
             notIncluded: [],
             color: 'var(--color-accent)'
@@ -130,6 +143,26 @@ export const Pricing = () => {
             }}>
                 {plans.map(plan => {
                     const isCurrent = profile?.plan === plan.id;
+                    const now = new Date();
+                    const hasActivePaidPlan = profile && profile.plan !== 'free' && profile.planExpiresAt && new Date(profile.planExpiresAt) > now;
+
+                    // Disable button if: current plan, free tier, or user has active paid plan and trying to buy different plan
+                    const isDisabled = isCurrent || plan.id === 'free' || (hasActivePaidPlan && !isCurrent);
+
+                    // Determine button text
+                    let buttonText: string;
+                    if (isCurrent) {
+                        buttonText = 'Current Plan';
+                    } else if (plan.id === 'free') {
+                        buttonText = profile?.plan === 'free' || !user ? 'Your Current Plan' : 'Free Tier';
+                    } else if (!user) {
+                        buttonText = 'Sign in to Subscribe';
+                    } else if (hasActivePaidPlan) {
+                        buttonText = 'Plan Active';
+                    } else {
+                        buttonText = 'Get it now';
+                    }
+
                     return (
                         <div key={plan.id} style={{
                             backgroundColor: 'var(--bg-surface)',
@@ -165,26 +198,28 @@ export const Pricing = () => {
 
                             <div style={{ marginBottom: '2rem' }}>
                                 <button
+                                    type="button"
                                     onClick={() => {
+                                        console.log("Clicked plan:", plan.id);
                                         if (plan.id === 'free') return;
                                         handlePayment(plan.id as 'weekly' | 'monthly', plan.amount);
                                     }}
-                                    disabled={isCurrent || plan.id === 'free'}
+                                    disabled={isDisabled}
                                     style={{
                                         width: '100%',
                                         padding: '1rem',
                                         borderRadius: 'var(--radius-md)',
-                                        border: isCurrent ? 'none' : (plan.recommended ? 'none' : '1px solid var(--color-primary)'),
-                                        backgroundColor: isCurrent ? 'var(--bg-surface-hover)' : (plan.recommended ? 'var(--color-primary)' : 'transparent'),
-                                        color: isCurrent ? 'var(--text-muted)' : (plan.recommended ? 'white' : 'var(--color-primary)'),
+                                        border: isDisabled ? 'none' : (plan.recommended ? 'none' : '1px solid var(--color-primary)'),
+                                        backgroundColor: isDisabled ? 'var(--bg-surface-hover)' : (plan.recommended ? 'var(--color-primary)' : 'transparent'),
+                                        color: isDisabled ? 'var(--text-muted)' : (plan.recommended ? 'white' : 'var(--color-primary)'),
                                         fontWeight: 600,
                                         fontSize: '1rem',
-                                        cursor: isCurrent ? 'default' : 'pointer',
-                                        boxShadow: plan.recommended ? 'var(--shadow-md)' : 'none',
+                                        cursor: isDisabled ? 'default' : 'pointer',
+                                        boxShadow: plan.recommended && !isDisabled ? 'var(--shadow-md)' : 'none',
                                         transition: 'all 0.2s ease'
                                     }}
                                 >
-                                    {isCurrent ? 'Current Plan' : (plan.id === 'free' ? 'Your Current Plan' : 'Get it now')}
+                                    {buttonText}
                                 </button>
                             </div>
 

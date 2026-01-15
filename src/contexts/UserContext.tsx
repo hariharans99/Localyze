@@ -32,7 +32,23 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 const userRef = doc(db, 'users', firebaseUser.uid);
                 const unsubProfile = onSnapshot(userRef, async (docSnap) => {
                     if (docSnap.exists()) {
-                        setProfile(docSnap.data() as UserProfile);
+                        const profileData = docSnap.data() as UserProfile;
+
+                        // Migration: Add planExpiresAt for existing paid users who don't have it
+                        if (profileData.plan !== 'free' && !profileData.planExpiresAt) {
+                            console.log("Migrating existing user: adding planExpiresAt");
+                            const now = new Date();
+                            let expiresAt: Date;
+                            if (profileData.plan === 'weekly') {
+                                expiresAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days from now
+                            } else {
+                                expiresAt = new Date(now.getTime() + 31 * 24 * 60 * 60 * 1000); // 31 days from now
+                            }
+                            await setDoc(userRef, { planExpiresAt: expiresAt.toISOString() }, { merge: true });
+                            profileData.planExpiresAt = expiresAt.toISOString();
+                        }
+
+                        setProfile(profileData);
                     } else {
                         // Create default profile if not exists
                         const newProfile: UserProfile = {
@@ -61,10 +77,19 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, []);
 
     const signInWithGoogle = async () => {
+        console.log("Initiating Google Popup Sign-In...");
         try {
-            await signInWithPopup(auth, googleProvider);
-        } catch (error) {
-            console.error("Error signing in with Google", error);
+            const result = await signInWithPopup(auth, googleProvider);
+            console.log("Popup Sign-In Success:", result.user.uid);
+        } catch (error: any) {
+            console.error("Popup Sign-In Error:", error);
+            if (error?.code === 'auth/popup-blocked') {
+                alert("Popup was blocked. Please allow popups for this site.");
+            } else if (error?.code === 'auth/cancelled-popup-request') {
+                console.warn("User closed the popup or there was a conflict.");
+            } else {
+                alert("Sign in failed: " + error.message);
+            }
             throw error;
         }
     };
@@ -105,15 +130,19 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const guestUsageStr = localStorage.getItem('guest_usage');
             let count = 0;
 
+            let total = 0;
+
             if (guestUsageStr) {
                 try {
                     const guestUsage = JSON.parse(guestUsageStr);
                     if (guestUsage.date === today) {
                         count = guestUsage.count;
                     }
+                    total = guestUsage.total || 0;
                 } catch {
                     // Reset if invalid
                     count = 0;
+                    total = 0;
                 }
             }
 
@@ -121,7 +150,8 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
             localStorage.setItem('guest_usage', JSON.stringify({
                 count: count + 1,
-                date: today
+                date: today,
+                total: total + 1
             }));
 
             return true;
@@ -170,19 +200,44 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.log("Attempting to upgrade plan for user:", user.uid, "to", plan);
         try {
             const userRef = doc(db, 'users', user.uid);
-            await setDoc(userRef, {
-                plan,
-                subscriptionStatus: 'active',
-                subscriptionId: paymentId,
-                updatedAt: new Date().toISOString()
-            }, { merge: true });
-            console.log("Firestore write successful!");
 
-            // Force update local state
-            setProfile(prev => prev ? { ...prev, plan, subscriptionStatus: 'active' } : null);
+            // Calculate expiration date
+            const now = new Date();
+            let expiresAt: Date;
+            if (plan === 'weekly') {
+                expiresAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days
+            } else {
+                expiresAt = new Date(now.getTime() + 31 * 24 * 60 * 60 * 1000); // 31 days
+            }
+
+            // Check if user already has an active paid plan
+            const hasActivePaidPlan = profile && profile.plan !== 'free' && profile.planExpiresAt && new Date(profile.planExpiresAt) > now;
+
+            if (hasActivePaidPlan) {
+                // Schedule the new plan to activate after current expires
+                await setDoc(userRef, {
+                    pendingPlan: plan,
+                    pendingPaymentId: paymentId,
+                    updatedAt: now.toISOString()
+                }, { merge: true });
+                console.log("Plan scheduled for after current plan expires.");
+                setProfile(prev => prev ? { ...prev, pendingPlan: plan } : null);
+            } else {
+                // Activate immediately
+                await setDoc(userRef, {
+                    plan,
+                    planExpiresAt: expiresAt.toISOString(),
+                    pendingPlan: null, // Clear any pending
+                    subscriptionStatus: 'active',
+                    subscriptionId: paymentId,
+                    updatedAt: now.toISOString()
+                }, { merge: true });
+                console.log("Firestore write successful!");
+                setProfile(prev => prev ? { ...prev, plan, planExpiresAt: expiresAt.toISOString(), subscriptionStatus: 'active', pendingPlan: undefined } : null);
+            }
         } catch (error) {
             console.error("FAILED to upgrade plan in Firestore:", error);
-            throw error; // Re-throw so UI knows it failed
+            throw error;
         }
     };
 

@@ -79,8 +79,11 @@ export const ImageCompressor = () => {
                                     <input
                                         type="number"
                                         step="0.1"
-                                        value={options.maxSizeMB}
-                                        onChange={(e) => setOptions({ ...options, maxSizeMB: parseFloat(e.target.value) })}
+                                        value={isNaN(options.maxSizeMB) ? '' : options.maxSizeMB}
+                                        onChange={(e) => {
+                                            const val = parseFloat(e.target.value);
+                                            setOptions({ ...options, maxSizeMB: isNaN(val) ? 0 : val });
+                                        }}
                                         style={{
                                             width: '100%',
                                             padding: '0.5rem',

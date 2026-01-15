@@ -11,6 +11,8 @@ export interface UserProfile {
     displayName: string | null;
     photoURL: string | null;
     plan: PlanType;
+    planExpiresAt?: string; // ISO date string when current plan expires
+    pendingPlan?: PlanType; // Plan scheduled to activate after current expires
     subscriptionId?: string;
     subscriptionStatus?: 'active' | 'canceled' | 'past_due';
     usage: UserUsage;
