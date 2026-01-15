@@ -1,10 +1,53 @@
 import { FaCheck, FaTimes } from 'react-icons/fa';
-import { useUser } from '../contexts/UserContext';
 import { useNavigate } from 'react-router-dom';
+import { useTheme } from '../contexts/ThemeContext';
+import { useUser } from '../contexts/UserContext';
+import { openRazorpay } from '../lib/razorpay';
 
 export const Pricing = () => {
-    const { user, profile } = useUser();
+    const { isDark } = useTheme();
+    const { user, signInWithGoogle, upgradePlan, profile } = useUser();
     const navigate = useNavigate();
+
+    const handlePayment = (plan: 'weekly' | 'monthly', amount: number) => {
+        if (!user) {
+            signInWithGoogle();
+            return;
+        }
+
+        const razorpayKey = import.meta.env.VITE_RAZORPAY_KEY_ID;
+        if (!razorpayKey) {
+            alert("Razorpay Key ID is missing! Please set VITE_RAZORPAY_KEY_ID in .env");
+            return;
+        }
+
+        openRazorpay({
+            key: razorpayKey,
+            amount: amount * 100, // Amount in paise
+            currency: 'INR',
+            name: 'Localyze Pro',
+            description: `${plan === 'weekly' ? '7 Days' : '30 Days'} Premium Access`,
+            // image: 'https://via.placeholder.com/150', // Removed to fix network error
+            prefill: {
+                name: user.displayName || '',
+                email: user.email || ''
+            },
+            theme: {
+                color: '#6366f1'
+            },
+            handler: async (response: any) => {
+                try {
+                    // In a real app, verify signature on backend here
+                    await upgradePlan(plan, response.razorpay_payment_id);
+                    alert(`Payment Successful! You are now on the ${plan} plan.`);
+                    navigate('/tools');
+                } catch (e) {
+                    console.error(e);
+                    alert('Failed to activate plan.');
+                }
+            }
+        });
+    };
 
     const handleSubscribe = (planId: string) => {
         if (!user) {
@@ -21,6 +64,7 @@ export const Pricing = () => {
             id: 'free',
             name: 'Free Starter',
             price: '₹0',
+            amount: 0,
             period: 'forever',
             features: [
                 '2 Tools per day',
@@ -29,8 +73,7 @@ export const Pricing = () => {
             ],
             notIncluded: [
                 'Unlimited Usage',
-                'Ad-free Experience',
-                'Priority Support'
+                'Ad-free Experience'
             ],
             color: 'var(--text-muted)'
         },
@@ -38,13 +81,13 @@ export const Pricing = () => {
             id: 'weekly',
             name: 'Week Pass',
             price: '₹49',
+            amount: 49,
             period: 'per week',
             recommended: false,
             features: [
                 'Unlimited Usage',
                 'No Ads',
-                'High Speed Processing',
-                'Priority Support'
+                'High Speed Processing'
             ],
             notIncluded: [],
             color: 'var(--color-primary)'
@@ -53,13 +96,13 @@ export const Pricing = () => {
             id: 'monthly',
             name: 'Pro Monthly',
             price: '₹149',
+            amount: 149,
             period: 'per month',
             recommended: true,
             features: [
                 'Unlimited Usage',
                 'No Ads',
                 'High Speed Processing',
-                'Priority Support',
                 'Early Access to New Tools'
             ],
             notIncluded: [],
@@ -122,22 +165,29 @@ export const Pricing = () => {
 
                             <div style={{ marginBottom: '2rem' }}>
                                 <button
-                                    onClick={() => handleSubscribe(plan.id)}
+                                    onClick={() => {
+                                        if (plan.id === 'free') return;
+                                        handlePayment(plan.id as 'weekly' | 'monthly', plan.amount);
+                                    }}
                                     disabled={isCurrent || plan.id === 'free'}
                                     style={{
                                         width: '100%',
                                         padding: '1rem',
+                                        borderRadius: 'var(--radius-md)',
                                         border: isCurrent ? 'none' : (plan.recommended ? 'none' : '1px solid var(--color-primary)'),
                                         backgroundColor: isCurrent ? 'var(--bg-surface-hover)' : (plan.recommended ? 'var(--color-primary)' : 'transparent'),
                                         color: isCurrent ? 'var(--text-muted)' : (plan.recommended ? 'white' : 'var(--color-primary)'),
                                         fontWeight: 600,
                                         fontSize: '1rem',
-                                        cursor: isCurrent ? 'default' : 'pointer'
+                                        cursor: isCurrent ? 'default' : 'pointer',
+                                        boxShadow: plan.recommended ? 'var(--shadow-md)' : 'none',
+                                        transition: 'all 0.2s ease'
                                     }}
                                 >
-                                    {isCurrent ? 'Current Plan' : (plan.id === 'free' ? 'Your Current Plan' : 'Subscribe Now')}
+                                    {isCurrent ? 'Current Plan' : (plan.id === 'free' ? 'Your Current Plan' : 'Get it now')}
                                 </button>
                             </div>
+
 
                             <ul style={{ listStyle: 'none' }}>
                                 {plan.features.map((feature, i) => (

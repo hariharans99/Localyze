@@ -13,6 +13,7 @@ interface UserContextType {
     incrementUsage: () => Promise<boolean>;
     checkLimit: () => boolean;
     logActivity: (tool: 'compress' | 'resize' | 'convert' | 'pdf', details: string) => Promise<void>;
+    upgradePlan: (plan: 'weekly' | 'monthly', paymentId: string) => Promise<void>;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -163,8 +164,30 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     };
 
+    const upgradePlan = async (plan: 'weekly' | 'monthly', paymentId: string) => {
+        if (!user) return;
+
+        console.log("Attempting to upgrade plan for user:", user.uid, "to", plan);
+        try {
+            const userRef = doc(db, 'users', user.uid);
+            await setDoc(userRef, {
+                plan,
+                subscriptionStatus: 'active',
+                subscriptionId: paymentId,
+                updatedAt: new Date().toISOString()
+            }, { merge: true });
+            console.log("Firestore write successful!");
+
+            // Force update local state
+            setProfile(prev => prev ? { ...prev, plan, subscriptionStatus: 'active' } : null);
+        } catch (error) {
+            console.error("FAILED to upgrade plan in Firestore:", error);
+            throw error; // Re-throw so UI knows it failed
+        }
+    };
+
     return (
-        <UserContext.Provider value={{ user, profile, loading, signInWithGoogle, signOut, incrementUsage, checkLimit, logActivity }}>
+        <UserContext.Provider value={{ user, profile, loading, signInWithGoogle, signOut, incrementUsage, checkLimit, logActivity, upgradePlan }}>
             {children}
         </UserContext.Provider>
     );

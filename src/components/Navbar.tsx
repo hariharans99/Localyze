@@ -61,7 +61,9 @@ export const Navbar = () => {
                     {user ? (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                             {user.photoURL && (
-                                <img src={user.photoURL} alt="User" style={{ width: '32px', height: '32px', borderRadius: '50%' }} />
+                                <Link to="/profile">
+                                    <img src={user.photoURL} alt="User" style={{ width: '32px', height: '32px', borderRadius: '50%', cursor: 'pointer', border: '2px solid var(--border-subtle)' }} />
+                                </Link>
                             )}
                             <button
                                 onClick={() => signOut()}

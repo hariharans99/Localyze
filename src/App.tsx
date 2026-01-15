@@ -8,6 +8,7 @@ import { ImageResizer } from './pages/tools/ImageResizer';
 import { ImageConverter } from './pages/tools/ImageConverter';
 import { ImageToPdf } from './pages/tools/ImageToPdf';
 import { Pricing } from './pages/Pricing';
+import { Profile } from './pages/Profile';
 
 import { UserProvider } from './contexts/UserContext';
 
@@ -20,6 +21,7 @@ function App() {
             <Route index element={<Home />} />
             <Route path="login" element={<Login />} />
             <Route path="pricing" element={<Pricing />} />
+            <Route path="profile" element={<Profile />} />
             <Route path="tools">
               <Route index element={<Tools />} />
               <Route path="compress" element={<ImageCompressor />} />
