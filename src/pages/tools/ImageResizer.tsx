@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { FileUploader } from '../../components/FileUploader';
 import { useUser } from '../../contexts/UserContext';
 import { useToast } from '../../contexts/ToastContext';
+import { AdBanner } from '../../components/AdBanner';
 import { FaDownload, FaExpand } from 'react-icons/fa';
 
 export const ImageResizer = () => {
@@ -189,6 +190,7 @@ export const ImageResizer = () => {
                     </div>
                 )}
             </div>
+            <AdBanner />
         </div>
     );
 };

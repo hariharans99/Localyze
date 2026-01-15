@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { FaLayerGroup, FaUserCircle, FaSun, FaMoon } from 'react-icons/fa';
+import { FaUserCircle, FaSun, FaMoon } from 'react-icons/fa';
 import { useUser } from '../contexts/UserContext';
 import { useTheme } from '../contexts/ThemeContext';
 
@@ -31,9 +31,9 @@ export const Navbar = () => {
                 justifyContent: 'space-between',
                 position: 'relative'
             }}>
-                <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.25rem', fontWeight: 700 }}>
-                    <FaLayerGroup style={{ color: 'var(--color-primary)' }} />
-                    <span>Localyze</span>
+                <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '1.25rem', fontWeight: 700 }}>
+                    <img src="/logo.png" alt="Localyze" style={{ height: '36px', width: 'auto' }} />
+                    <span style={{ background: 'linear-gradient(to right, #6366f1, #a855f7)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Localyze</span>
                 </Link>
 
                 <div style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>

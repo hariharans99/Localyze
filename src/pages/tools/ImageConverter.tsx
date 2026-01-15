@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { FileUploader } from '../../components/FileUploader';
 import { useUser } from '../../contexts/UserContext';
+import { AdBanner } from '../../components/AdBanner';
 import { useToast } from '../../contexts/ToastContext';
 import { FaDownload, FaRandom } from 'react-icons/fa';
 import heic2any from 'heic2any';
@@ -128,8 +129,6 @@ export const ImageConverter = () => {
             setIsProcessing(false);
         }
     };
-
-
 
     const supportedFormats = [
         { mime: 'image/jpeg', label: 'JPEG' },
@@ -303,6 +302,8 @@ export const ImageConverter = () => {
                     </div>
                 )}
             </div>
+
+            <AdBanner />
         </div>
     );
 };

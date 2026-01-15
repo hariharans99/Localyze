@@ -3,6 +3,7 @@ import imageCompression from 'browser-image-compression';
 import { FileUploader } from '../../components/FileUploader';
 import { useUser } from '../../contexts/UserContext';
 import { useToast } from '../../contexts/ToastContext';
+import { AdBanner } from '../../components/AdBanner';
 import { FaDownload, FaCog } from 'react-icons/fa';
 
 export const ImageCompressor = () => {
@@ -166,6 +167,7 @@ export const ImageCompressor = () => {
                     </div>
                 )}
             </div>
+            <AdBanner />
         </div>
     );
 };

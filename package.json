@@ -10,10 +10,12 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@types/jszip": "^3.4.0",
     "browser-image-compression": "^2.0.2",
     "firebase": "^12.7.0",
     "heic2any": "^0.0.4",
     "jspdf": "^4.0.0",
+    "jszip": "^3.10.1",
     "pdf-lib": "^1.17.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
