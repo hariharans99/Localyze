@@ -42,7 +42,7 @@ export const ImageCompressor = () => {
         try {
             const compressed = await imageCompression(file, options);
             setCompressedFile(compressed);
-            await incrementUsage();
+            await incrementUsage('compress');
             toast.success("Image compressed successfully!");
         } catch (error) {
             console.error(error);

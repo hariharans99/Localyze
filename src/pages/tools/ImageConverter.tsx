@@ -111,7 +111,7 @@ export const ImageConverter = () => {
                 // 4. Export to target format
                 const dataUrl = canvas.toDataURL(format, quality);
                 setConvertedImage(dataUrl);
-                await incrementUsage();
+                await incrementUsage('convert');
                 logActivity('convert', `${getExtension(file.type)} -> ${format.split('/')[1]}`);
                 success("Image converted successfully!");
             }

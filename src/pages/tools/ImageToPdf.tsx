@@ -125,7 +125,7 @@ export const ImageToPdf = () => {
 
             const pdfBlob = doc.output('blob');
             setPdfUrl(URL.createObjectURL(pdfBlob));
-            await incrementUsage();
+            await incrementUsage('pdf');
             logActivity('pdf', `Merged ${files.length} images`);
             success("PDF generated successfully!");
         } catch (e) {

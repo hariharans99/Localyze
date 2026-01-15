@@ -58,7 +58,8 @@ export const ImageResizer = () => {
                 ctx.drawImage(img, 0, 0, width, height);
                 const dataUrl = canvas.toDataURL(file.type);
                 setResizedImage(dataUrl);
-                await incrementUsage();
+                await incrementUsage('resize');
+                toast.success("Image resized successfully!");
             }
         };
     };

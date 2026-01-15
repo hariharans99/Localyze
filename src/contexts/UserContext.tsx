@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { type User, onAuthStateChanged, signInWithPopup, signOut as firebaseSignOut } from 'firebase/auth';
-import { doc, setDoc, onSnapshot, addDoc, collection, getCountFromServer } from 'firebase/firestore';
+import { doc, setDoc, onSnapshot, addDoc, collection, getCountFromServer, query, where, Timestamp, serverTimestamp } from 'firebase/firestore';
 import { auth, db, googleProvider } from '../lib/firebase';
 import type { UserProfile } from '../types';
 
@@ -10,10 +10,12 @@ interface UserContextType {
     loading: boolean;
     signInWithGoogle: () => Promise<void>;
     signOut: () => Promise<void>;
-    incrementUsage: () => Promise<boolean>;
+    incrementUsage: (tool: 'compress' | 'resize' | 'convert' | 'pdf') => Promise<boolean>;
     checkLimit: () => boolean;
     logActivity: (tool: 'compress' | 'resize' | 'convert' | 'pdf', details: string) => Promise<void>;
     upgradePlan: (plan: 'weekly' | 'monthly', paymentId: string) => Promise<void>;
+    getTodayUsageCount: () => Promise<number>;
+    getTotalUsageCount: () => Promise<number>;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -143,14 +145,13 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return profile.usage.count < 2;
     };
 
-    const incrementUsage = async () => {
+    const incrementUsage = async (tool: 'compress' | 'resize' | 'convert' | 'pdf') => {
         const today = new Date().toISOString().split('T')[0];
 
-        // Handle guest users
+        // Handle guest users (localStorage only)
         if (!user || !profile) {
             const guestUsageStr = localStorage.getItem('guest_usage');
             let count = 0;
-
             let total = 0;
 
             if (guestUsageStr) {
@@ -161,7 +162,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     }
                     total = guestUsage.total || 0;
                 } catch {
-                    // Reset if invalid
                     count = 0;
                     total = 0;
                 }
@@ -178,43 +178,30 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
             return true;
         }
 
-        if (profile.plan !== 'free') {
-            // Paid users: track usage but don't limit
-            let newCount = profile.usage.count;
-            if (profile.usage.date !== today) {
-                newCount = 0; // Reset for new day
-            }
-            const currentTotal = profile.totalUsage || 0;
-            const userRef = doc(db, 'users', user.uid);
-            await setDoc(userRef, {
-                usage: {
-                    count: newCount + 1,
-                    date: today
-                },
-                totalUsage: currentTotal + 1
-            }, { merge: true });
-            return true;
+        // Logged in users: use Firebase operations collection
+        const operationsRef = collection(db, 'users', user.uid, 'operations');
+
+        // Get today's start timestamp
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+
+        // For free users: check today's count first
+        if (profile.plan === 'free') {
+            const todayQuery = query(
+                operationsRef,
+                where('timestamp', '>=', Timestamp.fromDate(todayStart))
+            );
+            const snapshot = await getCountFromServer(todayQuery);
+            const todayCount = snapshot.data().count;
+
+            if (todayCount >= 2) return false;
         }
 
-        // Free users: track and limit
-        let newCount = profile.usage.count;
-
-        if (profile.usage.date !== today) {
-            newCount = 0;
-        }
-
-        if (newCount >= 2) return false;
-
-        const currentTotal = profile.totalUsage || 0;
-        // Optimistic update handled by Firestore subscription, but we write to DB
-        const userRef = doc(db, 'users', user.uid);
-        await setDoc(userRef, {
-            usage: {
-                count: newCount + 1,
-                date: today
-            },
-            totalUsage: currentTotal + 1
-        }, { merge: true });
+        // Add operation to Firebase
+        await addDoc(operationsRef, {
+            tool,
+            timestamp: serverTimestamp()
+        });
 
         return true;
     };
@@ -281,8 +268,60 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     };
 
+    // Get today's usage count from Firebase
+    const getTodayUsageCount = async (): Promise<number> => {
+        if (!user) {
+            // Guest: get from localStorage
+            const guestUsageStr = localStorage.getItem('guest_usage');
+            if (guestUsageStr) {
+                try {
+                    const guestUsage = JSON.parse(guestUsageStr);
+                    const today = new Date().toISOString().split('T')[0];
+                    if (guestUsage.date === today) {
+                        return guestUsage.count || 0;
+                    }
+                } catch {
+                    return 0;
+                }
+            }
+            return 0;
+        }
+
+        const operationsRef = collection(db, 'users', user.uid, 'operations');
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+
+        const todayQuery = query(
+            operationsRef,
+            where('timestamp', '>=', Timestamp.fromDate(todayStart))
+        );
+        const snapshot = await getCountFromServer(todayQuery);
+        return snapshot.data().count;
+    };
+
+    // Get total usage count from Firebase
+    const getTotalUsageCount = async (): Promise<number> => {
+        if (!user) {
+            // Guest: get from localStorage
+            const guestUsageStr = localStorage.getItem('guest_usage');
+            if (guestUsageStr) {
+                try {
+                    const guestUsage = JSON.parse(guestUsageStr);
+                    return guestUsage.total || 0;
+                } catch {
+                    return 0;
+                }
+            }
+            return 0;
+        }
+
+        const operationsRef = collection(db, 'users', user.uid, 'operations');
+        const snapshot = await getCountFromServer(operationsRef);
+        return snapshot.data().count;
+    };
+
     return (
-        <UserContext.Provider value={{ user, profile, loading, signInWithGoogle, signOut, incrementUsage, checkLimit, logActivity, upgradePlan }}>
+        <UserContext.Provider value={{ user, profile, loading, signInWithGoogle, signOut, incrementUsage, checkLimit, logActivity, upgradePlan, getTodayUsageCount, getTotalUsageCount }}>
             {children}
         </UserContext.Provider>
     );

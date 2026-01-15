@@ -1,15 +1,21 @@
+import { useState } from 'react';
 import { FaCheck, FaTimes } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 
 import { useUser } from '../contexts/UserContext';
 import { useToast } from '../contexts/ToastContext';
 import { openRazorpay } from '../lib/razorpay';
+import { ConfirmModal } from '../components/ConfirmModal';
 
 export const Pricing = () => {
 
     const { user, signInWithGoogle, upgradePlan, profile } = useUser();
     const navigate = useNavigate();
     const toast = useToast();
+
+    // Modal state
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [pendingPlan, setPendingPlan] = useState<{ plan: 'weekly' | 'monthly'; amount: number } | null>(null);
 
     const handlePayment = (plan: 'weekly' | 'monthly', amount: number) => {
         if (!user) {
@@ -33,6 +39,18 @@ export const Pricing = () => {
             toast.error("Razorpay Key ID is missing! Please set VITE_RAZORPAY_KEY_ID in .env");
             return;
         }
+
+        // Show custom confirmation modal
+        setPendingPlan({ plan, amount });
+        setShowConfirmModal(true);
+    };
+
+    const handleConfirmPurchase = () => {
+        if (!pendingPlan || !user) return;
+        setShowConfirmModal(false);
+
+        const { plan, amount } = pendingPlan;
+        const razorpayKey = import.meta.env.VITE_RAZORPAY_KEY_ID;
 
         openRazorpay({
             key: razorpayKey,
@@ -243,6 +261,18 @@ export const Pricing = () => {
                     );
                 })}
             </div>
+
+            {/* Confirmation Modal */}
+            <ConfirmModal
+                isOpen={showConfirmModal}
+                title="Confirm Purchase"
+                message={`You are about to purchase the ${pendingPlan?.plan === 'weekly' ? 'Weekly Pass (₹49)' : 'Pro Monthly (₹149)'} plan.`}
+                warningText="No refunds or cancellations are available after purchase. By confirming, you agree to this policy."
+                confirmText="Proceed to Payment"
+                cancelText="Cancel"
+                onConfirm={handleConfirmPurchase}
+                onCancel={() => setShowConfirmModal(false)}
+            />
         </div>
     );
 };

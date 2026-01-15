@@ -1,57 +1,31 @@
 import { useEffect, useState } from 'react';
 import { useUser } from '../contexts/UserContext';
 import { useToast } from '../contexts/ToastContext';
-import { db } from '../lib/firebase';
-import { collection, getCountFromServer } from 'firebase/firestore';
 import { FaCrown, FaHistory, FaBolt } from 'react-icons/fa';
 
 export const Profile = () => {
-    const { user, profile, loading, signInWithGoogle } = useUser();
+    const { user, profile, loading, signInWithGoogle, getTodayUsageCount, getTotalUsageCount } = useUser();
     const toast = useToast();
-    const [stats, setStats] = useState({
-        totalOperations: 0,
-        loading: true
-    });
-    const [guestStats, setGuestStats] = useState({ count: 0, total: 0 });
+    const [todayUsage, setTodayUsage] = useState<number>(0);
+    const [totalUsage, setTotalUsage] = useState<number>(0);
+    const [statsLoading, setStatsLoading] = useState(true);
 
     useEffect(() => {
         if (loading) return;
 
-        if (!user) {
-            // Load guest stats
-            try {
-                const stored = localStorage.getItem('guest_usage');
-                if (stored) {
-                    const parsed = JSON.parse(stored);
-                    const today = new Date().toISOString().split('T')[0];
-                    setGuestStats({
-                        count: parsed.date === today ? parsed.count : 0,
-                        total: parsed.total || 0
-                    });
-                }
-            } catch (e) {
-                console.error("Failed to load guest stats", e);
-            }
-            setStats(s => ({ ...s, loading: false }));
-            return;
-        }
-
         const fetchStats = async () => {
             try {
-                const historyRef = collection(db, 'users', user.uid, 'history');
-                const snapshot = await getCountFromServer(historyRef);
-                setStats({
-                    totalOperations: snapshot.data().count,
-                    loading: false
-                });
+                const [today, total] = await Promise.all([
+                    getTodayUsageCount(),
+                    getTotalUsageCount()
+                ]);
+                setTodayUsage(today);
+                setTotalUsage(total);
             } catch (error: any) {
                 console.error("Error fetching stats:", error);
-                if (error?.code === 'not-found' || error?.message?.includes('database (default) does not exist')) {
-                    toast.error("Firestore database not found. Please create it in Firebase Console.");
-                } else {
-                    toast.error("Failed to load usage stats.");
-                }
-                setStats(s => ({ ...s, loading: false }));
+                toast.error("Failed to load usage stats.");
+            } finally {
+                setStatsLoading(false);
             }
         };
 
@@ -122,7 +96,7 @@ export const Profile = () => {
                             <FaBolt style={{ color: '#eab308' }} />
                         </div>
                         <div style={{ fontSize: '2.5rem', fontWeight: 800 }}>
-                            {guestStats.count} <span style={{ fontSize: '1rem', color: 'var(--text-muted)' }}>/ 2</span>
+                            {todayUsage} <span style={{ fontSize: '1rem', color: 'var(--text-muted)' }}>/ 2</span>
                         </div>
                     </div>
                     <div style={{ backgroundColor: 'var(--bg-surface)', padding: '1.5rem', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-sm)' }}>
@@ -131,7 +105,7 @@ export const Profile = () => {
                             <FaHistory style={{ color: 'var(--color-primary)' }} />
                         </div>
                         <div style={{ fontSize: '2.5rem', fontWeight: 800 }}>
-                            {guestStats.total} <span style={{ fontSize: '1rem', color: 'var(--text-muted)' }}>Total Operations</span>
+                            {totalUsage} <span style={{ fontSize: '1rem', color: 'var(--text-muted)' }}>Total Operations</span>
                         </div>
                     </div>
                 </div>
@@ -208,7 +182,11 @@ export const Profile = () => {
                         <FaBolt style={{ color: '#eab308' }} />
                     </div>
                     <div style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--text-main)' }}>
-                        {profile.usage.count}
+                        {statsLoading ? (
+                            <span style={{ fontSize: '1.5rem', color: 'var(--text-muted)' }}>...</span>
+                        ) : (
+                            todayUsage
+                        )}
                         <span style={{ fontSize: '1rem', color: 'var(--text-muted)', fontWeight: 500 }}>
                             {isPro ? ' / Unlimited' : ' / 2'}
                         </span>
@@ -227,7 +205,11 @@ export const Profile = () => {
                         <FaHistory style={{ color: 'var(--color-primary)' }} />
                     </div>
                     <div style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--text-main)' }}>
-                        {profile.totalUsage || 0}
+                        {statsLoading ? (
+                            <span style={{ fontSize: '1.5rem', color: 'var(--text-muted)' }}>...</span>
+                        ) : (
+                            totalUsage
+                        )}
                         <span style={{ fontSize: '1rem', color: 'var(--text-muted)', fontWeight: 500, marginLeft: '0.5rem' }}>
                             Total Operations
                         </span>
@@ -278,6 +260,17 @@ export const Profile = () => {
                                     })()}
                                 </p>
                             </div>
+                        </div>
+                        <div style={{
+                            marginTop: '1rem',
+                            padding: '0.75rem',
+                            backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                            borderRadius: 'var(--radius-md)',
+                            border: '1px solid rgba(245, 158, 11, 0.3)'
+                        }}>
+                            <p style={{ fontSize: '0.8rem', color: '#f59e0b', margin: 0, fontWeight: 500 }}>
+                                ⚠️ No refunds or cancellations available for purchased plans.
+                            </p>
                         </div>
                     </div>
                 )}
