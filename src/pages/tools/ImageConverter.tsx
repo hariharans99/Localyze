@@ -4,16 +4,6 @@ import { useUser } from '../../contexts/UserContext';
 import { AdBanner } from '../../components/AdBanner';
 import { useToast } from '../../contexts/ToastContext';
 import { FaDownload, FaRandom } from 'react-icons/fa';
-import heic2any from 'heic2any';
-import UTIF from 'utif';
-
-// Add type definition for UTIF if missing
-// @ts-ignore
-const decodeTiff = UTIF.decode;
-// @ts-ignore
-const decodeImage = UTIF.decodeImage;
-// @ts-ignore
-const toRisTiff = UTIF.toRGBA8;
 
 import { ProgressBar } from '../../components/ProgressBar';
 
@@ -43,6 +33,7 @@ export const ImageConverter = () => {
 
         // Handle HEIC
         if (fileType === 'image/heic' || fileName.endsWith('.heic')) {
+            const heic2any = (await import('heic2any')).default;
             const blob = await heic2any({ blob: inputFile, toType: 'image/jpeg' });
             const convertedBlob = Array.isArray(blob) ? blob[0] : blob;
             return URL.createObjectURL(convertedBlob);
@@ -50,16 +41,18 @@ export const ImageConverter = () => {
 
         // Handle TIFF
         if (fileType === 'image/tiff' || fileName.endsWith('.tiff') || fileName.endsWith('.tif')) {
+            const UTIF = (await import('utif')).default;
+
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
                 reader.onload = (e) => {
                     try {
                         const buffer = e.target?.result as ArrayBuffer;
-                        const ifds = decodeTiff(buffer);
+                        const ifds = UTIF.decode(buffer);
                         if (ifds.length === 0) throw new Error("Invalid TIFF");
                         const ifd = ifds[0];
-                        decodeImage(buffer, ifd);
-                        const rgba = toRisTiff(ifd);
+                        UTIF.decodeImage(buffer, ifd);
+                        const rgba = UTIF.toRGBA8(ifd);
 
                         const canvas = document.createElement('canvas');
                         canvas.width = ifd.width;

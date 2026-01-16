@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react';
-import { jsPDF } from 'jspdf';
 import { FileUploader } from '../../components/FileUploader';
 import { useUser } from '../../contexts/UserContext';
 import { useToast } from '../../contexts/ToastContext';
@@ -68,6 +67,7 @@ export const ImageToPdf = () => {
         startTimeRef.current = Date.now();
 
         try {
+            const { jsPDF } = await import('jspdf');
             const doc = new jsPDF({
                 orientation: settings.orientation,
                 unit: 'mm',
