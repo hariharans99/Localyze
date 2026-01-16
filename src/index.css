@@ -25,6 +25,9 @@ button {
   cursor: pointer;
   border: none;
   background: none;
+  /* Touch-friendly minimum size */
+  min-height: 44px;
+  min-width: 44px;
 }
 
 /* Utilities */
@@ -32,6 +35,13 @@ button {
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 var(--spacing-md);
+}
+
+/* Mobile-optimized container spacing */
+@media (max-width: 768px) {
+  .container {
+    padding: 0 1rem;
+  }
 }
 
 .flex-center {
@@ -45,4 +55,29 @@ button {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+}
+
+/* Touch-friendly interactive elements */
+input[type="button"],
+input[type="submit"],
+input[type="reset"],
+.btn,
+a.tool-card {
+  min-height: 44px;
+  padding: 0.75rem 1.5rem;
+}
+
+/* Mobile typography adjustments */
+@media (max-width: 768px) {
+  h1 {
+    font-size: 2rem !important;
+  }
+  
+  h2 {
+    font-size: 1.5rem !important;
+  }
+  
+  h3 {
+    font-size: 1.25rem !important;
+  }
 }

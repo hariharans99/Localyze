@@ -36,9 +36,19 @@ export const Navbar = () => {
                     <span style={{ background: 'linear-gradient(to right, #6366f1, #a855f7)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Localyze</span>
                 </Link>
 
-                <div style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
-                    <Link to="/tools" style={{ color: 'var(--text-muted)', transition: 'color 0.2s' }}>Tools</Link>
-                    <Link to="/pricing" style={{ color: 'var(--text-muted)', transition: 'color 0.2s' }}>Pricing</Link>
+                <div style={{ display: 'flex', gap: 'clamp(0.5rem, 3vw, 2rem)', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <Link to="/tools" style={{
+                        color: 'var(--text-muted)',
+                        transition: 'color 0.2s',
+                        fontSize: 'clamp(0.9rem, 2vw, 1rem)',
+                        padding: '0.5rem'
+                    }}>Tools</Link>
+                    <Link to="/pricing" style={{
+                        color: 'var(--text-muted)',
+                        transition: 'color 0.2s',
+                        fontSize: 'clamp(0.9rem, 2vw, 1rem)',
+                        padding: '0.5rem'
+                    }}>Pricing</Link>
 
                     <button
                         onClick={toggleTheme}
@@ -49,7 +59,9 @@ export const Navbar = () => {
                             justifyContent: 'center',
                             padding: '0.5rem',
                             borderRadius: 'var(--radius-full)',
-                            transition: 'color 0.2s, background-color 0.2s'
+                            transition: 'color 0.2s, background-color 0.2s',
+                            minWidth: '44px',
+                            minHeight: '44px'
                         }}
                         onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-surface-hover)'}
                         onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
@@ -59,18 +71,26 @@ export const Navbar = () => {
                     </button>
 
                     {user ? (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                             {user.photoURL && (
                                 <Link to="/profile">
-                                    <img src={user.photoURL} alt="User" style={{ width: '32px', height: '32px', borderRadius: '50%', cursor: 'pointer', border: '2px solid var(--border-subtle)' }} />
+                                    <img src={user.photoURL} alt="User" style={{
+                                        width: '40px',
+                                        height: '40px',
+                                        borderRadius: '50%',
+                                        cursor: 'pointer',
+                                        border: '2px solid var(--border-subtle)'
+                                    }} />
                                 </Link>
                             )}
                             <button
                                 onClick={() => signOut()}
                                 style={{
                                     color: 'var(--text-muted)',
-                                    fontSize: '0.9rem',
-                                    fontWeight: 500
+                                    fontSize: 'clamp(0.85rem, 2vw, 0.9rem)',
+                                    fontWeight: 500,
+                                    padding: '0.5rem',
+                                    minHeight: '44px'
                                 }}>
                                 Sign Out
                             </button>
@@ -87,10 +107,12 @@ export const Navbar = () => {
                                 borderRadius: 'var(--radius-md)',
                                 color: 'var(--text-main)',
                                 fontWeight: 500,
-                                transition: 'background-color 0.2s, border-color 0.2s, color 0.2s'
+                                transition: 'background-color 0.2s, border-color 0.2s, color 0.2s',
+                                minHeight: '44px',
+                                fontSize: 'clamp(0.85rem, 2vw, 1rem)'
                             }}>
                                 <FaUserCircle />
-                                <span>Sign In</span>
+                                <span style={{ display: window.innerWidth < 480 ? 'none' : 'inline' }}>Sign In</span>
                             </button>
                         </Link>
                     )}

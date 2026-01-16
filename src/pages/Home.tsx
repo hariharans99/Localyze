@@ -38,24 +38,25 @@ export const Home = () => {
     ];
 
     return (
-        <div className="container" style={{ textAlign: 'center', margin: '4rem auto' }}>
+        <div className="container" style={{ textAlign: 'center', margin: '2rem auto', padding: '1rem' }}>
             <h1 style={{
-                fontSize: '3.5rem',
+                fontSize: 'clamp(2rem, 5vw, 3.5rem)',
                 fontWeight: 800,
                 lineHeight: 1.1,
-                marginBottom: '1.5rem',
+                marginBottom: '1rem',
                 letterSpacing: '-0.02em'
             }}>
                 <span className="text-gradient">Secure, Local</span> Image & PDF Tools
             </h1>
             <p style={{
-                fontSize: '1.25rem',
+                fontSize: 'clamp(1rem, 2.5vw, 1.25rem)',
                 color: 'var(--text-muted)',
-                marginBottom: '4rem',
+                marginBottom: '2rem',
                 lineHeight: 1.6,
                 maxWidth: '800px',
                 marginLeft: 'auto',
-                marginRight: 'auto'
+                marginRight: 'auto',
+                padding: '0 1rem'
             }}>
                 Compress, resize, and convert files entirely in your browser.
                 No server uploads, no privacy risks.
@@ -63,14 +64,14 @@ export const Home = () => {
 
             <div style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-                gap: '2rem',
-                alignItems: 'start'
+                gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
+                gap: 'clamp(1rem, 3vw, 2rem)',
+                alignItems: 'stretch'
             }}>
                 {tools.map(tool => (
                     <Link to={tool.path} key={tool.id} className="tool-card" style={{
                         backgroundColor: 'var(--bg-surface)',
-                        padding: '2rem',
+                        padding: 'clamp(1.5rem, 4vw, 2rem)',
                         borderRadius: 'var(--radius-lg)',
                         border: '1px solid var(--border-subtle)',
                         transition: 'transform 0.2s, box-shadow 0.2s',
@@ -78,7 +79,9 @@ export const Home = () => {
                         flexDirection: 'column',
                         alignItems: 'center',
                         textAlign: 'center',
-                        textDecoration: 'none'
+                        textDecoration: 'none',
+                        minHeight: '200px',
+                        justifyContent: 'center'
                     }}
                         onMouseEnter={(e) => {
                             e.currentTarget.style.transform = 'translateY(-5px)';
@@ -90,19 +93,33 @@ export const Home = () => {
                         }}
                     >
                         <div style={{
-                            fontSize: '2.5rem',
+                            fontSize: 'clamp(2rem, 5vw, 2.5rem)',
                             color: tool.color,
                             marginBottom: '1rem',
-                            padding: '1rem',
+                            padding: 'clamp(0.75rem, 2vw, 1rem)',
                             background: `rgba(${parseInt(tool.color.slice(1, 3), 16)}, ${parseInt(tool.color.slice(3, 5), 16)}, ${parseInt(tool.color.slice(5, 7), 16)}, 0.1)`,
-                            borderRadius: '50%'
+                            borderRadius: '50%',
+                            width: 'clamp(60px, 15vw, 80px)',
+                            height: 'clamp(60px, 15vw, 80px)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
                         }}>
                             {tool.icon}
                         </div>
-                        <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.5rem', color: 'var(--text-main)' }}>
+                        <h3 style={{
+                            fontSize: 'clamp(1.1rem, 3vw, 1.25rem)',
+                            fontWeight: 600,
+                            marginBottom: '0.5rem',
+                            color: 'var(--text-main)'
+                        }}>
                             {tool.name}
                         </h3>
-                        <p style={{ color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                        <p style={{
+                            color: 'var(--text-muted)',
+                            lineHeight: 1.5,
+                            fontSize: 'clamp(0.9rem, 2vw, 1rem)'
+                        }}>
                             {tool.desc}
                         </p>
                     </Link>
