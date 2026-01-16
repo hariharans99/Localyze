@@ -34,6 +34,14 @@ export const Home = () => {
             icon: <FaFilePdf />,
             path: '/tools/pdf',
             color: '#f59e0b'
+        },
+        {
+            id: 'compress-pdf',
+            name: 'PDF Compressor',
+            desc: 'Reduce PDF size for government portals (Rasterize).',
+            icon: <FaFilePdf />,
+            path: '/tools/compress-pdf',
+            color: '#ef4444'
         }
     ];
 

@@ -5,6 +5,8 @@ import { useToast } from '../../contexts/ToastContext';
 import { AdBanner } from '../../components/AdBanner';
 import { FaDownload, FaExpand } from 'react-icons/fa';
 
+import { ProgressBar } from '../../components/ProgressBar';
+
 export const ImageResizer = () => {
     const { checkLimit, incrementUsage } = useUser();
     const toast = useToast();
@@ -14,6 +16,9 @@ export const ImageResizer = () => {
     const [height, setHeight] = useState<number>(0);
     const [aspectRatio, setAspectRatio] = useState<number>(0);
     const [maintainAspect, setMaintainAspect] = useState(true);
+    const [isProcessing, setIsProcessing] = useState(false);
+    const [progress, setProgress] = useState(0);
+    const [estimatedTime, setEstimatedTime] = useState<number | undefined>(undefined);
 
     const handleFileSelect = (selectedFile: File | File[]) => {
         const file = Array.isArray(selectedFile) ? selectedFile[0] : selectedFile;
@@ -51,20 +56,43 @@ export const ImageResizer = () => {
         }
         if (!file) return;
 
+        setIsProcessing(true);
+        // Simulate start
+        setProgress(10);
+        setEstimatedTime(3);
+
         const img = new Image();
         img.src = URL.createObjectURL(file);
+
+        // Brief delay to let UI update
+        await new Promise(r => setTimeout(r, 100));
+        setProgress(30);
+        setEstimatedTime(2.5);
+
         img.onload = async () => {
             const canvas = document.createElement('canvas');
             canvas.width = width;
             canvas.height = height;
             const ctx = canvas.getContext('2d');
             if (ctx) {
+                // Simulate processing
+                setProgress(60);
+                setEstimatedTime(1.5);
+                await new Promise(r => setTimeout(r, 100));
+
                 ctx.drawImage(img, 0, 0, width, height);
                 const dataUrl = canvas.toDataURL(file.type);
+
+                setProgress(100);
+                setEstimatedTime(0.5);
+                await new Promise(r => setTimeout(r, 200));
+
                 setResizedImage(dataUrl);
                 await incrementUsage('resize');
                 toast.success("Image resized successfully!");
             }
+            setIsProcessing(false);
+            setProgress(0);
         };
     };
 
@@ -170,6 +198,10 @@ export const ImageResizer = () => {
                                 >
                                     <FaDownload /> Download Image
                                 </a>
+                            </div>
+                        ) : isProcessing ? (
+                            <div style={{ width: '100%' }}>
+                                <ProgressBar progress={progress} label="Resizing..." estimatedSeconds={estimatedTime} />
                             </div>
                         ) : (
                             <button

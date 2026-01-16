@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import imageCompression from 'browser-image-compression';
 import { FileUploader } from '../../components/FileUploader';
 import { useUser } from '../../contexts/UserContext';
 import { useToast } from '../../contexts/ToastContext';
 import { AdBanner } from '../../components/AdBanner';
 import { FaDownload, FaCog, FaRedo } from 'react-icons/fa';
+import { ProgressBar } from '../../components/ProgressBar';
 
 export const ImageCompressor = () => {
     const { checkLimit, incrementUsage } = useUser();
@@ -13,8 +14,10 @@ export const ImageCompressor = () => {
     const [compressedFile, setCompressedFile] = useState<File | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
     const [progress, setProgress] = useState(0);
+    const [estimatedTime, setEstimatedTime] = useState<number | undefined>(undefined);
+    const startTimeRef = useRef<number>(0);
     const [unit, setUnit] = useState<'MB' | 'KB'>('MB');
-    const [qualityPriority, setQualityPriority] = useState<'size' | 'color'>('color');
+    const [qualityPriority, setQualityPriority] = useState<'size' | 'color'>('size');
     const [showWarning, setShowWarning] = useState(false);
     const [options, setOptions] = useState({
         maxSizeMB: 1,
@@ -61,7 +64,7 @@ export const ImageCompressor = () => {
         }
 
         // If file is already smaller than target, skip compression
-        if (file.size / 1024 / 1024 <= targetSizeMB) {
+        if (file.size <= targetSizeBytes) {
             toast.info(`File is already ${(file.size / 1024 / 1024).toFixed(2)} MB, under your target of ${targetSizeMB} MB.`);
             setCompressedFile(file);
             return;
@@ -69,55 +72,95 @@ export const ImageCompressor = () => {
 
         setIsProcessing(true);
         setProgress(0);
+        setEstimatedTime(undefined);
+        startTimeRef.current = Date.now();
 
         try {
-            let compressed = file;
-            let attempt = 0;
-            const maxAttempts = 3;
+            let minQ = 0;
+            let maxQ = 1;
+            let bestBlob: File | null = null;
+            let bestSizeDiff = Infinity;
 
-            // Adjust strategy based on quality priority
-            const minQuality = qualityPriority === 'color' ? 0.7 : 0.5;
+            // Binary search iterations
+            const iterations = 7; // 2^7 = 128 possibilities, ~1% precision
 
-            // Iterative compression approach
-            while (attempt < maxAttempts) {
-                attempt++;
+            for (let i = 0; i < iterations; i++) {
+                const midQ = (minQ + maxQ) / 2;
 
-                // Adjust quality based on attempt and priority
-                const qualityFactor = attempt === 1 ? 1 : (attempt === 2 ? 0.85 : minQuality);
-                const adjustedMaxSize = targetSizeMB * qualityFactor;
+                // Update progress
+                setProgress(Math.round(((i + 1) / iterations) * 90));
+
+                // Update estimated time
+                if (i > 0) {
+                    const elapsed = (Date.now() - startTimeRef.current) / 1000;
+                    const avgTimePerIter = elapsed / i;
+                    const remaining = avgTimePerIter * (iterations - i);
+                    setEstimatedTime(remaining);
+                }
 
                 const compressOptions = {
                     ...options,
-                    maxSizeMB: adjustedMaxSize,
-                    fileType: qualityPriority === 'color' ? file.type : undefined, // Preserve format if color priority
-                    onProgress: (progress: number) => {
-                        setProgress(Math.round((attempt - 1) / maxAttempts * 100 + progress / maxAttempts));
-                    }
+                    maxSizeMB: options.alwaysKeepResolution ? undefined : targetSizeMB, // Only force size if we allow resizing
+                    maxWidthOrHeight: undefined,
+                    initialQuality: midQ,
+                    useWebWorker: true,
+                    fileType: qualityPriority === 'color' ? file.type : undefined
                 };
 
-                compressed = await imageCompression(compressed, compressOptions);
-
-                // Check if we're within tolerance
-                const tolerance = qualityPriority === 'color' ? 1.2 : 1.1; // More lenient if color priority
-                if (compressed.size <= targetSizeBytes * tolerance) {
-                    break;
+                // If asking for specific size but not keeping resolution, we might want to leverage the library's resizing
+                // But for pure quality tuning, we pass undefined maxSizeMB usually, unless we want the library to resize.
+                // To support "Proposed Solution" of quality search first:
+                if (options.alwaysKeepResolution) {
+                    compressOptions.maxSizeMB = 100; // Arbitrary high number to prevent resizing
                 }
 
-                // If still too large and we have more attempts, continue
-                if (attempt < maxAttempts) {
-                    setProgress(Math.round(attempt / maxAttempts * 100));
+                const compressed = await imageCompression(file, compressOptions);
+
+                // Check result
+                if (compressed.size <= targetSizeBytes) {
+                    // It fits! Can we go higher quality?
+                    // Store this as candidate
+                    if (targetSizeBytes - compressed.size < bestSizeDiff) {
+                        bestSizeDiff = targetSizeBytes - compressed.size;
+                        bestBlob = compressed;
+                    }
+                    minQ = midQ; // Try closer to max
+                } else {
+                    // Too big
+                    maxQ = midQ; // Need lower quality
                 }
+            }
+
+            // Fallback: If we couldn't find ANY solution that fits (bestBlob is null), 
+            // it means even at low quality (or maxQ being pushed down), we didn't fit.
+            // Or maybe our binary search never hit a "valid" spot.
+            // In that case, let's run one final pass with the library's aggressive resizing if allowed.
+            if (!bestBlob && !options.alwaysKeepResolution) {
+                const finalTryOptions = {
+                    ...options,
+                    maxSizeMB: targetSizeMB,
+                    useWebWorker: true,
+                    initialQuality: 0.5 // Start middle ground
+                };
+                bestBlob = await imageCompression(file, finalTryOptions);
+            } else if (!bestBlob) {
+                // Must return something, use minQ result
+                const finalTryOptions = { ...options, maxSizeMB: 100, initialQuality: minQ };
+                bestBlob = await imageCompression(file, finalTryOptions);
             }
 
             setProgress(100);
-            setCompressedFile(compressed);
-            await incrementUsage('compress');
+            if (bestBlob) {
+                setCompressedFile(bestBlob);
+                await incrementUsage('compress');
 
-            if (compressed.size <= targetSizeBytes * 1.2) {
-                toast.success("Image compressed successfully!");
-            } else {
-                toast.success(`Compressed to ${(compressed.size / 1024 / 1024).toFixed(2)} MB (close to ${targetSizeMB} MB target)`);
+                if (bestBlob.size <= targetSizeBytes * 1.05) {
+                    toast.success("Image compressed successfully!");
+                } else {
+                    toast.success(`Best effort: ${(bestBlob.size / 1024 / 1024).toFixed(2)} MB`);
+                }
             }
+
         } catch (error) {
             console.error(error);
             toast.error("Compression failed. Please try again.");
@@ -125,6 +168,9 @@ export const ImageCompressor = () => {
             setIsProcessing(false);
         }
     };
+
+    // Helper to calculate target size in MB for warning display
+    const getTargetSizeMB = () => unit === 'KB' ? options.maxSizeMB / 1024 : options.maxSizeMB;
 
     return (
         <div className="container" style={{ maxWidth: '800px' }}>
@@ -242,23 +288,23 @@ export const ImageCompressor = () => {
                                             <input
                                                 type="radio"
                                                 name="quality"
-                                                value="color"
-                                                checked={qualityPriority === 'color'}
-                                                onChange={() => setQualityPriority('color')}
-                                                style={{ cursor: 'pointer' }}
-                                            />
-                                            <span style={{ fontSize: '0.9rem' }}>Prefer Colors</span>
-                                        </label>
-                                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-                                            <input
-                                                type="radio"
-                                                name="quality"
                                                 value="size"
                                                 checked={qualityPriority === 'size'}
                                                 onChange={() => setQualityPriority('size')}
                                                 style={{ cursor: 'pointer' }}
                                             />
-                                            <span style={{ fontSize: '0.9rem' }}>Prefer Size</span>
+                                            <span style={{ fontSize: '0.9rem' }}>Prefer Size (Allows Format Change)</span>
+                                        </label>
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                                            <input
+                                                type="radio"
+                                                name="quality"
+                                                value="color"
+                                                checked={qualityPriority === 'color'}
+                                                onChange={() => setQualityPriority('color')}
+                                                style={{ cursor: 'pointer' }}
+                                            />
+                                            <span style={{ fontSize: '0.9rem' }}>Prefer Colors (Strict Format)</span>
                                         </label>
                                     </div>
                                 </div>
@@ -276,39 +322,20 @@ export const ImageCompressor = () => {
                                 color: 'var(--text-main)'
                             }}>
                                 <strong style={{ color: '#f59e0b', display: 'block', marginBottom: '0.25rem' }}>⚠️ Extreme Compression</strong>
-                                Your target size is very aggressive ({((options.maxSizeMB / (file.size / 1024 / 1024)) * 100).toFixed(1)}% of original).
+                                Your target size is very aggressive ({((getTargetSizeMB() / (file.size / 1024 / 1024)) * 100).toFixed(1)}% of original).
                                 {qualityPriority === 'color' ?
                                     ' Colors will be preserved but final size may be larger than target.' :
-                                    ' Expect significant color loss or grayscale conversion.'}
+                                    ' Expect significant usage of lossy compression.'}
                             </div>
                         )}
 
                         {isProcessing && (
                             <div style={{ marginBottom: '2rem' }}>
-                                <div style={{
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                    marginBottom: '0.5rem',
-                                    fontSize: '0.9rem',
-                                    color: 'var(--text-muted)'
-                                }}>
-                                    <span>Compressing...</span>
-                                    <span>{progress}%</span>
-                                </div>
-                                <div style={{
-                                    width: '100%',
-                                    height: '8px',
-                                    backgroundColor: 'var(--bg-surface-hover)',
-                                    borderRadius: 'var(--radius-md)',
-                                    overflow: 'hidden'
-                                }}>
-                                    <div style={{
-                                        width: `${progress}%`,
-                                        height: '100%',
-                                        backgroundColor: 'var(--color-primary)',
-                                        transition: 'width 0.3s ease'
-                                    }} />
-                                </div>
+                                <ProgressBar
+                                    progress={progress}
+                                    label="Compressing..."
+                                    estimatedSeconds={estimatedTime}
+                                />
                             </div>
                         )}
 
@@ -327,6 +354,22 @@ export const ImageCompressor = () => {
                                         (-{((1 - compressedFile.size / file.size) * 100).toFixed(0)}%)
                                     </span>
                                 </p>
+
+                                {compressedFile.size > getTargetSizeMB() * 1024 * 1024 * 1.2 && (
+                                    <div style={{
+                                        marginTop: '1rem',
+                                        marginBottom: '1rem',
+                                        padding: '0.75rem',
+                                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                                        borderRadius: 'var(--radius-md)',
+                                        fontSize: '0.9rem',
+                                        color: '#ef4444'
+                                    }}>
+                                        <strong>Target Missed:</strong> Could not compress to {getTargetSizeMB().toFixed(3)} MB while keeping resolution/format.
+                                        Try unchecking "Preserve Resolution" or "Prefer Colors".
+                                    </div>
+                                )}
+
                                 <a
                                     href={URL.createObjectURL(compressedFile)}
                                     download={`compressed-${file.name}`}

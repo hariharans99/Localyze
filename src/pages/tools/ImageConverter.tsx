@@ -15,6 +15,8 @@ const decodeImage = UTIF.decodeImage;
 // @ts-ignore
 const toRisTiff = UTIF.toRGBA8;
 
+import { ProgressBar } from '../../components/ProgressBar';
+
 export const ImageConverter = () => {
     const { checkLimit, incrementUsage, logActivity } = useUser();
     const { error, success } = useToast();
@@ -23,6 +25,8 @@ export const ImageConverter = () => {
     const [format, setFormat] = useState('image/jpeg');
     const [quality, setQuality] = useState(0.92);
     const [isProcessing, setIsProcessing] = useState(false);
+    const [progress, setProgress] = useState(0);
+    const [estimatedTime, setEstimatedTime] = useState<number | undefined>(undefined);
 
     const handleFileSelect = (selectedFile: File | File[]) => {
         if (Array.isArray(selectedFile)) {
@@ -89,10 +93,16 @@ export const ImageConverter = () => {
         if (!file) return;
 
         setIsProcessing(true);
+        // Step 1: Simulated "Reading"
+        setProgress(15);
+        setEstimatedTime(3);
+        await new Promise(r => setTimeout(r, 100));
 
         try {
             // 1. Get a standard image URL (process specialized formats first)
             const sourceUrl = await processFile(file);
+            setProgress(40);
+            setEstimatedTime(2.5);
 
             // 2. Load into Image object
             const img = new Image();
@@ -101,6 +111,8 @@ export const ImageConverter = () => {
                 img.onload = resolve;
                 img.onerror = reject;
             });
+            setProgress(60);
+            setEstimatedTime(2);
 
             // 3. Draw to canvas
             const canvas = document.createElement('canvas');
@@ -113,10 +125,21 @@ export const ImageConverter = () => {
                     ctx.fillStyle = '#FFFFFF';
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
                 }
+
+                // Simulate drawing delay
+                await new Promise(r => setTimeout(r, 100));
                 ctx.drawImage(img, 0, 0);
+                setProgress(80);
+                setEstimatedTime(1);
 
                 // 4. Export to target format
+                await new Promise(r => setTimeout(r, 100)); // Give UI time to paint 80%
                 const dataUrl = canvas.toDataURL(format, quality);
+
+                setProgress(100);
+                setEstimatedTime(0.5);
+                await new Promise(r => setTimeout(r, 200));
+
                 setConvertedImage(dataUrl);
                 await incrementUsage('convert');
                 logActivity('convert', `${getExtension(file.type)} -> ${format.split('/')[1]}`);
@@ -127,6 +150,7 @@ export const ImageConverter = () => {
             error("Failed to convert image");
         } finally {
             setIsProcessing(false);
+            setProgress(0);
         }
     };
 
@@ -281,22 +305,25 @@ export const ImageConverter = () => {
                                     <FaDownload /> Download Image
                                 </a>
                             </div>
+                        ) : isProcessing ? (
+                            <div style={{ width: '100%' }}>
+                                <ProgressBar progress={progress} label="Converting..." estimatedSeconds={estimatedTime} />
+                            </div>
                         ) : (
                             <button
                                 onClick={handleConvert}
-                                disabled={isProcessing}
                                 style={{
                                     width: '100%',
                                     padding: '1rem',
-                                    backgroundColor: isProcessing ? 'var(--bg-surface-hover)' : 'var(--color-primary)',
+                                    backgroundColor: 'var(--color-primary)',
                                     color: 'white',
                                     borderRadius: 'var(--radius-md)',
                                     fontWeight: 600,
                                     fontSize: '1rem',
-                                    cursor: isProcessing ? 'wait' : 'pointer'
+                                    cursor: 'pointer'
                                 }}
                             >
-                                {isProcessing ? 'Converting...' : 'Convert Now'}
+                                Convert Now
                             </button>
                         )}
                     </div>

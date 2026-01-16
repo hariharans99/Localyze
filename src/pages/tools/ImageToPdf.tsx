@@ -1,9 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { jsPDF } from 'jspdf';
 import { FileUploader } from '../../components/FileUploader';
 import { useUser } from '../../contexts/UserContext';
 import { useToast } from '../../contexts/ToastContext';
 import { FaDownload, FaTrash, FaArrowUp, FaArrowDown, FaCog } from 'react-icons/fa';
+
+import { ProgressBar } from '../../components/ProgressBar';
 
 interface PdfSettings {
     pageSize: 'a4' | 'fit';
@@ -17,6 +19,9 @@ export const ImageToPdf = () => {
     const [files, setFiles] = useState<File[]>([]);
     const [pdfUrl, setPdfUrl] = useState<string | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
+    const [progress, setProgress] = useState(0);
+    const [estimatedTime, setEstimatedTime] = useState<number | undefined>(undefined);
+    const startTimeRef = useRef<number>(0);
     const [settings, setSettings] = useState<PdfSettings>({
         pageSize: 'a4',
         orientation: 'p',
@@ -59,6 +64,8 @@ export const ImageToPdf = () => {
         }
         if (files.length === 0) return;
         setIsProcessing(true);
+        setEstimatedTime(undefined);
+        startTimeRef.current = Date.now();
 
         try {
             const doc = new jsPDF({
@@ -120,6 +127,17 @@ export const ImageToPdf = () => {
                     const y = margin + (maxHeight - finalHeight) / 2;
 
                     doc.addImage(img, 'JPEG', x, y, finalWidth, finalHeight);
+                    doc.addImage(img, 'JPEG', x, y, finalWidth, finalHeight);
+                }
+
+                setProgress(((i + 1) / files.length) * 100);
+
+                // Estimate time
+                if (i > 0) {
+                    const elapsed = (Date.now() - startTimeRef.current) / 1000;
+                    const avgTimePerImg = elapsed / (i + 1); // Using i+1 because we just finished one
+                    const remaining = avgTimePerImg * (files.length - (i + 1));
+                    setEstimatedTime(remaining);
                 }
             }
 
@@ -409,30 +427,40 @@ export const ImageToPdf = () => {
                                 Daily Limit Reached (2/2)
                             </div>
                         ) : (
-                            <button
-                                onClick={handleConvert}
-                                disabled={isProcessing}
-                                style={{
-                                    width: '100%',
-                                    padding: 'clamp(0.75rem, 2vw, 1rem)',
-                                    backgroundColor: isProcessing ? 'var(--bg-surface-hover)' : 'var(--color-primary)',
-                                    color: 'white',
-                                    borderRadius: 'var(--radius-md)',
-                                    fontWeight: 600,
-                                    fontSize: 'clamp(0.9rem, 2vw, 1rem)',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    gap: '0.5rem',
-                                    minHeight: '44px'
-                                }}
-                            >
-                                {isProcessing ? 'Generating...' : 'Create PDF'}
-                            </button>
+                            isProcessing ? (
+                                <div style={{ width: '100%' }}>
+                                    <ProgressBar
+                                        progress={progress}
+                                        label={`Processing image ${Math.ceil((progress / 100) * files.length)} of ${files.length}`}
+                                        estimatedSeconds={estimatedTime}
+                                    />
+                                </div>
+                            ) : (
+                                <button
+                                    onClick={handleConvert}
+                                    style={{
+                                        width: '100%',
+                                        padding: 'clamp(0.75rem, 2vw, 1rem)',
+                                        backgroundColor: 'var(--color-primary)',
+                                        color: 'white',
+                                        borderRadius: 'var(--radius-md)',
+                                        fontWeight: 600,
+                                        fontSize: 'clamp(0.9rem, 2vw, 1rem)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '0.5rem',
+                                        minHeight: '44px'
+                                    }}
+                                >
+                                    Create PDF
+                                </button>
+                            )
                         )}
                     </div>
                 </div>
-            )}
-        </div>
+            )
+            }
+        </div >
     );
 };
