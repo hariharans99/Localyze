@@ -5,6 +5,7 @@ import { Home } from './pages/Home';
 import { Login } from './pages/Login';
 import { Pricing } from './pages/Pricing';
 import { Profile } from './pages/Profile';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 // Lazy load heavy tool components
 const ImageCompressor = lazy(() => import('./pages/tools/ImageCompressor').then(module => ({ default: module.ImageCompressor })));
@@ -37,52 +38,54 @@ const LoadingSpinner = () => (
 function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Layout />}>
-          <Route index element={<Home />} />
-          <Route path="login" element={<Login />} />
-          <Route path="pricing" element={<Pricing />} />
-          <Route path="profile" element={<Profile />} />
-          <Route path="tools">
-            <Route index element={<Navigate to="/" replace />} />
-            <Route path="compress" element={
-              <Suspense fallback={<LoadingSpinner />}>
-                <ImageCompressor />
-              </Suspense>
-            } />
-            <Route path="resize" element={
-              <Suspense fallback={<LoadingSpinner />}>
-                <ImageResizer />
-              </Suspense>
-            } />
-            <Route path="convert" element={
-              <Suspense fallback={<LoadingSpinner />}>
-                <ImageConverter />
-              </Suspense>
-            } />
-            <Route path="pdf" element={
-              <Suspense fallback={<LoadingSpinner />}>
-                <ImageToPdf />
-              </Suspense>
-            } />
-            <Route path="compress-pdf" element={
-              <Suspense fallback={<LoadingSpinner />}>
-                <PdfCompressor />
-              </Suspense>
-            } />
-            <Route path="merge-pdf" element={
-              <Suspense fallback={<LoadingSpinner />}>
-                <PdfMerge />
-              </Suspense>
-            } />
-            <Route path="split-pdf" element={
-              <Suspense fallback={<LoadingSpinner />}>
-                <PdfSplit />
-              </Suspense>
-            } />
+      <ErrorBoundary>
+        <Routes>
+          <Route path="/" element={<Layout />}>
+            <Route index element={<Home />} />
+            <Route path="login" element={<Login />} />
+            <Route path="pricing" element={<Pricing />} />
+            <Route path="profile" element={<Profile />} />
+            <Route path="tools">
+              <Route index element={<Navigate to="/" replace />} />
+              <Route path="compress" element={
+                <Suspense fallback={<LoadingSpinner />}>
+                  <ImageCompressor />
+                </Suspense>
+              } />
+              <Route path="resize" element={
+                <Suspense fallback={<LoadingSpinner />}>
+                  <ImageResizer />
+                </Suspense>
+              } />
+              <Route path="convert" element={
+                <Suspense fallback={<LoadingSpinner />}>
+                  <ImageConverter />
+                </Suspense>
+              } />
+              <Route path="pdf" element={
+                <Suspense fallback={<LoadingSpinner />}>
+                  <ImageToPdf />
+                </Suspense>
+              } />
+              <Route path="compress-pdf" element={
+                <Suspense fallback={<LoadingSpinner />}>
+                  <PdfCompressor />
+                </Suspense>
+              } />
+              <Route path="merge-pdf" element={
+                <Suspense fallback={<LoadingSpinner />}>
+                  <PdfMerge />
+                </Suspense>
+              } />
+              <Route path="split-pdf" element={
+                <Suspense fallback={<LoadingSpinner />}>
+                  <PdfSplit />
+                </Suspense>
+              } />
+            </Route>
           </Route>
-        </Route>
-      </Routes>
+        </Routes>
+      </ErrorBoundary>
     </BrowserRouter>
   );
 }
