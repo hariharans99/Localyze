@@ -4,21 +4,23 @@ import { FileUploader } from '../../components/FileUploader';
 import { useUser } from '../../contexts/UserContext';
 import { useToast } from '../../contexts/ToastContext';
 import { AdBanner } from '../../components/AdBanner';
-import { FaDownload, FaCog, FaRedo } from 'react-icons/fa';
-import { ProgressBar } from '../../components/ProgressBar';
+import { FaDownload, FaCog, FaRedo, FaTrash, FaFileArchive } from 'react-icons/fa';
+import JSZip from 'jszip';
 
 export const ImageCompressor = () => {
     const { checkLimit, incrementUsage } = useUser();
     const toast = useToast();
-    const [file, setFile] = useState<File | null>(null);
-    const [compressedFile, setCompressedFile] = useState<File | null>(null);
-    const [isProcessing, setIsProcessing] = useState(false);
-    const [progress, setProgress] = useState(0);
-    const [estimatedTime, setEstimatedTime] = useState<number | undefined>(undefined);
-    const startTimeRef = useRef<number>(0);
-    const [unit, setUnit] = useState<'MB' | 'KB'>('MB');
-    const [qualityPriority, setQualityPriority] = useState<'size' | 'color'>('size');
-    const [showWarning, setShowWarning] = useState(false);
+
+    // Batch State
+    const [files, setFiles] = useState<File[]>([]);
+    const [compressedFiles, setCompressedFiles] = useState<{ [key: string]: Blob }>({});
+    const [processingStatus, setProcessingStatus] = useState<{ [key: string]: 'pending' | 'processing' | 'done' | 'error' }>({});
+    const [progressMap, setProgressMap] = useState<{ [key: string]: number }>({});
+    const [isGlobalProcessing, setIsGlobalProcessing] = useState(false);
+    const [globalEstimatedTime, setGlobalEstimatedTime] = useState<string>('');
+    const batchStartTimeRef = useRef<number>(0);
+
+    // Settings (Applied to all)
     const [options, setOptions] = useState({
         maxSizeMB: 1,
         useWebWorker: true,
@@ -27,203 +29,200 @@ export const ImageCompressor = () => {
         fileType: undefined as string | undefined
     });
 
-    const handleFileSelect = (selectedFile: File | File[]) => {
-        if (Array.isArray(selectedFile)) {
-            if (selectedFile.length > 0) setFile(selectedFile[0]);
-        } else {
-            setFile(selectedFile);
-        }
-        setCompressedFile(null);
-        setProgress(0);
+    const [unit, setUnit] = useState<'MB' | 'KB'>('MB');
+    const [qualityPriority, setQualityPriority] = useState<'size' | 'color'>('size');
+
+    // UI Helpers
+    const getFormattedSize = (sizeInBytes: number) => {
+        return (sizeInBytes / 1024 / 1024).toFixed(2) + ' MB';
     };
 
-    // handleReset removed as we do inline reset now
+    const handleFileSelect = (selectedFiles: File | File[]) => {
+        const newFiles = Array.isArray(selectedFiles) ? selectedFiles : [selectedFiles];
+        // Append new files
+        setFiles(prev => [...prev, ...newFiles]);
+        // Reset process states for new files
+        setProcessingStatus(prev => {
+            const next = { ...prev };
+            newFiles.forEach(f => next[f.name] = 'pending');
+            return next;
+        });
+    };
 
-    const handleCompress = async () => {
+    const removeFile = (fileName: string) => {
+        setFiles(prev => prev.filter(f => f.name !== fileName));
+        setCompressedFiles(prev => {
+            const next = { ...prev };
+            delete next[fileName];
+            return next;
+        });
+        setProcessingStatus(prev => {
+            const next = { ...prev };
+            delete next[fileName];
+            return next;
+        });
+    };
+
+    const handleReset = () => {
+        setFiles([]);
+        setCompressedFiles({});
+        setProcessingStatus({});
+        setProgressMap({});
+        // Reset settings
+        setOptions({
+            maxSizeMB: 1,
+            useWebWorker: true,
+            maxIteration: 50,
+            alwaysKeepResolution: false,
+            fileType: undefined
+        });
+        setUnit('MB');
+        setQualityPriority('size');
+    };
+
+    const compressSingleFile = async (file: File, onProgress?: (progress: number) => void) => {
+        setProcessingStatus(prev => ({ ...prev, [file.name]: 'processing' }));
+        setProgressMap(prev => ({ ...prev, [file.name]: 0 }));
+
+        try {
+            // Apply current settings
+            const currentOptions = {
+                ...options,
+                // If priority is color, strict type
+                fileType: qualityPriority === 'color' ? file.type : undefined
+            };
+
+            // Adjust max size relative to unit if needed (library takes MB)
+            if (unit === 'KB') {
+                currentOptions.maxSizeMB = options.maxSizeMB / 1024;
+            }
+
+            // Mock progress start
+            setProgressMap(prev => ({ ...prev, [file.name]: 10 }));
+            if (onProgress) onProgress(10);
+
+            const compressedBlob = await imageCompression(file, {
+                ...currentOptions,
+                onProgress: (p) => {
+                    setProgressMap(prev => ({ ...prev, [file.name]: p }));
+                    if (onProgress) onProgress(p);
+                }
+            });
+
+            setCompressedFiles(prev => ({ ...prev, [file.name]: compressedBlob }));
+            setProcessingStatus(prev => ({ ...prev, [file.name]: 'done' }));
+            await incrementUsage('compress');
+        } catch (error) {
+            console.error(`Error compressing ${file.name}:`, error);
+            setProcessingStatus(prev => ({ ...prev, [file.name]: 'error' }));
+            toast.error(`Failed to compress ${file.name}`);
+        }
+    };
+
+    const handleCompressAll = async () => {
         if (!checkLimit()) {
             toast.error("Daily limit reached! Please upgrade to continue.");
             return;
         }
 
-        if (!file) return;
+        setIsGlobalProcessing(true);
+        setGlobalEstimatedTime('Calculating...');
+        batchStartTimeRef.current = Date.now();
 
-        // Convert to MB based on selected unit
-        const targetSizeMB = unit === 'KB' ? options.maxSizeMB / 1024 : options.maxSizeMB;
-        const targetSizeBytes = targetSizeMB * 1024 * 1024;
+        const pendingFiles = files.filter(f => !compressedFiles[f.name]);
+        const totalBytes = pendingFiles.reduce((acc, f) => acc + f.size, 0);
+        let completedBytes = 0;
 
-        // Check if target is unrealistic (< 2% of original)
-        const compressionRatio = targetSizeBytes / file.size;
-        if (compressionRatio < 0.02) {
-            setShowWarning(true);
-        } else {
-            setShowWarning(false);
-        }
+        // Process sequentially
+        for (const file of pendingFiles) {
+            await compressSingleFile(file, (progress) => {
+                const currentFileBytes = (progress / 100) * file.size;
+                const totalProcessed = completedBytes + currentFileBytes;
+                const elapsed = (Date.now() - batchStartTimeRef.current) / 1000;
 
-        // If file is already smaller than target, skip compression
-        if (file.size <= targetSizeBytes) {
-            toast.info(`File is already ${(file.size / 1024 / 1024).toFixed(2)} MB, under your target of ${targetSizeMB} MB.`);
-            setCompressedFile(file);
-            return;
-        }
+                // Only update if we have meaningful progress and some time has passed to stabilize
+                if (elapsed > 0.5 && totalProcessed > 0) {
+                    const bytesPerSecond = totalProcessed / elapsed;
+                    const remainingBytes = totalBytes - totalProcessed;
+                    const remainingSeconds = remainingBytes / bytesPerSecond;
 
-        setIsProcessing(true);
-        setProgress(0);
-        setEstimatedTime(undefined);
-        startTimeRef.current = Date.now();
-
-        try {
-            let minQ = 0;
-            let maxQ = 1;
-            let bestBlob: File | null = null;
-            let bestSizeDiff = Infinity;
-
-            // Binary search iterations
-            const iterations = 7; // 2^7 = 128 possibilities, ~1% precision
-
-            for (let i = 0; i < iterations; i++) {
-                const midQ = (minQ + maxQ) / 2;
-
-                // Update progress
-                setProgress(Math.round(((i + 1) / iterations) * 90));
-
-                // Update estimated time
-                if (i > 0) {
-                    const elapsed = (Date.now() - startTimeRef.current) / 1000;
-                    const avgTimePerIter = elapsed / i;
-                    const remaining = avgTimePerIter * (iterations - i);
-                    setEstimatedTime(remaining);
-                }
-
-                const compressOptions = {
-                    ...options,
-                    maxSizeMB: options.alwaysKeepResolution ? undefined : targetSizeMB, // Only force size if we allow resizing
-                    maxWidthOrHeight: undefined,
-                    initialQuality: midQ,
-                    useWebWorker: true,
-                    fileType: qualityPriority === 'color' ? file.type : undefined
-                };
-
-                // If asking for specific size but not keeping resolution, we might want to leverage the library's resizing
-                // But for pure quality tuning, we pass undefined maxSizeMB usually, unless we want the library to resize.
-                // To support "Proposed Solution" of quality search first:
-                if (options.alwaysKeepResolution) {
-                    compressOptions.maxSizeMB = 100; // Arbitrary high number to prevent resizing
-                }
-
-                const compressed = await imageCompression(file, compressOptions);
-
-                // Check result
-                if (compressed.size <= targetSizeBytes) {
-                    // It fits! Can we go higher quality?
-                    // Store this as candidate
-                    if (targetSizeBytes - compressed.size < bestSizeDiff) {
-                        bestSizeDiff = targetSizeBytes - compressed.size;
-                        bestBlob = compressed;
+                    if (remainingSeconds > 60) {
+                        setGlobalEstimatedTime(`~${Math.ceil(remainingSeconds / 60)} min remaining`);
+                    } else {
+                        setGlobalEstimatedTime(`~${Math.ceil(remainingSeconds)}s remaining`);
                     }
-                    minQ = midQ; // Try closer to max
-                } else {
-                    // Too big
-                    maxQ = midQ; // Need lower quality
                 }
-            }
+            });
 
-            // Fallback: If we couldn't find ANY solution that fits (bestBlob is null), 
-            // it means even at low quality (or maxQ being pushed down), we didn't fit.
-            // Or maybe our binary search never hit a "valid" spot.
-            // In that case, let's run one final pass with the library's aggressive resizing if allowed.
-            if (!bestBlob && !options.alwaysKeepResolution) {
-                const finalTryOptions = {
-                    ...options,
-                    maxSizeMB: targetSizeMB,
-                    useWebWorker: true,
-                    initialQuality: 0.5 // Start middle ground
-                };
-                bestBlob = await imageCompression(file, finalTryOptions);
-            } else if (!bestBlob) {
-                // Must return something, use minQ result
-                const finalTryOptions = { ...options, maxSizeMB: 100, initialQuality: minQ };
-                bestBlob = await imageCompression(file, finalTryOptions);
-            }
-
-            setProgress(100);
-            if (bestBlob) {
-                setCompressedFile(bestBlob);
-                await incrementUsage('compress');
-
-                if (bestBlob.size <= targetSizeBytes * 1.05) {
-                    toast.success("Image compressed successfully!");
-                } else {
-                    toast.success(`Best effort: ${(bestBlob.size / 1024 / 1024).toFixed(2)} MB`);
-                }
-            }
-
-        } catch (error) {
-            console.error(error);
-            toast.error("Compression failed. Please try again.");
-        } finally {
-            setIsProcessing(false);
+            completedBytes += file.size;
         }
+
+        setIsGlobalProcessing(false);
+        setGlobalEstimatedTime('');
+        toast.success("Batch compression complete!");
     };
 
-    // Helper to calculate target size in MB for warning display
-    const getTargetSizeMB = () => unit === 'KB' ? options.maxSizeMB / 1024 : options.maxSizeMB;
+
+    const handleDownloadAll = async () => {
+        if (Object.keys(compressedFiles).length === 0) return;
+
+        const zip = new JSZip();
+        Object.entries(compressedFiles).forEach(([name, blob]) => {
+            zip.file(`compressed-${name}`, blob);
+        });
+
+        const content = await zip.generateAsync({ type: "blob" });
+        const url = URL.createObjectURL(content);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = "compressed-images.zip";
+        a.click();
+        URL.revokeObjectURL(url);
+    };
 
     return (
         <div className="container" style={{ maxWidth: '800px' }}>
             <h1 className="text-gradient" style={{ fontSize: '2rem', marginBottom: '2rem', textAlign: 'center' }}>
-                Image Compressor
+                Image Size Reducer
             </h1>
 
             <div style={{ marginBottom: '2rem' }}>
-                {!file ? (
-                    <FileUploader onFileSelect={handleFileSelect} accept="image/*" label="Upload Image to Compress" />
+                {files.length === 0 ? (
+                    <FileUploader
+                        onFileSelect={handleFileSelect}
+                        accept="image/*"
+                        label="Upload Images to Compress (Batch Supported)"
+                        multiple={true}
+                    />
                 ) : (
-                    <div style={{
-                        backgroundColor: 'var(--bg-surface)',
-                        padding: '2rem',
-                        borderRadius: 'var(--radius-lg)',
-                        border: '1px solid var(--border-subtle)'
-                    }}>
+                    <div className="bg-surface p-8 rounded-lg border border-subtle">
+                        {/* Header Controls */}
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                             <div>
-                                <h3 style={{ marginBottom: '0.5rem' }}>{file.name}</h3>
-                                <p style={{ color: 'var(--text-muted)' }}>Original Size: {(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                                <h3 style={{ marginBottom: '0.5rem' }}>{files.length} Images Selected</h3>
+                                <p style={{ color: 'var(--text-muted)' }}>Ready to process batch</p>
                             </div>
                             <div style={{ display: 'flex', gap: '1rem' }}>
                                 <button
-                                    onClick={() => document.getElementById('change-file-input')?.click()}
+                                    onClick={() => document.getElementById('add-more-input')?.click()}
                                     style={{ color: 'var(--color-accent)', fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer' }}
                                 >
-                                    Change File
+                                    + Add More
                                 </button>
                                 <input
-                                    id="change-file-input"
+                                    id="add-more-input"
                                     type="file"
                                     accept="image/*"
+                                    multiple
                                     onChange={(e) => {
                                         if (e.target.files?.length) {
-                                            handleFileSelect(e.target.files[0]);
-                                            // Reset progress/result but keep settings
-                                            setCompressedFile(null);
-                                            setProgress(0);
+                                            handleFileSelect(Array.from(e.target.files));
                                         }
                                     }}
                                     style={{ display: 'none' }}
                                 />
                                 <button
-                                    onClick={() => {
-                                        setCompressedFile(null);
-                                        setProgress(0);
-                                        setOptions({
-                                            maxSizeMB: 1,
-                                            useWebWorker: true,
-                                            maxIteration: 50,
-                                            alwaysKeepResolution: false,
-                                            fileType: undefined
-                                        });
-                                        setUnit('MB');
-                                        setQualityPriority('size');
-                                    }}
+                                    onClick={handleReset}
                                     style={{
                                         display: 'flex',
                                         alignItems: 'center',
@@ -235,215 +234,176 @@ export const ImageCompressor = () => {
                                         cursor: 'pointer'
                                     }}
                                 >
-                                    <FaRedo /> Reset Settings
+                                    <FaRedo /> Reset All
                                 </button>
                             </div>
                         </div>
 
-                        <div style={{ marginBottom: '2rem' }}>
+                        {/* Settings (Global) */}
+                        <div style={{ marginBottom: '2rem', backgroundColor: 'var(--bg-app)', padding: '1rem', borderRadius: 'var(--radius-md)' }}>
                             <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-                                <FaCog /> Compression Settings
+                                <FaCog /> Batch Settings
                             </h4>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1rem' }}>
-                                <div>
-                                    <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Max Size</label>
-                                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                        <span style={{ fontWeight: 500 }}>Target Size:</span>
                                         <input
                                             type="number"
+                                            min="0.1"
                                             step={unit === 'KB' ? "1" : "0.01"}
-                                            value={isNaN(options.maxSizeMB) ? '' : options.maxSizeMB}
-                                            onChange={(e) => {
-                                                const val = parseFloat(e.target.value);
-                                                setOptions({ ...options, maxSizeMB: isNaN(val) ? 0 : val });
-                                            }}
+                                            value={options.maxSizeMB}
+                                            onChange={(e) => setOptions({ ...options, maxSizeMB: parseFloat(e.target.value) })}
                                             style={{
-                                                flex: 1,
                                                 padding: '0.5rem',
+                                                width: '100px',
                                                 borderRadius: 'var(--radius-md)',
-                                                border: '1px solid var(--border-subtle)',
-                                                background: 'var(--bg-app)',
-                                                color: 'var(--text-main)'
+                                                border: '1px solid var(--border-subtle)'
                                             }}
                                         />
                                         <select
                                             value={unit}
-                                            onChange={(e) => {
-                                                const newUnit = e.target.value as 'MB' | 'KB';
-                                                // Convert value when switching units
-                                                if (newUnit === 'KB' && unit === 'MB') {
-                                                    setOptions({ ...options, maxSizeMB: options.maxSizeMB * 1024 });
-                                                } else if (newUnit === 'MB' && unit === 'KB') {
-                                                    setOptions({ ...options, maxSizeMB: options.maxSizeMB / 1024 });
-                                                }
-                                                setUnit(newUnit);
-                                            }}
+                                            onChange={(e) => setUnit(e.target.value as 'MB' | 'KB')}
                                             style={{
                                                 padding: '0.5rem',
                                                 borderRadius: 'var(--radius-md)',
                                                 border: '1px solid var(--border-subtle)',
-                                                background: 'var(--bg-app)',
-                                                color: 'var(--text-main)',
-                                                cursor: 'pointer'
+                                                backgroundColor: 'var(--bg-surface)'
                                             }}
                                         >
                                             <option value="MB">MB</option>
                                             <option value="KB">KB</option>
                                         </select>
                                     </div>
-                                </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                    <input
-                                        type="checkbox"
-                                        id="keepResolution"
-                                        checked={options.alwaysKeepResolution}
-                                        onChange={(e) => setOptions({ ...options, alwaysKeepResolution: e.target.checked })}
-                                        style={{ width: '1.2rem', height: '1.2rem', cursor: 'pointer' }}
-                                    />
-                                    <label htmlFor="keepResolution" style={{ fontSize: '0.9rem', cursor: 'pointer', userSelect: 'none' }}>
-                                        Preserve Resolution (Uncheck to allow resizing)
-                                    </label>
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Quality Priority</label>
-                                    <div style={{ display: 'flex', gap: '1rem' }}>
-                                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-                                            <input
-                                                type="radio"
-                                                name="quality"
-                                                value="size"
-                                                checked={qualityPriority === 'size'}
-                                                onChange={() => setQualityPriority('size')}
-                                                style={{ cursor: 'pointer' }}
-                                            />
-                                            <span style={{ fontSize: '0.9rem' }}>Prefer Size (Allows Format Change)</span>
-                                        </label>
-                                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-                                            <input
-                                                type="radio"
-                                                name="quality"
-                                                value="color"
-                                                checked={qualityPriority === 'color'}
-                                                onChange={() => setQualityPriority('color')}
-                                                style={{ cursor: 'pointer' }}
-                                            />
-                                            <span style={{ fontSize: '0.9rem' }}>Prefer Colors (Strict Format)</span>
+
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                        <input
+                                            type="checkbox"
+                                            id="keepResolution"
+                                            checked={options.alwaysKeepResolution}
+                                            onChange={(e) => setOptions({ ...options, alwaysKeepResolution: e.target.checked })}
+                                            style={{ width: '1.2rem', height: '1.2rem', cursor: 'pointer' }}
+                                        />
+                                        <label htmlFor="keepResolution" style={{ fontSize: '0.9rem', cursor: 'pointer', userSelect: 'none' }}>
+                                            Preserve Resolution
                                         </label>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        {showWarning && (
-                            <div style={{
-                                backgroundColor: 'rgba(245, 158, 11, 0.1)',
-                                border: '1px solid rgba(245, 158, 11, 0.4)',
-                                borderRadius: 'var(--radius-md)',
-                                padding: '1rem',
-                                marginBottom: '1rem',
-                                fontSize: '0.9rem',
-                                color: 'var(--text-main)'
-                            }}>
-                                <strong style={{ color: '#f59e0b', display: 'block', marginBottom: '0.25rem' }}>⚠️ Extreme Compression</strong>
-                                Your target size is very aggressive ({((getTargetSizeMB() / (file.size / 1024 / 1024)) * 100).toFixed(1)}% of original).
-                                {qualityPriority === 'color' ?
-                                    ' Colors will be preserved but final size may be larger than target.' :
-                                    ' Expect significant usage of lossy compression.'}
-                            </div>
-                        )}
+                        {/* File Iteration List */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem', maxHeight: '400px', overflowY: 'auto' }}>
+                            {files.map((file, idx) => {
+                                const status = processingStatus[file.name] || 'pending';
+                                const result = compressedFiles[file.name];
+                                const prog = progressMap[file.name] || 0;
 
-                        {isProcessing && (
-                            <div style={{ marginBottom: '2rem' }}>
-                                <ProgressBar
-                                    progress={progress}
-                                    label="Compressing..."
-                                    estimatedSeconds={estimatedTime}
-                                />
-                            </div>
-                        )}
-
-                        {compressedFile ? (
-                            <div style={{
-                                backgroundColor: 'rgba(99, 102, 241, 0.1)',
-                                padding: '1.5rem',
-                                borderRadius: 'var(--radius-md)',
-                                marginBottom: '2rem',
-                                border: '1px solid var(--color-primary)'
-                            }}>
-                                <h3 style={{ color: 'var(--color-primary)', marginBottom: '0.5rem' }}>Compression Complete!</h3>
-                                <p style={{ marginBottom: '1rem' }}>
-                                    New Size: {(compressedFile.size / 1024 / 1024).toFixed(2)} MB
-                                    <span style={{ marginLeft: '0.5rem', color: '#10b981', fontWeight: 600 }}>
-                                        (-{((1 - compressedFile.size / file.size) * 100).toFixed(0)}%)
-                                    </span>
-                                </p>
-
-                                {compressedFile.size > getTargetSizeMB() * 1024 * 1024 * 1.2 && (
-                                    <div style={{
-                                        marginTop: '1rem',
-                                        marginBottom: '1rem',
-                                        padding: '0.75rem',
-                                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                                        borderRadius: 'var(--radius-md)',
-                                        fontSize: '0.9rem',
-                                        color: '#ef4444'
+                                return (
+                                    <div key={idx} style={{
+                                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                        padding: '1rem', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)',
+                                        backgroundColor: 'var(--bg-surface)'
                                     }}>
-                                        <strong>Target Missed:</strong> Could not compress to {getTargetSizeMB().toFixed(3)} MB while keeping resolution/format.
-                                        Try unchecking "Preserve Resolution" or "Prefer Colors".
-                                    </div>
-                                )}
+                                        <div style={{ flex: 1 }}>
+                                            <div style={{ fontWeight: 500 }}>{file.name}</div>
+                                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                                                {getFormattedSize(file.size)}
+                                                {result && ` → ${getFormattedSize(result.size)} (${((result.size / file.size) * 100).toFixed(0)}%)`}
+                                            </div>
+                                            {status === 'processing' && (
+                                                <div style={{ height: '4px', background: 'var(--border-subtle)', marginTop: '0.5rem', borderRadius: '2px', width: '100%' }}>
+                                                    <div style={{ height: '100%', background: 'var(--color-primary)', width: `${prog}%`, borderRadius: '2px' }} />
+                                                </div>
+                                            )}
+                                        </div>
 
-                                <a
-                                    href={URL.createObjectURL(compressedFile)}
-                                    download={`compressed-${file.name}`}
-                                    style={{
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        gap: '0.5rem',
-                                        backgroundColor: 'var(--color-primary)',
-                                        color: 'white',
-                                        padding: '0.75rem 1.5rem',
-                                        borderRadius: 'var(--radius-md)',
-                                        fontWeight: 600,
-                                        textDecoration: 'none'
-                                    }}
-                                >
-                                    <FaDownload /> Download Image
-                                </a>
-                            </div>
-                        ) : (
+                                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                            {status === 'done' && result ? (
+                                                <a
+                                                    href={URL.createObjectURL(result)}
+                                                    download={`compressed-${file.name}`}
+                                                    style={{ color: '#10b981', cursor: 'pointer', fontSize: '1.2rem' }}
+                                                    title="Download"
+                                                >
+                                                    <FaDownload />
+                                                </a>
+                                            ) : status === 'error' ? (
+                                                <span style={{ color: '#ef4444' }}>Error</span>
+                                            ) : status === 'pending' || status === 'processing' ? (
+                                                <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                                                    {status === 'processing' ? `${prog}%` : 'Waiting'}
+                                                </span>
+                                            ) : null}
+
+                                            <button
+                                                onClick={() => removeFile(file.name)}
+                                                style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', marginLeft: '0.5rem' }}
+                                            >
+                                                <FaTrash />
+                                            </button>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+                        {/* Global Actions */}
+                        <div style={{ display: 'flex', gap: '1rem' }}>
                             <button
-                                onClick={handleCompress}
-                                disabled={isProcessing}
+                                onClick={handleCompressAll}
+                                disabled={isGlobalProcessing}
                                 style={{
-                                    width: '100%',
+                                    flex: 1,
                                     padding: '1rem',
-                                    backgroundColor: isProcessing ? 'var(--bg-surface-hover)' : 'var(--color-primary)',
+                                    backgroundColor: isGlobalProcessing ? 'var(--bg-surface-hover)' : 'var(--color-primary)',
                                     color: 'white',
                                     borderRadius: 'var(--radius-md)',
                                     fontWeight: 600,
                                     fontSize: '1rem',
-                                    cursor: isProcessing ? 'wait' : 'pointer',
-                                    border: 'none'
+                                    cursor: isGlobalProcessing ? 'wait' : 'pointer',
+                                    border: 'none',
+                                    display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem'
                                 }}
                             >
-                                {isProcessing ? 'Compressing...' : 'Compress Image Now'}
+                                {isGlobalProcessing ? `Processing... (${globalEstimatedTime})` : 'Compress All Images'}
                             </button>
-                        )}
+
+                            {Object.keys(compressedFiles).length > 0 && (
+                                <button
+                                    onClick={handleDownloadAll}
+                                    style={{
+                                        padding: '1rem',
+                                        backgroundColor: '#10b981',
+                                        color: 'white',
+                                        borderRadius: 'var(--radius-md)',
+                                        fontWeight: 600,
+                                        fontSize: '1rem',
+                                        cursor: 'pointer',
+                                        border: 'none',
+                                        display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem'
+                                    }}
+                                >
+                                    <FaFileArchive /> Download All (ZIP)
+                                </button>
+                            )}
+                        </div>
+
                     </div>
                 )}
             </div>
+
             <div style={{ marginTop: '3rem', backgroundColor: 'var(--bg-surface)', padding: '2rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-subtle)' }}>
                 <h3 style={{ marginBottom: '1rem', color: 'var(--text-main)' }}>How it Works</h3>
                 <ol style={{ paddingLeft: '1.5rem', color: 'var(--text-muted)', lineHeight: '1.8' }}>
-                    <li><strong>Upload Image:</strong> Select the photo you want to compress.</li>
-                    <li><strong>Set Targets:</strong> Choose a max file size (e.g., 200KB) and/or resolution preferences.</li>
-                    <li><strong>Smart Compression:</strong> Our algorithm balances quality and size to meet your target.</li>
-                    <li><strong>Review:</strong> See the new size and compression ratio instantly.</li>
-                    <li><strong>Download:</strong> Get your optimized image without uploading it to any server.</li>
+                    <li><strong>Upload Images</strong>: Select one or multiple images at once.</li>
+                    <li><strong>Adjust Settings</strong>: Set your target size (e.g., 0.5 MB). This applies to ALL selected images.</li>
+                    <li><strong>Process Batch</strong>: Click "Compress All". We process them one by one to save your memory.</li>
+                    <li><strong>Download</strong>: Download individual images or grab everything as a single ZIP file.</li>
                 </ol>
             </div>
 
             <AdBanner />
-        </div >
+        </div>
     );
 };
