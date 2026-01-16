@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { FaUserCircle, FaSun, FaMoon } from 'react-icons/fa';
+import { FaUserCircle, FaSun, FaMoon, FaSignOutAlt } from 'react-icons/fa';
 import { useUser } from '../contexts/UserContext';
 import { useTheme } from '../contexts/ThemeContext';
 
@@ -86,12 +86,17 @@ export const Navbar = () => {
                                 onClick={() => signOut()}
                                 style={{
                                     color: 'var(--text-muted)',
-                                    fontSize: 'clamp(0.85rem, 2vw, 0.9rem)',
-                                    fontWeight: 500,
+                                    fontSize: '1.2rem',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
                                     padding: '0.5rem',
-                                    minHeight: '44px'
-                                }}>
-                                Sign Out
+                                    minHeight: '44px',
+                                    minWidth: '44px'
+                                }}
+                                aria-label="Sign Out"
+                            >
+                                <FaSignOutAlt />
                             </button>
                         </div>
                     ) : (
