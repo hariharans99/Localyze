@@ -150,43 +150,88 @@ export const ImageToPdf = () => {
                     multiple={true}
                 />
             ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '2rem', alignItems: 'start' }}>
+                <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: window.innerWidth < 768 ? '1fr' : '2fr 1fr',
+                    gap: 'clamp(1rem, 3vw, 2rem)',
+                    alignItems: 'start'
+                }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                         {files.map((file, index) => (
                             <div key={index} style={{
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'space-between',
-                                padding: '1rem',
+                                padding: 'clamp(0.75rem, 2vw, 1rem)',
                                 backgroundColor: 'var(--bg-surface)',
                                 borderRadius: 'var(--radius-md)',
-                                border: '1px solid var(--border-subtle)'
+                                border: '1px solid var(--border-subtle)',
+                                gap: '0.5rem'
                             }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 'clamp(0.5rem, 2vw, 1rem)', flex: 1, minWidth: 0 }}>
                                     <span style={{
-                                        width: '24px',
-                                        height: '24px',
+                                        width: 'clamp(24px, 5vw, 32px)',
+                                        height: 'clamp(24px, 5vw, 32px)',
                                         borderRadius: '50%',
                                         backgroundColor: 'var(--bg-app)',
                                         color: 'var(--text-muted)',
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
-                                        fontSize: '0.8rem',
-                                        fontWeight: 600
+                                        fontSize: 'clamp(0.75rem, 2vw, 0.9rem)',
+                                        fontWeight: 600,
+                                        flexShrink: 0
                                     }}>{index + 1}</span>
-                                    <span style={{ fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '200px' }}>
+                                    <span style={{
+                                        fontWeight: 500,
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                        whiteSpace: 'nowrap',
+                                        fontSize: 'clamp(0.85rem, 2vw, 1rem)'
+                                    }}>
                                         {file.name}
                                     </span>
                                 </div>
-                                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                    <button onClick={() => moveFile(index, 'up')} disabled={index === 0} style={{ padding: '0.5rem', color: 'var(--text-muted)' }}>
+                                <div style={{ display: 'flex', gap: '0.25rem', flexShrink: 0 }}>
+                                    <button
+                                        onClick={() => moveFile(index, 'up')}
+                                        disabled={index === 0}
+                                        style={{
+                                            padding: 'clamp(0.5rem, 2vw, 0.75rem)',
+                                            color: 'var(--text-muted)',
+                                            minWidth: '44px',
+                                            minHeight: '44px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center'
+                                        }}>
                                         <FaArrowUp />
                                     </button>
-                                    <button onClick={() => moveFile(index, 'down')} disabled={index === files.length - 1} style={{ padding: '0.5rem', color: 'var(--text-muted)' }}>
+                                    <button
+                                        onClick={() => moveFile(index, 'down')}
+                                        disabled={index === files.length - 1}
+                                        style={{
+                                            padding: 'clamp(0.5rem, 2vw, 0.75rem)',
+                                            color: 'var(--text-muted)',
+                                            minWidth: '44px',
+                                            minHeight: '44px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center'
+                                        }}>
                                         <FaArrowDown />
                                     </button>
-                                    <button onClick={() => removeFile(index)} style={{ padding: '0.5rem', color: '#ef4444' }}>
+                                    <button
+                                        onClick={() => removeFile(index)}
+                                        style={{
+                                            padding: 'clamp(0.5rem, 2vw, 0.75rem)',
+                                            color: '#ef4444',
+                                            minWidth: '44px',
+                                            minHeight: '44px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center'
+                                        }}>
                                         <FaTrash />
                                     </button>
                                 </div>
@@ -194,18 +239,18 @@ export const ImageToPdf = () => {
                         ))}
                         <button
                             onClick={() => {
-                                // Trigger file input again - simplistic approach or add distinct button
-                                // For now, let's just show a small uploader or button
                                 document.getElementById('add-more-input')?.click();
                             }}
                             style={{
-                                padding: '1rem',
+                                padding: 'clamp(0.75rem, 2vw, 1rem)',
                                 border: '2px dashed var(--border-subtle)',
                                 borderRadius: 'var(--radius-md)',
                                 color: 'var(--text-muted)',
                                 backgroundColor: 'var(--bg-surface)',
                                 cursor: 'pointer',
-                                textAlign: 'center'
+                                textAlign: 'center',
+                                minHeight: '44px',
+                                fontSize: 'clamp(0.9rem, 2vw, 1rem)'
                             }}
                         >
                             + Add More Images
@@ -222,28 +267,41 @@ export const ImageToPdf = () => {
 
                     <div style={{
                         backgroundColor: 'var(--bg-surface)',
-                        padding: '1.5rem',
+                        padding: 'clamp(1rem, 3vw, 1.5rem)',
                         borderRadius: 'var(--radius-lg)',
                         border: '1px solid var(--border-subtle)',
-                        top: '80px',
-                        position: 'sticky'
+                        top: window.innerWidth < 768 ? '0' : '80px',
+                        position: window.innerWidth < 768 ? 'relative' : 'sticky'
                     }}>
-                        <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem' }}>
+                        <h3 style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            marginBottom: '1.5rem',
+                            fontSize: 'clamp(1rem, 3vw, 1.25rem)'
+                        }}>
                             <FaCog /> PDF Settings
                         </h3>
 
                         <div style={{ marginBottom: '1.5rem' }}>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Page Size</label>
+                            <label style={{
+                                display: 'block',
+                                marginBottom: '0.5rem',
+                                fontWeight: 500,
+                                fontSize: 'clamp(0.9rem, 2vw, 1rem)'
+                            }}>Page Size</label>
                             <select
                                 value={settings.pageSize}
                                 onChange={(e) => setSettings({ ...settings, pageSize: e.target.value as any })}
                                 style={{
                                     width: '100%',
-                                    padding: '0.75rem',
+                                    padding: 'clamp(0.5rem, 2vw, 0.75rem)',
                                     borderRadius: 'var(--radius-md)',
                                     border: '1px solid var(--border-subtle)',
                                     backgroundColor: 'var(--bg-app)',
-                                    color: 'var(--text-main)'
+                                    color: 'var(--text-main)',
+                                    fontSize: 'clamp(0.9rem, 2vw, 1rem)',
+                                    minHeight: '44px'
                                 }}
                             >
                                 <option value="a4">A4 (Standard PDF)</option>
@@ -252,17 +310,24 @@ export const ImageToPdf = () => {
                         </div>
 
                         <div style={{ marginBottom: '1.5rem' }}>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Orientation</label>
+                            <label style={{
+                                display: 'block',
+                                marginBottom: '0.5rem',
+                                fontWeight: 500,
+                                fontSize: 'clamp(0.9rem, 2vw, 1rem)'
+                            }}>Orientation</label>
                             <div style={{ display: 'flex', gap: '0.5rem' }}>
                                 <button
                                     onClick={() => setSettings({ ...settings, orientation: 'p' })}
                                     style={{
                                         flex: 1,
-                                        padding: '0.75rem',
+                                        padding: 'clamp(0.5rem, 2vw, 0.75rem)',
                                         borderRadius: 'var(--radius-md)',
                                         border: `1px solid ${settings.orientation === 'p' ? 'var(--color-primary)' : 'var(--border-subtle)'}`,
                                         backgroundColor: settings.orientation === 'p' ? 'var(--color-primary)' : 'var(--bg-app)',
-                                        color: settings.orientation === 'p' ? 'white' : 'var(--text-main)'
+                                        color: settings.orientation === 'p' ? 'white' : 'var(--text-main)',
+                                        minHeight: '44px',
+                                        fontSize: 'clamp(0.85rem, 2vw, 1rem)'
                                     }}
                                 >
                                     Portrait
@@ -271,11 +336,13 @@ export const ImageToPdf = () => {
                                     onClick={() => setSettings({ ...settings, orientation: 'l' })}
                                     style={{
                                         flex: 1,
-                                        padding: '0.75rem',
+                                        padding: 'clamp(0.5rem, 2vw, 0.75rem)',
                                         borderRadius: 'var(--radius-md)',
                                         border: `1px solid ${settings.orientation === 'l' ? 'var(--color-primary)' : 'var(--border-subtle)'}`,
                                         backgroundColor: settings.orientation === 'l' ? 'var(--color-primary)' : 'var(--bg-app)',
-                                        color: settings.orientation === 'l' ? 'white' : 'var(--text-main)'
+                                        color: settings.orientation === 'l' ? 'white' : 'var(--text-main)',
+                                        minHeight: '44px',
+                                        fontSize: 'clamp(0.85rem, 2vw, 1rem)'
                                     }}
                                 >
                                     Landscape
@@ -284,7 +351,12 @@ export const ImageToPdf = () => {
                         </div>
 
                         <div style={{ marginBottom: '2rem' }}>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Margin (mm): {settings.margin}</label>
+                            <label style={{
+                                display: 'block',
+                                marginBottom: '0.5rem',
+                                fontWeight: 500,
+                                fontSize: 'clamp(0.9rem, 2vw, 1rem)'
+                            }}>Margin (mm): {settings.margin}</label>
                             <input
                                 type="range"
                                 min="0"
@@ -292,7 +364,11 @@ export const ImageToPdf = () => {
                                 value={settings.margin}
                                 onChange={(e) => setSettings({ ...settings, margin: parseInt(e.target.value) })}
                                 disabled={settings.pageSize === 'fit'}
-                                style={{ width: '100%', accentColor: 'var(--color-primary)' }}
+                                style={{
+                                    width: '100%',
+                                    accentColor: 'var(--color-primary)',
+                                    minHeight: '44px'
+                                }}
                             />
                         </div>
 
@@ -307,10 +383,12 @@ export const ImageToPdf = () => {
                                     gap: '0.5rem',
                                     backgroundColor: 'var(--color-primary)',
                                     color: 'white',
-                                    padding: '1rem',
+                                    padding: 'clamp(0.75rem, 2vw, 1rem)',
                                     borderRadius: 'var(--radius-md)',
                                     fontWeight: 600,
-                                    textDecoration: 'none'
+                                    textDecoration: 'none',
+                                    minHeight: '44px',
+                                    fontSize: 'clamp(0.9rem, 2vw, 1rem)'
                                 }}
                             >
                                 <FaDownload /> Download PDF
@@ -318,14 +396,15 @@ export const ImageToPdf = () => {
                         ) : !checkLimit() ? (
                             <div style={{
                                 width: '100%',
-                                padding: '1rem',
+                                padding: 'clamp(0.75rem, 2vw, 1rem)',
                                 backgroundColor: 'rgba(239, 68, 68, 0.1)',
                                 color: '#ef4444',
                                 borderRadius: 'var(--radius-md)',
                                 fontWeight: 600,
-                                fontSize: '1rem',
+                                fontSize: 'clamp(0.9rem, 2vw, 1rem)',
                                 textAlign: 'center',
-                                border: '1px solid #ef4444'
+                                border: '1px solid #ef4444',
+                                minHeight: '44px'
                             }}>
                                 Daily Limit Reached (2/2)
                             </div>
@@ -335,16 +414,17 @@ export const ImageToPdf = () => {
                                 disabled={isProcessing}
                                 style={{
                                     width: '100%',
-                                    padding: '1rem',
+                                    padding: 'clamp(0.75rem, 2vw, 1rem)',
                                     backgroundColor: isProcessing ? 'var(--bg-surface-hover)' : 'var(--color-primary)',
                                     color: 'white',
                                     borderRadius: 'var(--radius-md)',
                                     fontWeight: 600,
-                                    fontSize: '1rem',
+                                    fontSize: 'clamp(0.9rem, 2vw, 1rem)',
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
-                                    gap: '0.5rem'
+                                    gap: '0.5rem',
+                                    minHeight: '44px'
                                 }}
                             >
                                 {isProcessing ? 'Generating...' : 'Create PDF'}
