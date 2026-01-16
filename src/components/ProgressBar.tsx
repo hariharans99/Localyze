@@ -29,12 +29,15 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
         const interval = setInterval(() => {
             setTimeLeft(prev => {
                 if (prev === undefined || prev <= 0) return 0;
+                // If progress is not complete (less than 99 to be safe), don't go below 1s
+                // We use 99 because floating point progress might be 99.999
+                if (progress < 99 && prev <= 1) return 1;
                 return Math.max(0, prev - 1);
             });
         }, 1000);
 
         return () => clearInterval(interval);
-    }, [timeLeft]);
+    }, [timeLeft, progress]);
 
     const formatTime = (seconds: number) => {
         if (seconds < 60) return `${Math.ceil(seconds)}s`;

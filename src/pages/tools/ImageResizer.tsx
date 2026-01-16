@@ -62,7 +62,6 @@ export const ImageResizer = () => {
         setEstimatedTime(3);
 
         const img = new Image();
-        img.src = URL.createObjectURL(file);
 
         // Brief delay to let UI update
         await new Promise(r => setTimeout(r, 100));
@@ -94,6 +93,14 @@ export const ImageResizer = () => {
             setIsProcessing(false);
             setProgress(0);
         };
+
+        img.onerror = () => {
+            toast.error("Failed to load image");
+            setIsProcessing(false);
+            setProgress(0);
+        };
+
+        img.src = URL.createObjectURL(file);
     };
 
     return (
@@ -129,6 +136,36 @@ export const ImageResizer = () => {
                             <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
                                 <FaExpand /> Resize Dimensions
                             </h4>
+                            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+                                {[
+                                    { w: 1920, h: 1080, label: '1080p' },
+                                    { w: 1280, h: 720, label: '720p' },
+                                    { w: 3840, h: 2160, label: '4K' },
+                                ].map(preset => (
+                                    <button
+                                        key={preset.label}
+                                        onClick={() => {
+                                            setWidth(preset.w);
+                                            setHeight(preset.h);
+                                            // If maintaining aspect, we should probably update the ratio to match this preset
+                                            if (maintainAspect) {
+                                                setAspectRatio(preset.w / preset.h);
+                                            }
+                                        }}
+                                        style={{
+                                            padding: '0.25rem 0.75rem',
+                                            fontSize: '0.8rem',
+                                            backgroundColor: 'var(--bg-surface-hover)',
+                                            border: '1px solid var(--border-subtle)',
+                                            borderRadius: 'var(--radius-full)',
+                                            cursor: 'pointer',
+                                            color: 'var(--text-main)'
+                                        }}
+                                    >
+                                        {preset.label}
+                                    </button>
+                                ))}
+                            </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
                                 <div>
                                     <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Width (px)</label>
@@ -167,7 +204,21 @@ export const ImageResizer = () => {
                                 <input
                                     type="checkbox"
                                     checked={maintainAspect}
-                                    onChange={(e) => setMaintainAspect(e.target.checked)}
+                                    onChange={(e) => {
+                                        const isChecked = e.target.checked;
+                                        setMaintainAspect(isChecked);
+                                        if (isChecked && width > 0 && height > 0) {
+                                            // If checking the box, lock the CURRENT aspect ratio, 
+                                            // not necessarily the original image's. 
+                                            // This allows users to type "1280x720", check the box, and keep 16:9.
+                                            setAspectRatio(width / height);
+                                        } else if (!isChecked && file) {
+                                            // Optional: If unchecking, maybe reset to original image ratio? 
+                                            // Or just leave it detached.
+                                            // If they re-check, it will recapture current.
+                                            // But for correctness, if they uncheck, modify w/h freely.
+                                        }
+                                    }}
                                 />
                                 <span>Maintain Aspect Ratio</span>
                             </label>
