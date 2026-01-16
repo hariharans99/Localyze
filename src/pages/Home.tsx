@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { FaImage, FaFilePdf, FaExpandArrowsAlt, FaRandom } from 'react-icons/fa';
+import { FaImage, FaFilePdf, FaExpandArrowsAlt, FaRandom, FaCut, FaLayerGroup } from 'react-icons/fa';
 
 export const Home = () => {
     const tools = [
@@ -42,6 +42,22 @@ export const Home = () => {
             icon: <FaFilePdf />,
             path: '/tools/compress-pdf',
             color: '#ef4444'
+        },
+        {
+            id: 'merge-pdf',
+            name: 'Merge PDF',
+            desc: 'Combine multiple PDFs into one document.',
+            icon: <FaLayerGroup />,
+            path: '/tools/merge-pdf',
+            color: '#8b5cf6'
+        },
+        {
+            id: 'split-pdf',
+            name: 'Split PDF',
+            desc: 'Extract specific pages from a PDF.',
+            icon: <FaCut />,
+            path: '/tools/split-pdf',
+            color: '#06b6d4'
         }
     ];
 
