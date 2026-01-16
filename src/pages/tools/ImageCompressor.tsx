@@ -37,11 +37,7 @@ export const ImageCompressor = () => {
         setProgress(0);
     };
 
-    const handleReset = () => {
-        setFile(null);
-        setCompressedFile(null);
-        setProgress(0);
-    };
+    // handleReset removed as we do inline reset now
 
     const handleCompress = async () => {
         if (!checkLimit()) {
@@ -195,13 +191,39 @@ export const ImageCompressor = () => {
                             </div>
                             <div style={{ display: 'flex', gap: '1rem' }}>
                                 <button
-                                    onClick={() => setFile(null)}
+                                    onClick={() => document.getElementById('change-file-input')?.click()}
                                     style={{ color: 'var(--color-accent)', fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer' }}
                                 >
                                     Change File
                                 </button>
+                                <input
+                                    id="change-file-input"
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={(e) => {
+                                        if (e.target.files?.length) {
+                                            handleFileSelect(e.target.files[0]);
+                                            // Reset progress/result but keep settings
+                                            setCompressedFile(null);
+                                            setProgress(0);
+                                        }
+                                    }}
+                                    style={{ display: 'none' }}
+                                />
                                 <button
-                                    onClick={handleReset}
+                                    onClick={() => {
+                                        setCompressedFile(null);
+                                        setProgress(0);
+                                        setOptions({
+                                            maxSizeMB: 1,
+                                            useWebWorker: true,
+                                            maxIteration: 50,
+                                            alwaysKeepResolution: false,
+                                            fileType: undefined
+                                        });
+                                        setUnit('MB');
+                                        setQualityPriority('size');
+                                    }}
                                     style={{
                                         display: 'flex',
                                         alignItems: 'center',
@@ -213,7 +235,7 @@ export const ImageCompressor = () => {
                                         cursor: 'pointer'
                                     }}
                                 >
-                                    <FaRedo /> Reset
+                                    <FaRedo /> Reset Settings
                                 </button>
                             </div>
                         </div>
@@ -410,7 +432,18 @@ export const ImageCompressor = () => {
                     </div>
                 )}
             </div>
+            <div style={{ marginTop: '3rem', backgroundColor: 'var(--bg-surface)', padding: '2rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-subtle)' }}>
+                <h3 style={{ marginBottom: '1rem', color: 'var(--text-main)' }}>How it Works</h3>
+                <ol style={{ paddingLeft: '1.5rem', color: 'var(--text-muted)', lineHeight: '1.8' }}>
+                    <li><strong>Upload Image:</strong> Select the photo you want to compress.</li>
+                    <li><strong>Set Targets:</strong> Choose a max file size (e.g., 200KB) and/or resolution preferences.</li>
+                    <li><strong>Smart Compression:</strong> Our algorithm balances quality and size to meet your target.</li>
+                    <li><strong>Review:</strong> See the new size and compression ratio instantly.</li>
+                    <li><strong>Download:</strong> Get your optimized image without uploading it to any server.</li>
+                </ol>
+            </div>
+
             <AdBanner />
-        </div>
+        </div >
     );
 };

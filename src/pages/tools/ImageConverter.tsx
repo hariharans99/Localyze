@@ -200,12 +200,39 @@ export const ImageConverter = () => {
                                 <h3 style={{ marginBottom: '0.5rem' }}>{file.name}</h3>
                                 <p style={{ color: 'var(--text-muted)' }}>Original: {file.type || getExtension(file.name).toUpperCase()}</p>
                             </div>
-                            <button
-                                onClick={() => setFile(null)}
-                                style={{ color: 'var(--color-accent)', fontWeight: 500 }}
-                            >
-                                Change File
-                            </button>
+                            <div style={{ display: 'flex', gap: '1rem' }}>
+                                <button
+                                    onClick={() => document.getElementById('change-file-input')?.click()}
+                                    style={{ color: 'var(--color-accent)', fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer' }}
+                                >
+                                    Change File
+                                </button>
+                                <input
+                                    id="change-file-input"
+                                    type="file"
+                                    accept="image/*,.heic,.heif,.avif,.tiff,.tif"
+                                    onChange={(e) => {
+                                        if (e.target.files?.length) {
+                                            handleFileSelect(e.target.files[0]);
+                                            setConvertedImage(null);
+                                            setProgress(0);
+                                        }
+                                    }}
+                                    style={{ display: 'none' }}
+                                />
+                                <button
+                                    onClick={() => {
+                                        setConvertedImage(null);
+                                        setProgress(0);
+                                        // Reset settings
+                                        setFormat('image/jpeg');
+                                        setQuality(0.92);
+                                    }}
+                                    style={{ color: 'var(--text-muted)', fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer' }}
+                                >
+                                    Reset Settings
+                                </button>
+                            </div>
                         </div>
 
                         <div style={{ marginBottom: '2rem', backgroundColor: 'var(--bg-app)', padding: '1.5rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
@@ -330,7 +357,18 @@ export const ImageConverter = () => {
                 )}
             </div>
 
+            <div style={{ marginTop: '3rem', backgroundColor: 'var(--bg-surface)', padding: '2rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-subtle)' }}>
+                <h3 style={{ marginBottom: '1rem', color: 'var(--text-main)' }}>How it Works</h3>
+                <ol style={{ paddingLeft: '1.5rem', color: 'var(--text-muted)', lineHeight: '1.8' }}>
+                    <li><strong>Upload Image:</strong> Support for PNG, JPG, WebP, TIFF, HEIC, AVIF, and more.</li>
+                    <li><strong>Select Format:</strong> Choose your desired output format (JPEG, PNG, WebP, etc.).</li>
+                    <li><strong>Adjust Quality:</strong> For some formats like JPEG/WebP, you can tune the quality slider.</li>
+                    <li><strong>Convert:</strong> We process the image locally in your browser.</li>
+                    <li><strong>Download:</strong> Save the converted image immediately.</li>
+                </ol>
+            </div>
+
             <AdBanner />
-        </div>
+        </div >
     );
 };

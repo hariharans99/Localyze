@@ -124,12 +124,51 @@ export const ImageResizer = () => {
                                 <h3 style={{ marginBottom: '0.5rem' }}>{file.name}</h3>
                                 <p style={{ color: 'var(--text-muted)' }}>Original: {(file.size / 1024 / 1024).toFixed(2)} MB</p>
                             </div>
-                            <button
-                                onClick={() => setFile(null)}
-                                style={{ color: 'var(--color-accent)', fontWeight: 500 }}
-                            >
-                                Change File
-                            </button>
+                            <div style={{ display: 'flex', gap: '1rem' }}>
+                                <button
+                                    onClick={() => document.getElementById('change-file-input')?.click()}
+                                    style={{ color: 'var(--color-accent)', fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer' }}
+                                >
+                                    Change File
+                                </button>
+                                <input
+                                    id="change-file-input"
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={(e) => {
+                                        if (e.target.files?.length) {
+                                            handleFileSelect(e.target.files[0]);
+                                            // Reset result but keep settings? 
+                                            // Usually change file implies keeping the workflow.
+                                            // But for Resizer, new image might have different dims.
+                                            // handleFileSelect recalculates dims automatically.
+                                            setResizedImage(null);
+                                            setProgress(0);
+                                        }
+                                    }}
+                                    style={{ display: 'none' }}
+                                />
+                                <button
+                                    onClick={() => {
+                                        setResizedImage(null);
+                                        setProgress(0);
+                                        // Restore original dimensions
+                                        if (file) {
+                                            const img = new Image();
+                                            img.src = URL.createObjectURL(file);
+                                            img.onload = () => {
+                                                setWidth(img.width);
+                                                setHeight(img.height);
+                                                setAspectRatio(img.width / img.height);
+                                            };
+                                        }
+                                        setMaintainAspect(true);
+                                    }}
+                                    style={{ color: 'var(--text-muted)', fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer' }}
+                                >
+                                    Reset Settings
+                                </button>
+                            </div>
                         </div>
 
                         <div style={{ marginBottom: '2rem' }}>
@@ -273,7 +312,18 @@ export const ImageResizer = () => {
                     </div>
                 )}
             </div>
+            <div style={{ marginTop: '3rem', backgroundColor: 'var(--bg-surface)', padding: '2rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-subtle)' }}>
+                <h3 style={{ marginBottom: '1rem', color: 'var(--text-main)' }}>How it Works</h3>
+                <ol style={{ paddingLeft: '1.5rem', color: 'var(--text-muted)', lineHeight: '1.8' }}>
+                    <li><strong>Upload Image:</strong> Select the image you want to resize.</li>
+                    <li><strong>Set Dimensions:</strong> Enter custom width/height or choose a standard preset (1080p, 4K, etc.).</li>
+                    <li><strong>Maintain Aspect Ratio:</strong> Check this box to keep the image from distorting. Uncheck to stretch.</li>
+                    <li><strong>Resize:</strong> Click the button to process the image instantly.</li>
+                    <li><strong>Download:</strong> Save the resized image to your computer.</li>
+                </ol>
+            </div>
+
             <AdBanner />
-        </div>
+        </div >
     );
 };

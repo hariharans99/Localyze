@@ -255,24 +255,54 @@ export const ImageToPdf = () => {
                                 </div>
                             </div>
                         ))}
-                        <button
-                            onClick={() => {
-                                document.getElementById('add-more-input')?.click();
-                            }}
-                            style={{
-                                padding: 'clamp(0.75rem, 2vw, 1rem)',
-                                border: '2px dashed var(--border-subtle)',
-                                borderRadius: 'var(--radius-md)',
-                                color: 'var(--text-muted)',
-                                backgroundColor: 'var(--bg-surface)',
-                                cursor: 'pointer',
-                                textAlign: 'center',
-                                minHeight: '44px',
-                                fontSize: 'clamp(0.9rem, 2vw, 1rem)'
-                            }}
-                        >
-                            + Add More Images
-                        </button>
+                        <div style={{ display: 'flex', gap: '1rem' }}>
+                            <button
+                                onClick={() => {
+                                    document.getElementById('add-more-input')?.click();
+                                }}
+                                style={{
+                                    flex: 1,
+                                    padding: 'clamp(0.75rem, 2vw, 1rem)',
+                                    border: '2px dashed var(--border-subtle)',
+                                    borderRadius: 'var(--radius-md)',
+                                    color: 'var(--text-muted)',
+                                    backgroundColor: 'var(--bg-surface)',
+                                    cursor: 'pointer',
+                                    textAlign: 'center',
+                                    minHeight: '44px',
+                                    fontSize: 'clamp(0.9rem, 2vw, 1rem)'
+                                }}
+                            >
+                                + Add More
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setPdfUrl(null);
+                                    setProgress(0);
+                                    // Reset settings
+                                    setSettings({
+                                        pageSize: 'a4',
+                                        orientation: 'p',
+                                        margin: 10
+                                    });
+                                }}
+                                style={{
+                                    padding: 'clamp(0.75rem, 2vw, 1rem)',
+                                    border: '1px solid var(--border-subtle)',
+                                    borderRadius: 'var(--radius-md)',
+                                    color: 'var(--text-muted)',
+                                    backgroundColor: 'var(--bg-surface)',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.5rem',
+                                    minHeight: '44px',
+                                    fontSize: 'clamp(0.9rem, 2vw, 1rem)'
+                                }}
+                            >
+                                <FaCog /> Reset Settings
+                            </button>
+                        </div>
                         <input
                             id="add-more-input"
                             type="file"
@@ -461,6 +491,17 @@ export const ImageToPdf = () => {
                 </div>
             )
             }
+
+            <div style={{ marginTop: '3rem', backgroundColor: 'var(--bg-surface)', padding: '2rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-subtle)' }}>
+                <h3 style={{ marginBottom: '1rem', color: 'var(--text-main)' }}>How it Works</h3>
+                <ol style={{ paddingLeft: '1.5rem', color: 'var(--text-muted)', lineHeight: '1.8' }}>
+                    <li><strong>Upload Images:</strong> Select one or multiple images from your device.</li>
+                    <li><strong>Arrange & Edit:</strong> Reorder images using the arrow buttons or remove unwanted ones.</li>
+                    <li><strong>Configure PDF:</strong> Choose page size (A4 or Fit), orientation, and margins.</li>
+                    <li><strong>Generate:</strong> Click "Create PDF" to merge your images into a single document.</li>
+                    <li><strong>Download:</strong> Save your newly created PDF file locally.</li>
+                </ol>
+            </div>
         </div >
     );
 };
