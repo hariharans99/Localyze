@@ -110,6 +110,8 @@ export const PdfSplit = () => {
                 Split PDF Pages
             </h1>
 
+            <AdBanner style={{ marginBottom: '2rem' }} />
+
             <div style={{ marginBottom: '2rem' }}>
                 {!file ? (
                     <FileUploader

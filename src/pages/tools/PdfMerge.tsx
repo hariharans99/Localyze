@@ -93,6 +93,8 @@ export const PdfMerge = () => {
                 Merge PDF Files
             </h1>
 
+            <AdBanner style={{ marginBottom: '2rem' }} />
+
             <div style={{ marginBottom: '2rem' }}>
                 {files.length === 0 ? (
                     <FileUploader

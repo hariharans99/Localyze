@@ -176,8 +176,10 @@ export const PdfCompressor = () => {
     return (
         <div className="container" style={{ maxWidth: '800px' }}>
             <h1 className="text-gradient" style={{ fontSize: '2rem', marginBottom: '2rem', textAlign: 'center' }}>
-                PDF Size Reducer
+                Compress PDF
             </h1>
+
+            <AdBanner style={{ marginBottom: '2rem' }} />
 
             <div style={{ marginBottom: '2rem' }}>
                 {!file ? (
