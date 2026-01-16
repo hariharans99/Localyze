@@ -5,6 +5,7 @@ import { useUser } from '../../contexts/UserContext';
 import { useToast } from '../../contexts/ToastContext';
 import { AdBanner } from '../../components/AdBanner';
 import { FaDownload, FaCut } from 'react-icons/fa';
+import { SEO } from '../../components/SEO';
 
 export const PdfSplit = () => {
     const { checkLimit, incrementUsage } = useUser();
@@ -101,6 +102,10 @@ export const PdfSplit = () => {
 
     return (
         <div className="container" style={{ maxWidth: '800px' }}>
+            <SEO
+                title="Split PDF - Extract Pages Online"
+                description="Extract specific pages or ranges from your PDF document. Fast, free, and secure local processing."
+            />
             <h1 className="text-gradient" style={{ fontSize: '2rem', marginBottom: '2rem', textAlign: 'center' }}>
                 Split PDF Pages
             </h1>

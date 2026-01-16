@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { FaImage, FaFilePdf, FaExpandArrowsAlt, FaRandom, FaCut, FaLayerGroup } from 'react-icons/fa';
+import { SEO } from '../components/SEO';
 
 export const Home = () => {
     const tools = [
@@ -63,6 +64,10 @@ export const Home = () => {
 
     return (
         <div className="container" style={{ textAlign: 'center', margin: '2rem auto', padding: '1rem' }}>
+            <SEO
+                title="Free Online Image & PDF Tools"
+                description="Secure, local-first image compressor, resizer, converter and PDF tools. Process files in your browser without uploading to a server."
+            />
             <h1 style={{
                 fontSize: 'clamp(2rem, 5vw, 3.5rem)',
                 fontWeight: 800,

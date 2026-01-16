@@ -5,6 +5,7 @@ import { useUser } from '../../contexts/UserContext';
 import { useToast } from '../../contexts/ToastContext';
 import { AdBanner } from '../../components/AdBanner';
 import { FaTrash, FaArrowUp, FaArrowDown, FaDownload } from 'react-icons/fa';
+import { SEO } from '../../components/SEO';
 
 export const PdfMerge = () => {
     const { checkLimit, incrementUsage } = useUser();
@@ -84,6 +85,10 @@ export const PdfMerge = () => {
 
     return (
         <div className="container" style={{ maxWidth: '800px' }}>
+            <SEO
+                title="Merge PDF Files - Combine PDFs Online"
+                description="Merge multiple PDF files into one document. Drag and drop to reorder pages. 100% local and secure."
+            />
             <h1 className="text-gradient" style={{ fontSize: '2rem', marginBottom: '2rem', textAlign: 'center' }}>
                 Merge PDF Files
             </h1>

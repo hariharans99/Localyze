@@ -6,14 +6,18 @@ import { UserProvider } from './contexts/UserContext.tsx'
 import { ToastProvider } from './contexts/ToastContext.tsx'
 import App from './App.tsx'
 
+import { HelmetProvider } from 'react-helmet-async';
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <ThemeProvider>
-      <UserProvider>
-        <ToastProvider>
-          <App />
-        </ToastProvider>
-      </UserProvider>
-    </ThemeProvider>
+    <HelmetProvider>
+      <ThemeProvider>
+        <UserProvider>
+          <ToastProvider>
+            <App />
+          </ToastProvider>
+        </UserProvider>
+      </ThemeProvider>
+    </HelmetProvider>
   </StrictMode>,
 )

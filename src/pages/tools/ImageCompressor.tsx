@@ -6,6 +6,7 @@ import { useToast } from '../../contexts/ToastContext';
 import { AdBanner } from '../../components/AdBanner';
 import { FaDownload, FaCog, FaRedo, FaTrash, FaFileArchive } from 'react-icons/fa';
 import JSZip from 'jszip';
+import { SEO } from '../../components/SEO';
 
 export const ImageCompressor = () => {
     const { checkLimit, incrementUsage } = useUser();
@@ -182,6 +183,10 @@ export const ImageCompressor = () => {
 
     return (
         <div className="container" style={{ maxWidth: '800px' }}>
+            <SEO
+                title="Image Compressor - Reduce File Size"
+                description="Compress JPG, PNG, and WebP images locally in your browser. Batch processing supported."
+            />
             <h1 className="text-gradient" style={{ fontSize: '2rem', marginBottom: '2rem', textAlign: 'center' }}>
                 Image Size Reducer
             </h1>
