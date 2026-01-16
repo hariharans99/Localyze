@@ -8,7 +8,7 @@ import { AdBanner } from '../../components/AdBanner';
 import { FaDownload, FaCog, FaRedo, FaExclamationTriangle } from 'react-icons/fa';
 
 // Worker setup
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+pdfjsLib.GlobalWorkerOptions.workerSrc = `/pdf.worker.min.mjs`;
 
 export const PdfCompressor = () => {
     const { checkLimit, incrementUsage } = useUser();

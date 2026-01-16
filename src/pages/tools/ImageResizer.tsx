@@ -6,6 +6,7 @@ import { AdBanner } from '../../components/AdBanner';
 import { FaDownload, FaExpand } from 'react-icons/fa';
 
 import { ProgressBar } from '../../components/ProgressBar';
+import { SEO } from '../../components/SEO';
 
 export const ImageResizer = () => {
     const { checkLimit, incrementUsage } = useUser();
@@ -105,6 +106,10 @@ export const ImageResizer = () => {
 
     return (
         <div className="container" style={{ maxWidth: '800px' }}>
+            <SEO
+                title="Image Resizer - Resize Images Online"
+                description="Resize your images to specific dimensions (1080p, 4K, custom) locally. No server upload required."
+            />
             <h1 className="text-gradient" style={{ fontSize: '2rem', marginBottom: '2rem', textAlign: 'center' }}>
                 Image Resizer
             </h1>

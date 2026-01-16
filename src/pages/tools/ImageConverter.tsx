@@ -6,6 +6,7 @@ import { useToast } from '../../contexts/ToastContext';
 import { FaDownload, FaRandom } from 'react-icons/fa';
 
 import { ProgressBar } from '../../components/ProgressBar';
+import { SEO } from '../../components/SEO';
 
 export const ImageConverter = () => {
     const { checkLimit, incrementUsage, logActivity } = useUser();
@@ -170,6 +171,10 @@ export const ImageConverter = () => {
 
     return (
         <div className="container" style={{ maxWidth: '800px' }}>
+            <SEO
+                title="Image Converter - Convert to JPG, PNG, WebP"
+                description="Convert images between formats (HEIC to JPG, PNG to basic WebP, etc). Privacy-focused, local conversion."
+            />
             <h1 className="text-gradient" style={{ fontSize: '2rem', marginBottom: '2rem', textAlign: 'center' }}>
                 Format Converter
             </h1>

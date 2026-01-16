@@ -1,0 +1,21 @@
+{
+    "name": "Localyze - Local File Tools",
+    "short_name": "Localyze",
+    "description": "Secure, offline-capable file compression and conversion tools.",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#6366f1",
+    "icons": [
+        {
+            "src": "logo.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "logo.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ]
+}
