@@ -10,9 +10,9 @@ interface UserContextType {
     loading: boolean;
     signInWithGoogle: () => Promise<void>;
     signOut: () => Promise<void>;
-    incrementUsage: (tool: 'compress' | 'resize' | 'convert' | 'pdf') => Promise<boolean>;
+    incrementUsage: (tool: 'compress' | 'resize' | 'convert' | 'pdf' | 'pdf_merge' | 'pdf_split') => Promise<boolean>;
     checkLimit: () => boolean;
-    logActivity: (tool: 'compress' | 'resize' | 'convert' | 'pdf', details: string) => Promise<void>;
+    logActivity: (tool: 'compress' | 'resize' | 'convert' | 'pdf' | 'pdf_merge' | 'pdf_split', details: string) => Promise<void>;
     upgradePlan: (plan: 'weekly' | 'monthly', paymentId: string) => Promise<void>;
     getTodayUsageCount: () => Promise<number>;
     getTotalUsageCount: () => Promise<number>;
@@ -145,7 +145,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return profile.usage.count < 2;
     };
 
-    const incrementUsage = async (tool: 'compress' | 'resize' | 'convert' | 'pdf') => {
+    const incrementUsage = async (tool: 'compress' | 'resize' | 'convert' | 'pdf' | 'pdf_merge' | 'pdf_split') => {
         const today = new Date().toISOString().split('T')[0];
 
         // Handle guest users (localStorage only)
@@ -206,7 +206,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return true;
     };
 
-    const logActivity = async (tool: 'compress' | 'resize' | 'convert' | 'pdf', details: string) => {
+    const logActivity = async (tool: 'compress' | 'resize' | 'convert' | 'pdf' | 'pdf_merge' | 'pdf_split', details: string) => {
         if (!user) return;
 
         try {

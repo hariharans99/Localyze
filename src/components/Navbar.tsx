@@ -41,7 +41,21 @@ export const Navbar = () => {
                         transition: 'color 0.2s',
                         fontSize: 'clamp(0.9rem, 2vw, 1rem)',
                         padding: '0.5rem'
-                    }}>Tools</Link>
+                    }}>All Tools</Link>
+                    <Link to="/tools/merge-pdf" style={{
+                        color: 'var(--text-muted)',
+                        transition: 'color 0.2s',
+                        fontSize: 'clamp(0.9rem, 2vw, 1rem)',
+                        padding: '0.5rem',
+                        whiteSpace: 'nowrap'
+                    }}>Merge PDF</Link>
+                    <Link to="/tools/split-pdf" style={{
+                        color: 'var(--text-muted)',
+                        transition: 'color 0.2s',
+                        fontSize: 'clamp(0.9rem, 2vw, 1rem)',
+                        padding: '0.5rem',
+                        whiteSpace: 'nowrap'
+                    }}>Split PDF</Link>
                     <Link to="/pricing" style={{
                         color: 'var(--text-muted)',
                         transition: 'color 0.2s',

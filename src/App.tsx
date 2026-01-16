@@ -12,6 +12,8 @@ const ImageResizer = lazy(() => import('./pages/tools/ImageResizer').then(module
 const ImageConverter = lazy(() => import('./pages/tools/ImageConverter').then(module => ({ default: module.ImageConverter })));
 const ImageToPdf = lazy(() => import('./pages/tools/ImageToPdf').then(module => ({ default: module.ImageToPdf })));
 const PdfCompressor = lazy(() => import('./pages/tools/PdfCompressor').then(module => ({ default: module.PdfCompressor })));
+const PdfMerge = lazy(() => import('./pages/tools/PdfMerge').then(module => ({ default: module.PdfMerge })));
+const PdfSplit = lazy(() => import('./pages/tools/PdfSplit').then(module => ({ default: module.PdfSplit })));
 
 // Loading component
 const LoadingSpinner = () => (
@@ -66,6 +68,16 @@ function App() {
             <Route path="compress-pdf" element={
               <Suspense fallback={<LoadingSpinner />}>
                 <PdfCompressor />
+              </Suspense>
+            } />
+            <Route path="merge-pdf" element={
+              <Suspense fallback={<LoadingSpinner />}>
+                <PdfMerge />
+              </Suspense>
+            } />
+            <Route path="split-pdf" element={
+              <Suspense fallback={<LoadingSpinner />}>
+                <PdfSplit />
               </Suspense>
             } />
           </Route>
