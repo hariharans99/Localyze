@@ -203,6 +203,18 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
             timestamp: serverTimestamp()
         });
 
+        // Update aggregate usage on user profile (required for checkLimit and security rules)
+        // This allows 'checkLimit' to work synchronously with the real-time profile listener
+        const userRef = doc(db, 'users', user.uid);
+        const newCount = (profile.usage.date === today ? profile.usage.count : 0) + 1;
+
+        await setDoc(userRef, {
+            usage: {
+                count: newCount,
+                date: today
+            }
+        }, { merge: true });
+
         return true;
     };
 
