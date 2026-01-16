@@ -95,25 +95,45 @@ export const Navbar = () => {
                             </button>
                         </div>
                     ) : (
-                        <Link to="/login">
-                            <button style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.5rem',
-                                padding: '0.5rem 1rem',
-                                backgroundColor: 'var(--bg-surface)',
-                                border: '1px solid var(--border-subtle)',
-                                borderRadius: 'var(--radius-md)',
-                                color: 'var(--text-main)',
-                                fontWeight: 500,
-                                transition: 'background-color 0.2s, border-color 0.2s, color 0.2s',
-                                minHeight: '44px',
-                                fontSize: 'clamp(0.85rem, 2vw, 1rem)'
-                            }}>
-                                <FaUserCircle />
-                                <span style={{ display: window.innerWidth < 480 ? 'none' : 'inline' }}>Sign In</span>
-                            </button>
-                        </Link>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <Link to="/profile">
+                                <button style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.5rem',
+                                    padding: '0.5rem 1rem',
+                                    backgroundColor: 'var(--bg-surface)',
+                                    border: '1px solid var(--border-subtle)',
+                                    borderRadius: 'var(--radius-md)',
+                                    color: 'var(--text-main)',
+                                    fontWeight: 500,
+                                    transition: 'background-color 0.2s, border-color 0.2s, color 0.2s',
+                                    minHeight: '44px',
+                                    fontSize: 'clamp(0.85rem, 2vw, 1rem)'
+                                }}>
+                                    <FaUserCircle />
+                                    <span style={{ display: window.innerWidth < 480 ? 'none' : 'inline' }}>Profile</span>
+                                </button>
+                            </Link>
+                            <Link to="/login">
+                                <button style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.5rem',
+                                    padding: '0.5rem 1rem',
+                                    backgroundColor: 'var(--color-primary)',
+                                    border: 'none',
+                                    borderRadius: 'var(--radius-md)',
+                                    color: 'white',
+                                    fontWeight: 500,
+                                    transition: 'background-color 0.2s',
+                                    minHeight: '44px',
+                                    fontSize: 'clamp(0.85rem, 2vw, 1rem)'
+                                }}>
+                                    <span style={{ display: window.innerWidth < 480 ? 'none' : 'inline' }}>Sign In</span>
+                                </button>
+                            </Link>
+                        </div>
                     )}
                 </div>
             </div>
