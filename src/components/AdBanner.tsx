@@ -6,7 +6,7 @@ interface AdBannerProps extends React.HTMLAttributes<HTMLDivElement> {
     client?: string;
 }
 
-export const AdBanner: React.FC<AdBannerProps> = ({ slot = "1234567890", client = "ca-pub-0000000000000000", style, className, ...props }) => {
+export const AdBanner: React.FC<AdBannerProps> = ({ slot = "1234567890", client = "ca-pub-4802540227409901", style, className, ...props }) => {
     const { profile } = useUser();
     const isPro = profile?.plan === 'weekly' || profile?.plan === 'monthly';
     const adRef = useRef<HTMLModElement>(null);
