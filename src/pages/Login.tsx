@@ -1,12 +1,13 @@
 import { useNavigate } from 'react-router-dom';
 import { FaGoogle, FaLayerGroup } from 'react-icons/fa';
 import { useUser } from '../contexts/UserContext';
-import { useEffect, useState } from 'react';
+import { useToast } from '../contexts/ToastContext';
+import { useEffect } from 'react';
 
 export const Login = () => {
     const { signInWithGoogle, user } = useUser();
     const navigate = useNavigate();
-    const [error, setError] = useState('');
+    const toast = useToast();
 
     useEffect(() => {
         if (user) {
@@ -18,9 +19,9 @@ export const Login = () => {
         try {
             await signInWithGoogle();
             navigate('/');
-        } catch (err) {
+        } catch (err: any) {
             console.error(err);
-            setError('Failed to sign in. Please try again.');
+            toast.error(err.message || 'Failed to sign in. Please try again.');
         }
     };
 
@@ -50,19 +51,6 @@ export const Login = () => {
 
                 <h1 style={{ marginBottom: '0.5rem', fontSize: '1.5rem', fontWeight: 700 }}>Welcome Back</h1>
                 <p style={{ color: 'var(--text-muted)', marginBottom: '2rem' }}>Sign in to access premium features.</p>
-
-                {error && (
-                    <div style={{
-                        padding: '0.75rem',
-                        marginBottom: '1rem',
-                        backgroundColor: 'rgba(244, 63, 94, 0.1)',
-                        color: '#f43f5e',
-                        borderRadius: 'var(--radius-md)',
-                        fontSize: '0.875rem'
-                    }}>
-                        {error}
-                    </div>
-                )}
 
                 <button
                     onClick={handleGoogleSignIn}

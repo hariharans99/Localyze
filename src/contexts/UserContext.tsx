@@ -83,9 +83,9 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
                             const banData = bannedSnap.data();
                             const expiresAt = new Date(banData.expiresAt);
                             if (new Date() < expiresAt) {
-                                // User is banned
+                                // User is banned - sign them out silently
                                 await firebaseSignOut(auth);
-                                alert(`Account creation is blocked for this email until ${expiresAt.toLocaleString()}.`);
+                                console.warn(`Account banned until ${expiresAt.toLocaleString()}`);
                                 return;
                             }
                         }
@@ -141,11 +141,10 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } catch (error: any) {
             console.error("Popup Sign-In Error:", error);
             if (error?.code === 'auth/popup-blocked') {
-                alert("Popup was blocked. Please allow popups for this site.");
+                throw new Error("Popup was blocked. Please allow popups for this site.");
             } else if (error?.code === 'auth/cancelled-popup-request') {
                 console.warn("User closed the popup or there was a conflict.");
-            } else {
-                alert("Sign in failed: " + error.message);
+                return; // Silent return, user intentionally closed
             }
             throw error;
         }

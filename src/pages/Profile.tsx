@@ -70,7 +70,13 @@ export const Profile = () => {
                             <h1 style={{ marginBottom: '0.5rem' }}>Guest User</h1>
                             <p style={{ color: 'var(--text-muted)' }}>Sign in to save your history and upgrade limits.</p>
                             <button
-                                onClick={signInWithGoogle}
+                                onClick={async () => {
+                                    try {
+                                        await signInWithGoogle();
+                                    } catch (err: any) {
+                                        toast.error(err.message || 'Failed to sign in');
+                                    }
+                                }}
                                 style={{
                                     marginTop: '1rem',
                                     padding: '0.5rem 1rem',
