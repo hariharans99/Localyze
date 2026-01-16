@@ -3,12 +3,15 @@ import { useUser } from '../contexts/UserContext';
 import { useToast } from '../contexts/ToastContext';
 import { FaCrown, FaHistory, FaBolt } from 'react-icons/fa';
 
+import { ConfirmModal } from '../components/ConfirmModal';
+
 export const Profile = () => {
-    const { user, profile, loading, signInWithGoogle, getTodayUsageCount, getTotalUsageCount } = useUser();
+    const { user, profile, loading, signInWithGoogle, getTodayUsageCount, getTotalUsageCount, deleteAccount } = useUser();
     const toast = useToast();
     const [todayUsage, setTodayUsage] = useState<number>(0);
     const [totalUsage, setTotalUsage] = useState<number>(0);
     const [statsLoading, setStatsLoading] = useState(true);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
 
     useEffect(() => {
         if (loading) return;
@@ -275,6 +278,98 @@ export const Profile = () => {
                     </div>
                 )}
             </div>
+
+            {/* Danger Zone: Delete Account */}
+            {isPro && (
+                <div style={{ marginTop: '3rem', borderTop: '1px solid var(--border-subtle)', paddingTop: '2rem' }}>
+                    <h2 style={{ fontSize: '1.25rem', color: '#ef4444', marginBottom: '1rem' }}>Danger Zone</h2>
+                    <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        backgroundColor: 'rgba(239, 68, 68, 0.05)',
+                        padding: '1.5rem',
+                        borderRadius: 'var(--radius-lg)',
+                        border: '1px solid rgba(239, 68, 68, 0.2)'
+                    }}>
+                        <div>
+                            <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '0.25rem' }}>Delete Account</h3>
+                            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                                Permanently delete your account, active plans, and all data.
+                            </p>
+                        </div>
+                        <button
+                            onClick={() => setShowDeleteModal(true)}
+                            style={{
+                                backgroundColor: '#ef4444',
+                                color: 'white',
+                                padding: '0.75rem 1.5rem',
+                                borderRadius: 'var(--radius-md)',
+                                fontWeight: 600,
+                                border: 'none',
+                                cursor: 'pointer'
+                            }}
+                        >
+                            Delete Account
+                        </button>
+                    </div>
+                </div>
+            )}
+            {!isPro && (
+                <div style={{ marginTop: '3rem', borderTop: '1px solid var(--border-subtle)', paddingTop: '2rem' }}>
+                    <h2 style={{ fontSize: '1.25rem', color: '#ef4444', marginBottom: '1rem' }}>Danger Zone</h2>
+                    <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        backgroundColor: 'rgba(239, 68, 68, 0.05)',
+                        padding: '1.5rem',
+                        borderRadius: 'var(--radius-lg)',
+                        border: '1px solid rgba(239, 68, 68, 0.2)'
+                    }}>
+                        <div>
+                            <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '0.25rem' }}>Delete Account</h3>
+                            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                                Permanently delete your account and history.
+                            </p>
+                        </div>
+                        <button
+                            onClick={() => setShowDeleteModal(true)}
+                            style={{
+                                backgroundColor: '#ef4444',
+                                color: 'white',
+                                padding: '0.75rem 1.5rem',
+                                borderRadius: 'var(--radius-md)',
+                                fontWeight: 600,
+                                border: 'none',
+                                cursor: 'pointer'
+                            }}
+                        >
+                            Delete Account
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            <ConfirmModal
+                isOpen={showDeleteModal}
+                title="Delete Account?"
+                message="This action creates a 48-hour ban on re-registration."
+                warningText="You will lose any active 7 Day or 30 Day plans immediately. No refunds. Usage history will be wiped. You cannot use this email again for 48 hours."
+                confirmText="Yes, Delete Everything"
+                cancelText="Cancel"
+                isDangerous={true}
+                onConfirm={async () => {
+                    try {
+                        await deleteAccount();
+                        toast.success("Account deleted.");
+                    } catch (e: any) {
+                        toast.error(e.message || "Failed to delete account.");
+                    }
+                    setShowDeleteModal(false);
+                }}
+                onCancel={() => setShowDeleteModal(false)}
+            />
         </div>
     );
 };

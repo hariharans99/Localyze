@@ -109,7 +109,7 @@ export const Pricing = () => {
         },
         {
             id: 'weekly',
-            name: 'Week Pass',
+            name: '7 Day Pass',
             price: '₹49',
             amount: 49,
             period: 'per week',
@@ -125,7 +125,7 @@ export const Pricing = () => {
         },
         {
             id: 'monthly',
-            name: 'Pro Monthly',
+            name: '30 Day Pro',
             price: '₹149',
             amount: 149,
             period: 'per month',
@@ -266,7 +266,7 @@ export const Pricing = () => {
             <ConfirmModal
                 isOpen={showConfirmModal}
                 title="Confirm Purchase"
-                message={`You are about to purchase the ${pendingPlan?.plan === 'weekly' ? 'Weekly Pass (₹49)' : 'Pro Monthly (₹149)'} plan.`}
+                message={`You are about to purchase the ${pendingPlan?.plan === 'weekly' ? '7 Day Pass (₹49)' : '30 Day Pro (₹149)'} plan.`}
                 warningText="No refunds or cancellations are available after purchase. By confirming, you agree to this policy."
                 confirmText="Proceed to Payment"
                 cancelText="Cancel"

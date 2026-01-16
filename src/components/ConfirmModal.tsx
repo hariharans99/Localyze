@@ -8,6 +8,7 @@ interface ConfirmModalProps {
     warningText?: string;
     confirmText?: string;
     cancelText?: string;
+    isDangerous?: boolean;
     onConfirm: () => void;
     onCancel: () => void;
 }
@@ -19,6 +20,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
     warningText,
     confirmText = 'Confirm',
     cancelText = 'Cancel',
+    isDangerous = false,
     onConfirm,
     onCancel
 }) => {
@@ -50,7 +52,9 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
             }}>
                 {/* Header */}
                 <div style={{
-                    background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                    background: isDangerous
+                        ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
+                        : 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
                     padding: '1.25rem 1.5rem',
                     display: 'flex',
                     alignItems: 'center',
@@ -132,12 +136,16 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
                                 padding: '0.75rem 1.5rem',
                                 borderRadius: 'var(--radius-md)',
                                 border: 'none',
-                                background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                                background: isDangerous
+                                    ? '#ef4444'
+                                    : 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
                                 color: 'white',
                                 fontWeight: 600,
                                 cursor: 'pointer',
                                 transition: 'all 0.2s',
-                                boxShadow: '0 4px 14px rgba(99, 102, 241, 0.4)'
+                                boxShadow: isDangerous
+                                    ? '0 4px 14px rgba(239, 68, 68, 0.4)'
+                                    : '0 4px 14px rgba(99, 102, 241, 0.4)'
                             }}
                         >
                             {confirmText}

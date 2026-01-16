@@ -16,6 +16,7 @@ interface UserContextType {
     upgradePlan: (plan: 'weekly' | 'monthly', paymentId: string) => Promise<void>;
     getTodayUsageCount: () => Promise<number>;
     getTotalUsageCount: () => Promise<number>;
+    deleteAccount: () => Promise<void>;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -74,6 +75,21 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
                         setProfile(profileData);
                     } else {
                         // Create default profile if not exists
+                        // But first check if user is banned
+                        const bannedRef = doc(db, 'deleted_users', firebaseUser.email || 'unknown');
+                        const bannedSnap = await import('firebase/firestore').then(mod => mod.getDoc(bannedRef));
+
+                        if (bannedSnap.exists()) {
+                            const banData = bannedSnap.data();
+                            const expiresAt = new Date(banData.expiresAt);
+                            if (new Date() < expiresAt) {
+                                // User is banned
+                                await firebaseSignOut(auth);
+                                alert(`Account creation is blocked for this email until ${expiresAt.toLocaleString()}.`);
+                                return;
+                            }
+                        }
+
                         const newProfile: UserProfile = {
                             uid: firebaseUser.uid,
                             email: firebaseUser.email,
@@ -103,7 +119,25 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.log("Initiating Google Popup Sign-In...");
         try {
             const result = await signInWithPopup(auth, googleProvider);
-            console.log("Popup Sign-In Success:", result.user.uid);
+            const user = result.user;
+
+            // Check if user is in deleted_users (48h ban)
+            if (user.email) {
+                const bannedRef = doc(db, 'deleted_users', user.email);
+                const bannedSnap = await import('firebase/firestore').then(mod => mod.getDoc(bannedRef));
+
+                if (bannedSnap.exists()) {
+                    const banData = bannedSnap.data();
+                    const expiresAt = new Date(banData.expiresAt);
+
+                    if (new Date() < expiresAt) {
+                        await firebaseSignOut(auth);
+                        throw new Error(`Account creation blocked until ${expiresAt.toLocaleString()} due to recent deletion.`);
+                    }
+                }
+            }
+
+            console.log("Popup Sign-In Success:", user.uid);
         } catch (error: any) {
             console.error("Popup Sign-In Error:", error);
             if (error?.code === 'auth/popup-blocked') {
@@ -119,6 +153,38 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const signOut = async () => {
         await firebaseSignOut(auth);
+    };
+
+    const deleteAccount = async () => {
+        if (!user || !user.email) return;
+
+        try {
+            // 1. Mark email as banned for 48 hours
+            const now = new Date();
+            const expiresAt = new Date(now.getTime() + 48 * 60 * 60 * 1000); // 48 hours
+
+            await setDoc(doc(db, 'deleted_users', user.email), {
+                email: user.email,
+                deletedAt: now.toISOString(),
+                expiresAt: expiresAt.toISOString()
+            });
+
+            // 2. Delete User Profile
+            await import('firebase/firestore').then(mod => mod.deleteDoc(doc(db, 'users', user.uid)));
+
+            // 3. Delete Auth User
+            await user.delete();
+
+            // Note: Use cleanup via security rules or admin SDK for subcollections if strict
+            // Client-side can't easily delete all subcollections efficiently without listing them
+
+        } catch (error: any) {
+            console.error("Delete Account Error:", error);
+            if (error.code === 'auth/requires-recent-login') {
+                throw new Error("Please sign out and sign in again to verify your identity before deleting your account.");
+            }
+            throw error;
+        }
     };
 
     const checkLimit = () => {
@@ -333,7 +399,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     return (
-        <UserContext.Provider value={{ user, profile, loading, signInWithGoogle, signOut, incrementUsage, checkLimit, logActivity, upgradePlan, getTodayUsageCount, getTotalUsageCount }}>
+        <UserContext.Provider value={{ user, profile, loading, signInWithGoogle, signOut, incrementUsage, checkLimit, logActivity, upgradePlan, getTodayUsageCount, getTotalUsageCount, deleteAccount }}>
             {children}
         </UserContext.Provider>
     );

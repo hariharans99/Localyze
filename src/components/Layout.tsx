@@ -18,6 +18,10 @@ export const Layout = () => {
             }}>
                 <div className="container">
                     <AdBanner slot="1234567890" style={{ maxWidth: '728px', margin: '0 auto 2rem' }} />
+                    <div style={{ display: 'flex', justifyContent: 'center', gap: '1.5rem', marginBottom: '1rem' }}>
+                        <a href="/terms" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Terms & Refund Policy</a>
+                        <a href="/pricing" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Pricing</a>
+                    </div>
                     <p>&copy; {new Date().getFullYear()} Localyze. 100% Local Image & PDF Tools.</p>
                 </div>
             </footer>

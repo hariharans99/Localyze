@@ -6,6 +6,7 @@ import { Login } from './pages/Login';
 import { Pricing } from './pages/Pricing';
 import { Profile } from './pages/Profile';
 import { NotFound } from './pages/NotFound';
+import { Terms } from './pages/Terms';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
 // Lazy load heavy tool components
@@ -85,6 +86,7 @@ function App() {
               } />
             </Route>
           </Route>
+          <Route path="terms" element={<Terms />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </ErrorBoundary>
