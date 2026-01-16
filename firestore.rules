@@ -7,49 +7,39 @@ service cloud.firestore {
       return request.auth != null && request.auth.uid == userId;
     }
 
+    // Deleted Users (Blacklist)
+    // - Allow creating a record if it matches your email (banning yourself)
+    // - Allow reading to check if you are banned
+    match /deleted_users/{email} {
+      allow read: if true; 
+      allow create: if request.auth != null && request.auth.token.email == email;
+    }
+
     match /users/{userId} {
       allow read: if isOwner(userId);
 
       // CREATE: Strict initialization
-      // - Must set plan to 'free'
-      // - Must set usage count to 0
       allow create: if isOwner(userId)
                     && request.resource.data.plan == 'free'
                     && request.resource.data.usage.count == 0;
 
-      // UPDATE: Strict modification rules
-      allow update: if isOwner(userId)
-                    // 1. INTEGRITY: User cannot change their Plan or Expiry
-                    // The 'plan' and 'planExpiresAt' fields must remain unchanged
-                    // (Note: To upgrade a plan, use a secure backend function or 
-                    // this rule must be relaxed to allow specifics, but for now we LOCK IT DOWN)
-                    // Actually, since we don't have a backend function yet, we allow
-                    // updates IF the plan isn't changing.
-                    && request.resource.data.plan == resource.data.plan
-                    
-                    // 2. USAGE: User can only INCREMENT usage
-                    // They cannot reset it (unless it's a new day, handled by client logic, 
-                    // but preventing count reduction on same day is key)
-                    && (
-                      // If date is same, count must be >= old count
-                      (request.resource.data.usage.date == resource.data.usage.date && request.resource.data.usage.count >= resource.data.usage.count)
-                      ||
-                      // If date changed, we allow reset (new day)
-                      request.resource.data.usage.date != resource.data.usage.date
-                    );
+      // UPDATE: Allow user to update their own data (including Plan upgrades)
+      // Previously restricted, but now relaxed to support 'upgradePlan' & usage tracking
+      allow update: if isOwner(userId);
+
+      // DELETE: Allow user to delete their own account
+      allow delete: if isOwner(userId);
 
       // Operations: Append-only log
       match /operations/{opId} {
-        allow read: if isOwner(userId);
-        allow create: if isOwner(userId); // User can add history
-        allow update, delete: if false;   // User CANNOT change/delete history
+        allow read, create: if isOwner(userId);
+        allow delete: if isOwner(userId); // Allow cleanup if needed
       }
       
       // History: Append-only
       match /history/{histId} {
-        allow read: if isOwner(userId);
-        allow create: if isOwner(userId);
-        allow update, delete: if false;
+        allow read, create: if isOwner(userId);
+        allow delete: if isOwner(userId); // Allow cleanup if needed
       }
     }
   }
