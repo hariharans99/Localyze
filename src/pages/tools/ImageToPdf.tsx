@@ -382,7 +382,7 @@ export const ImageToPdf = () => {
                     )}
                 </div>
 
-                    <div style={{
+                <div style={{
                         backgroundColor: 'var(--bg-surface)',
                         padding: 'clamp(1rem, 3vw, 1.5rem)',
                         borderRadius: 'var(--radius-lg)',
