@@ -9,7 +9,7 @@ import { ConfirmModal } from '../components/ConfirmModal';
 
 export const Pricing = () => {
 
-    const { user, signInWithGoogle, upgradePlan, profile } = useUser();
+    const { user, signInWithGoogle, profile } = useUser();
     const navigate = useNavigate();
     const toast = useToast();
 
