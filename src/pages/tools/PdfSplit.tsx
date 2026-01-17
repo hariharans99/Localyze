@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { PDFDocument } from 'pdf-lib';
 import * as pdfjsLib from 'pdfjs-dist';
+import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 // Worker setup
-pdfjsLib.GlobalWorkerOptions.workerSrc = `/pdf.worker.min.mjs`;
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
 import { FileUploader } from '../../components/FileUploader';
 import { useUser } from '../../contexts/UserContext';
 import { useToast } from '../../contexts/ToastContext';
@@ -31,7 +32,6 @@ export const PdfSplit = () => {
         try {
             const arrayBuffer = await fileToLoad.arrayBuffer();
             const pdfBlob = await pdfjsLib.getDocument(arrayBuffer).promise;
-            const pdfDoc = await PDFDocument.load(arrayBuffer);
 
             const count = pdfBlob.numPages;
             setPageCount(count);

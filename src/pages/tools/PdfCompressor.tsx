@@ -7,8 +7,11 @@ import { useToast } from '../../contexts/ToastContext';
 import { AdBanner } from '../../components/AdBanner';
 import { FaDownload, FaCog, FaRedo, FaExclamationTriangle } from 'react-icons/fa';
 
+
+import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
+
 // Worker setup
-pdfjsLib.GlobalWorkerOptions.workerSrc = `/pdf.worker.min.mjs`;
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
 
 export const PdfCompressor = () => {
     const { checkLimit, incrementUsage } = useUser();

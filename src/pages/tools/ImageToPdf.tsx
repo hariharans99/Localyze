@@ -90,14 +90,14 @@ export const ImageToPdf = () => {
 
         try {
             const { jsPDF } = await import('jspdf');
+
             const doc = new jsPDF({
                 orientation: settings.orientation,
                 unit: 'mm',
-                format: settings.pageSize === 'fit' ? undefined : settings.pageSize
+                format: 'a4'
             });
 
-            // Remove default first page if we are going to add custom pages
-            // But jsPDF starts with one page. We will fill it first.
+            // We start with one default page. We will add custom pages for each image and delete the first one at the end.
 
             for (let i = 0; i < files.length; i++) {
                 const file = files[i];
@@ -108,38 +108,45 @@ export const ImageToPdf = () => {
                     img.onload = () => resolve(true);
                 });
 
-                const pageWidth = settings.pageSize === 'a4' ? (settings.orientation === 'p' ? 210 : 297) : img.width * 0.264583; // pixel to mm
-                const pageHeight = settings.pageSize === 'a4' ? (settings.orientation === 'p' ? 297 : 210) : img.height * 0.264583;
+                // Calculate dimensions in mm (1px = 0.264583mm at 96dpi)
+                const imgWidthMm = img.width * 0.264583;
+                const imgHeightMm = img.height * 0.264583;
 
-                // If fit to image, we resize page to image
                 if (settings.pageSize === 'fit') {
-                    if (i > 0) {
-                        doc.addPage([pageWidth, pageHeight], settings.orientation);
-                    } else {
-                        // Resize first page
-                        doc.internal.pageSize.width = pageWidth;
-                        doc.internal.pageSize.height = pageHeight;
-                    }
+                    // Dynamic orientation based on image
+                    const isLandscape = imgWidthMm > imgHeightMm;
+                    const orientation = isLandscape ? 'l' : 'p';
 
-                    doc.addImage(img, 'JPEG', 0, 0, pageWidth, pageHeight);
+                    // Add new page matching image dimensions
+                    doc.addPage([imgWidthMm, imgHeightMm], orientation);
+
+                    // Draw image covering the full page
+                    doc.addImage(img, 'JPEG', 0, 0, imgWidthMm, imgHeightMm);
                 } else {
-                    // A4 logic with margins
-                    if (i > 0) doc.addPage(settings.pageSize, settings.orientation);
+                    // A4 Logic (or fixed size)
+                    // Add standard page respecting user's global orientation setting
+                    doc.addPage(settings.pageSize, settings.orientation);
+
+                    // Get page dimensions
+                    const pageWidth = doc.internal.pageSize.getWidth();
+                    const pageHeight = doc.internal.pageSize.getHeight();
 
                     const margin = settings.margin;
                     const maxWidth = pageWidth - (margin * 2);
                     const maxHeight = pageHeight - (margin * 2);
 
-                    // Calculate scaling to fit within margins
+                    // Calculate scaling to 'contain' the image within margins
                     const imgRatio = img.width / img.height;
                     const pageRatio = maxWidth / maxHeight;
 
                     let finalWidth, finalHeight;
 
                     if (imgRatio > pageRatio) {
+                        // Image is wider than printable area
                         finalWidth = maxWidth;
                         finalHeight = maxWidth / imgRatio;
                     } else {
+                        // Image is taller than printable area
                         finalHeight = maxHeight;
                         finalWidth = maxHeight * imgRatio;
                     }
@@ -149,7 +156,6 @@ export const ImageToPdf = () => {
                     const y = margin + (maxHeight - finalHeight) / 2;
 
                     doc.addImage(img, 'JPEG', x, y, finalWidth, finalHeight);
-                    doc.addImage(img, 'JPEG', x, y, finalWidth, finalHeight);
                 }
 
                 setProgress(((i + 1) / files.length) * 100);
@@ -157,10 +163,15 @@ export const ImageToPdf = () => {
                 // Estimate time
                 if (i > 0) {
                     const elapsed = (Date.now() - startTimeRef.current) / 1000;
-                    const avgTimePerImg = elapsed / (i + 1); // Using i+1 because we just finished one
+                    const avgTimePerImg = elapsed / (i + 1);
                     const remaining = avgTimePerImg * (files.length - (i + 1));
                     setEstimatedTime(remaining);
                 }
+            }
+
+            // Remove the initial blank page
+            if (files.length > 0) {
+                doc.deletePage(1);
             }
 
             const pdfBlob = doc.output('blob');

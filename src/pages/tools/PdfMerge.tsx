@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { PDFDocument } from 'pdf-lib';
 import * as pdfjsLib from 'pdfjs-dist';
+import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 // Worker setup
-pdfjsLib.GlobalWorkerOptions.workerSrc = `/pdf.worker.min.mjs`;
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
 import { FileUploader } from '../../components/FileUploader';
 import { useUser } from '../../contexts/UserContext';
 import { useToast } from '../../contexts/ToastContext';
@@ -24,6 +25,16 @@ export const PdfMerge = () => {
 
         if (pdfFiles.length !== newFiles.length) {
             toast.error('Only PDF files are supported');
+        }
+
+        const MAX_SIZE_MB = 100;
+        const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
+        const currentTotalSize = files.reduce((acc, file) => acc + file.size, 0);
+        const newFilesSize = pdfFiles.reduce((acc, file) => acc + file.size, 0);
+
+        if (currentTotalSize + newFilesSize > MAX_SIZE_BYTES) {
+            toast.error(`Total file size cannot exceed ${MAX_SIZE_MB}MB to ensure browser stability.`);
+            return;
         }
 
         // Generate thumbnails for new files
@@ -138,6 +149,7 @@ export const PdfMerge = () => {
                         accept=".pdf,application/pdf"
                         label="Upload PDFs to Merge"
                         multiple={true}
+                        maxSizeMB={100}
                     />
                 ) : (
                     <div className="bg-surface p-8 rounded-lg border border-subtle">

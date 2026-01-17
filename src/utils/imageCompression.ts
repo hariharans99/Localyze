@@ -173,7 +173,7 @@ export async function compressImage(
     } = options;
 
     // Load image to canvas
-    const { canvas, originalWidth, originalHeight } = await loadImageToCanvas(
+    const { canvas } = await loadImageToCanvas(
         file,
         maxWidth,
         maxHeight,

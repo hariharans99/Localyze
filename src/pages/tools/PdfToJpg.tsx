@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
+import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import JSZip from 'jszip';
 import { FileUploader } from '../../components/FileUploader';
 import { useUser } from '../../contexts/UserContext';
@@ -8,7 +9,7 @@ import { AdBanner } from '../../components/AdBanner';
 import { FaDownload, FaCog, FaRedo, FaImage } from 'react-icons/fa';
 
 // Worker setup
-pdfjsLib.GlobalWorkerOptions.workerSrc = `/pdf.worker.min.mjs`;
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
 
 interface PagePreview {
     pageNum: number;
