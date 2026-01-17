@@ -425,27 +425,94 @@ export const ImageCompressor = () => {
                                                 {result && ` → ${getFormattedSize(result.size)} (${((result.size / file.size) * 100).toFixed(0)}%)`}
                                             </div>
                                             {status === 'processing' && (
-                                                <div style={{ height: '4px', background: 'var(--border-subtle)', marginTop: '0.5rem', borderRadius: '2px', width: '100%' }}>
-                                                    <div style={{ height: '100%', background: 'var(--color-primary)', width: `${prog}%`, borderRadius: '2px' }} />
-                                                </div>
+                                                <>
+                                                    <div style={{
+                                                        marginTop: '0.75rem',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: '0.75rem'
+                                                    }}>
+                                                        <div style={{
+                                                            height: '8px',
+                                                            background: 'var(--border-subtle)',
+                                                            borderRadius: '4px',
+                                                            width: '100%',
+                                                            position: 'relative',
+                                                            overflow: 'hidden'
+                                                        }}>
+                                                            <div style={{
+                                                                height: '100%',
+                                                                background: 'linear-gradient(90deg, var(--color-primary), #6366f1)',
+                                                                width: `${prog}%`,
+                                                                borderRadius: '4px',
+                                                                transition: 'width 0.3s ease'
+                                                            }} />
+                                                        </div>
+                                                        <span style={{
+                                                            fontSize: '1.5rem',
+                                                            fontWeight: 700,
+                                                            color: 'var(--color-primary)',
+                                                            minWidth: '60px',
+                                                            textAlign: 'right'
+                                                        }}>
+                                                            {prog}%
+                                                        </span>
+                                                    </div>
+                                                    <div style={{
+                                                        marginTop: '0.5rem',
+                                                        fontSize: '0.85rem',
+                                                        color: 'var(--color-primary)',
+                                                        fontWeight: 600
+                                                    }}>
+                                                        🔄 Processing...
+                                                    </div>
+                                                </>
                                             )}
                                         </div>
 
                                         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                                             {status === 'done' && result ? (
-                                                <a
-                                                    href={URL.createObjectURL(result)}
-                                                    download={`compressed-${file.name}`}
-                                                    style={{ color: '#10b981', cursor: 'pointer', fontSize: '1.2rem' }}
-                                                    title="Download"
-                                                >
-                                                    <FaDownload />
-                                                </a>
+                                                <>
+                                                    <span style={{
+                                                        padding: '0.4rem 0.75rem',
+                                                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                                                        color: '#10b981',
+                                                        borderRadius: 'var(--radius-sm)',
+                                                        fontSize: '0.85rem',
+                                                        fontWeight: 600
+                                                    }}>
+                                                        ✓ Done
+                                                    </span>
+                                                    <a
+                                                        href={URL.createObjectURL(result)}
+                                                        download={`compressed-${file.name}`}
+                                                        style={{ color: '#10b981', cursor: 'pointer', fontSize: '1.2rem' }}
+                                                        title="Download"
+                                                    >
+                                                        <FaDownload />
+                                                    </a>
+                                                </>
                                             ) : status === 'error' ? (
-                                                <span style={{ color: '#ef4444' }}>Error</span>
-                                            ) : status === 'pending' || status === 'processing' ? (
-                                                <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-                                                    {status === 'processing' ? `${prog}%` : 'Waiting'}
+                                                <span style={{
+                                                    padding: '0.4rem 0.75rem',
+                                                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                                                    color: '#ef4444',
+                                                    borderRadius: 'var(--radius-sm)',
+                                                    fontSize: '0.85rem',
+                                                    fontWeight: 600
+                                                }}>
+                                                    ✗ Error
+                                                </span>
+                                            ) : status === 'pending' ? (
+                                                <span style={{
+                                                    padding: '0.4rem 0.75rem',
+                                                    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                                                    color: '#f59e0b',
+                                                    borderRadius: 'var(--radius-sm)',
+                                                    fontSize: '0.85rem',
+                                                    fontWeight: 600
+                                                }}>
+                                                    ⏱ Waiting
                                                 </span>
                                             ) : null}
 
