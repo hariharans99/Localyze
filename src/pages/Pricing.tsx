@@ -9,7 +9,7 @@ import { ConfirmModal } from '../components/ConfirmModal';
 
 export const Pricing = () => {
 
-    const { user, signInWithGoogle, profile } = useUser();
+    const { user, signInWithGoogle, upgradePlan, profile } = useUser();
     const navigate = useNavigate();
     const toast = useToast();
 
@@ -45,92 +45,46 @@ export const Pricing = () => {
         setShowConfirmModal(true);
     };
 
-    const handleConfirmPurchase = async () => {
+    const handleConfirmPurchase = () => {
         if (!pendingPlan || !user) return;
         setShowConfirmModal(false);
 
         const { plan, amount } = pendingPlan;
         const razorpayKey = import.meta.env.VITE_RAZORPAY_KEY_ID;
-        const apiUrl = import.meta.env.VITE_VERCEL_API_URL || 'http://localhost:3000';
 
-        try {
-            // Step 1: Create order via Vercel API
-            const idToken = await user.getIdToken();
-            const orderResponse = await fetch(`${apiUrl}/api/create-order`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${idToken}`
-                },
-                body: JSON.stringify({
-                    plan,
-                    amount: amount * 100 // Convert to paise
-                })
-            });
+        openRazorpay({
+            key: razorpayKey,
+            amount: amount * 100, // Amount in paise
+            currency: 'INR',
+            name: 'Localyze Pro',
+            description: `${plan === 'weekly' ? '7 Days' : '30 Days'} Premium Access`,
+            prefill: {
+                name: user.displayName || '',
+                email: user.email || ''
+            },
+            theme: {
+                color: '#6366f1'
+            },
+            handler: async (response: any) => {
+                try {
+                    // Check if user has active paid plan
+                    const now = new Date();
+                    const hasActivePaidPlan = profile && profile.plan !== 'free' && profile.planExpiresAt && new Date(profile.planExpiresAt) > now;
 
-            if (!orderResponse.ok) {
-                const error = await orderResponse.json();
-                throw new Error(error.error || 'Failed to create order');
-            }
+                    await upgradePlan(plan, response.razorpay_payment_id);
 
-            const orderData = await orderResponse.json();
-
-            // Step 2: Open Razorpay with order_id
-            openRazorpay({
-                key: razorpayKey,
-                amount: orderData.amount,
-                currency: orderData.currency,
-                name: 'Localyze Pro',
-                description: `${plan === 'weekly' ? '7 Days' : '30 Days'} Premium Access`,
-                order_id: orderData.orderId, // Important: order_id from server
-                prefill: {
-                    name: user.displayName || '',
-                    email: user.email || ''
-                },
-                theme: {
-                    color: '#6366f1'
-                },
-                handler: async (response: any) => {
-                    try {
-                        // Step 3: Verify payment via Vercel API
-                        const verifyToken = await user.getIdToken();
-                        const verifyResponse = await fetch(`${apiUrl}/api/verify-payment`, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${verifyToken}`
-                            },
-                            body: JSON.stringify({
-                                razorpay_order_id: response.razorpay_order_id,
-                                razorpay_payment_id: response.razorpay_payment_id,
-                                razorpay_signature: response.razorpay_signature,
-                                plan
-                            })
-                        });
-
-                        if (!verifyResponse.ok) {
-                            const error = await verifyResponse.json();
-                            throw new Error(error.error || 'Payment verification failed');
-                        }
-
-                        const verifyData = await verifyResponse.json();
-
-                        if (verifyData.pending) {
-                            toast.success(`Payment Successful! Your ${plan} plan will activate after your current plan expires.`);
-                        } else {
-                            toast.success(`Payment Successful! You are now on the ${plan === 'weekly' ? 'Weekly Pass' : 'Pro Monthly'} plan.`);
-                        }
-                        navigate('/');
-                    } catch (e: any) {
-                        console.error('Payment verification error:', e);
-                        toast.error(e.message || 'Failed to verify payment. Please contact support.');
+                    if (hasActivePaidPlan) {
+                        toast.success(`Payment Successful! Your ${plan} plan will activate after your current plan expires.`);
+                    } else {
+                        toast.success(`Payment Successful! You are now on the ${plan === 'weekly' ? 'Weekly Pass' : 'Pro Monthly'} plan.`);
                     }
+                    navigate('/');
+                } catch (e) {
+                    console.error(e);
+                    toast.error('Failed to activate plan. Please contact support.');
                 }
-            });
-        } catch (e: any) {
-            console.error('Order creation error:', e);
-            toast.error(e.message || 'Failed to initiate payment. Please try again.');
-        }
+            }
+        });
     };
 
 
