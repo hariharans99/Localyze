@@ -1,5 +1,8 @@
 import { useState } from 'react';
 import { PDFDocument } from 'pdf-lib';
+import * as pdfjsLib from 'pdfjs-dist';
+// Worker setup
+pdfjsLib.GlobalWorkerOptions.workerSrc = `/pdf.worker.min.mjs`;
 import { FileUploader } from '../../components/FileUploader';
 import { useUser } from '../../contexts/UserContext';
 import { useToast } from '../../contexts/ToastContext';
@@ -11,10 +14,11 @@ export const PdfMerge = () => {
     const { checkLimit, incrementUsage } = useUser();
     const toast = useToast();
     const [files, setFiles] = useState<File[]>([]);
+    const [thumbnails, setThumbnails] = useState<string[]>([]);
     const [mergedPdfUrl, setMergedPdfUrl] = useState<string | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
 
-    const handleFileSelect = (selectedFiles: File | File[]) => {
+    const handleFileSelect = async (selectedFiles: File | File[]) => {
         const newFiles = Array.isArray(selectedFiles) ? selectedFiles : [selectedFiles];
         const pdfFiles = newFiles.filter(f => f.type === 'application/pdf');
 
@@ -22,12 +26,38 @@ export const PdfMerge = () => {
             toast.error('Only PDF files are supported');
         }
 
+        // Generate thumbnails for new files
+        const newThumbnails = await Promise.all(pdfFiles.map(async (file) => {
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+                const page = await pdf.getPage(1);
+                const viewport = page.getViewport({ scale: 0.5 }); // Thumbnail scale
+
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+
+                if (context) {
+                    await page.render({ canvasContext: context, viewport } as any).promise;
+                    return canvas.toDataURL();
+                }
+                return '';
+            } catch (err) {
+                console.error("Error generating thumbnail", err);
+                return '';
+            }
+        }));
+
         setFiles(prev => [...prev, ...pdfFiles]);
+        setThumbnails(prev => [...prev, ...newThumbnails]);
         setMergedPdfUrl(null); // Reset previous merge
     };
 
     const removeFile = (index: number) => {
         setFiles(prev => prev.filter((_, i) => i !== index));
+        setThumbnails(prev => prev.filter((_, i) => i !== index));
         setMergedPdfUrl(null);
     };
 
@@ -42,6 +72,12 @@ export const PdfMerge = () => {
             const targetIndex = direction === 'up' ? index - 1 : index + 1;
             [newFiles[index], newFiles[targetIndex]] = [newFiles[targetIndex], newFiles[index]];
             return newFiles;
+        });
+        setThumbnails(prev => {
+            const newThumbs = [...prev];
+            const targetIndex = direction === 'up' ? index - 1 : index + 1;
+            [newThumbs[index], newThumbs[targetIndex]] = [newThumbs[targetIndex], newThumbs[index]];
+            return newThumbs;
         });
         setMergedPdfUrl(null);
     };
@@ -132,6 +168,7 @@ export const PdfMerge = () => {
                                 <button
                                     onClick={() => {
                                         setFiles([]);
+                                        setThumbnails([]);
                                         setMergedPdfUrl(null);
                                     }}
                                     style={{ color: 'var(--text-muted)', fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer' }}
@@ -155,6 +192,26 @@ export const PdfMerge = () => {
                                         }}>
                                             {idx + 1}
                                         </div>
+
+                                        {/* Thumbnail */}
+                                        {thumbnails[idx] && (
+                                            <div style={{
+                                                width: '40px',
+                                                height: '50px',
+                                                border: '1px solid var(--border-subtle)',
+                                                borderRadius: 'var(--radius-sm)',
+                                                overflow: 'hidden',
+                                                backgroundColor: 'white',
+                                                flexShrink: 0
+                                            }}>
+                                                <img
+                                                    src={thumbnails[idx]}
+                                                    alt="Preview"
+                                                    style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                                                />
+                                            </div>
+                                        )}
+
                                         <div style={{ display: 'flex', flexDirection: 'column' }}>
                                             <span style={{ fontWeight: 500 }}>{file.name}</span>
                                             <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
@@ -254,6 +311,6 @@ export const PdfMerge = () => {
             </div>
 
             <AdBanner />
-        </div>
+        </div >
     );
 };

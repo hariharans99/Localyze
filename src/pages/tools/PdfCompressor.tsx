@@ -14,6 +14,7 @@ export const PdfCompressor = () => {
     const { checkLimit, incrementUsage } = useUser();
     const toast = useToast();
     const [file, setFile] = useState<File | null>(null);
+    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [compressedPdf, setCompressedPdf] = useState<Blob | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
     const [progress, setProgress] = useState(0);
@@ -27,14 +28,34 @@ export const PdfCompressor = () => {
         if (compressedPdf) setCompressedPdf(null);
     }, [quality, scale]);
 
-    const handleFileSelect = (selectedFile: File | File[]) => {
-        if (Array.isArray(selectedFile)) {
-            if (selectedFile.length > 0) setFile(selectedFile[0]);
-        } else {
-            setFile(selectedFile);
-        }
+    const handleFileSelect = async (selectedFile: File | File[]) => {
+        const fileToLoad = Array.isArray(selectedFile) ? (selectedFile.length > 0 ? selectedFile[0] : null) : selectedFile;
+        if (!fileToLoad) return;
+
+        setFile(fileToLoad);
         setCompressedPdf(null);
         setProgress(0);
+        setPreviewUrl(null);
+
+        // Generate preview
+        try {
+            const arrayBuffer = await fileToLoad.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+            const page = await pdf.getPage(1);
+            const viewport = page.getViewport({ scale: 0.5 });
+
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
+
+            if (context) {
+                await page.render({ canvasContext: context, viewport } as any).promise;
+                setPreviewUrl(canvas.toDataURL());
+            }
+        } catch (error) {
+            console.error("Error generating preview", error);
+        }
     };
 
     // Target Size State
@@ -187,9 +208,28 @@ export const PdfCompressor = () => {
                 ) : (
                     <div className="bg-surface p-8 rounded-lg border border-subtle">
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                            <div>
-                                <h3 style={{ marginBottom: '0.5rem' }}>{file.name}</h3>
-                                <p style={{ color: 'var(--text-muted)' }}>Original Size: {(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                {previewUrl && (
+                                    <div style={{
+                                        width: '60px',
+                                        height: '80px',
+                                        borderRadius: 'var(--radius-sm)',
+                                        overflow: 'hidden',
+                                        border: '1px solid var(--border-subtle)',
+                                        backgroundColor: 'white',
+                                        flexShrink: 0
+                                    }}>
+                                        <img
+                                            src={previewUrl}
+                                            alt="PDF Preview"
+                                            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                                        />
+                                    </div>
+                                )}
+                                <div>
+                                    <h3 style={{ marginBottom: '0.5rem' }}>{file.name}</h3>
+                                    <p style={{ color: 'var(--text-muted)' }}>Original Size: {(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                                </div>
                             </div>
                             <div style={{ display: 'flex', gap: '1rem' }}>
                                 <button

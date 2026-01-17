@@ -1,5 +1,8 @@
 import { useState } from 'react';
 import { PDFDocument } from 'pdf-lib';
+import * as pdfjsLib from 'pdfjs-dist';
+// Worker setup
+pdfjsLib.GlobalWorkerOptions.workerSrc = `/pdf.worker.min.mjs`;
 import { FileUploader } from '../../components/FileUploader';
 import { useUser } from '../../contexts/UserContext';
 import { useToast } from '../../contexts/ToastContext';
@@ -13,6 +16,8 @@ export const PdfSplit = () => {
     const [file, setFile] = useState<File | null>(null);
     const [pageCount, setPageCount] = useState<number>(0);
     const [rangeInput, setRangeInput] = useState('');
+    const [previews, setPreviews] = useState<string[]>([]);
+    const [selectedPages, setSelectedPages] = useState<Set<number>>(new Set());
     const [splitPdfUrl, setSplitPdfUrl] = useState<string | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
 
@@ -25,15 +30,61 @@ export const PdfSplit = () => {
 
         try {
             const arrayBuffer = await fileToLoad.arrayBuffer();
-            const pdf = await PDFDocument.load(arrayBuffer);
-            setPageCount(pdf.getPageCount());
+            const pdfBlob = await pdfjsLib.getDocument(arrayBuffer).promise;
+            const pdfDoc = await PDFDocument.load(arrayBuffer);
+
+            const count = pdfBlob.numPages;
+            setPageCount(count);
             setFile(fileToLoad);
             setSplitPdfUrl(null);
-            setRangeInput(''); // Reset input
+            setRangeInput('');
+            setSelectedPages(new Set());
+            setPreviews([]);
+
+            // Generate thumbnails
+            const newPreviews: string[] = [];
+            for (let i = 1; i <= count; i++) {
+                try {
+                    const page = await pdfBlob.getPage(i);
+                    const viewport = page.getViewport({ scale: 0.2 }); // Low res for grid
+
+                    const canvas = document.createElement('canvas');
+                    const context = canvas.getContext('2d');
+                    canvas.height = viewport.height;
+                    canvas.width = viewport.width;
+
+                    if (context) {
+                        await page.render({ canvasContext: context, viewport } as any).promise;
+                        newPreviews.push(canvas.toDataURL());
+                    } else {
+                        newPreviews.push('');
+                    }
+                } catch (e) {
+                    console.error('Error generating preview for page', i, e);
+                    newPreviews.push('');
+                }
+            }
+            setPreviews(newPreviews);
+
         } catch (error) {
             console.error('Error loading PDF:', error);
             toast.error('Failed to load PDF info');
         }
+    };
+
+    const togglePageSelection = (pageIndex: number) => {
+        const newSelected = new Set(selectedPages);
+        if (newSelected.has(pageIndex)) {
+            newSelected.delete(pageIndex);
+        } else {
+            newSelected.add(pageIndex);
+        }
+        setSelectedPages(newSelected);
+
+        // Update range input
+        const sorted = Array.from(newSelected).sort((a, b) => a - b);
+        // Convert to 1-based index string
+        setRangeInput(sorted.map(i => i + 1).join(', '));
     };
 
     const parsePageRanges = (input: string, maxPages: number): number[] => {
@@ -132,6 +183,8 @@ export const PdfSplit = () => {
                                     setFile(null);
                                     setSplitPdfUrl(null);
                                     setRangeInput('');
+                                    setPreviews([]);
+                                    setSelectedPages(new Set());
                                 }}
                                 style={{ color: '#ef4444', fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer' }}
                             >
@@ -162,6 +215,74 @@ export const PdfSplit = () => {
                                 Use commas for separate pages and dashes for ranges.
                             </p>
                         </div>
+
+                        {/* Page Selection Grid */}
+                        {previews.length > 0 && (
+                            <div style={{ marginBottom: '2rem' }}>
+                                <label style={{ display: 'block', marginBottom: '1rem', fontWeight: 500 }}>
+                                    Select Pages to Extract (Click to select)
+                                </label>
+                                <div style={{
+                                    display: 'grid',
+                                    gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
+                                    gap: '1rem',
+                                    maxHeight: '400px',
+                                    overflowY: 'auto',
+                                    padding: '0.5rem',
+                                    border: '1px solid var(--border-subtle)',
+                                    borderRadius: 'var(--radius-md)'
+                                }}>
+                                    {previews.map((src, idx) => (
+                                        <div
+                                            key={idx}
+                                            onClick={() => togglePageSelection(idx)}
+                                            style={{
+                                                position: 'relative',
+                                                cursor: 'pointer',
+                                                border: selectedPages.has(idx) ? '3px solid var(--color-primary)' : '1px solid var(--border-subtle)',
+                                                borderRadius: 'var(--radius-sm)',
+                                                overflow: 'hidden',
+                                                opacity: selectedPages.has(idx) ? 1 : 0.7,
+                                                transform: selectedPages.has(idx) ? 'scale(1.05)' : 'scale(1)',
+                                                transition: 'all 0.2s'
+                                            }}
+                                        >
+                                            <img src={src} alt={`Page ${idx + 1}`} style={{ width: '100%', display: 'block' }} />
+                                            <div style={{
+                                                position: 'absolute',
+                                                bottom: 0,
+                                                right: 0,
+                                                background: selectedPages.has(idx) ? 'var(--color-primary)' : 'rgba(0,0,0,0.5)',
+                                                color: 'white',
+                                                padding: '2px 6px',
+                                                fontSize: '0.75rem',
+                                                borderTopLeftRadius: '4px'
+                                            }}>
+                                                {idx + 1}
+                                            </div>
+                                            {selectedPages.has(idx) && (
+                                                <div style={{
+                                                    position: 'absolute',
+                                                    top: '4px',
+                                                    right: '4px',
+                                                    color: 'var(--color-primary)',
+                                                    backgroundColor: 'white',
+                                                    borderRadius: '50%',
+                                                    width: '20px',
+                                                    height: '20px',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    fontSize: '0.8rem',
+                                                    fontWeight: 'bold',
+                                                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                                                }}>✓</div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
 
                         <button
                             onClick={handleSplit}
