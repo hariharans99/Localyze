@@ -6,7 +6,7 @@ import { AdBanner } from '../../components/AdBanner';
 import { FaDownload, FaCog, FaRedo, FaTrash, FaFileArchive, FaImage } from 'react-icons/fa';
 import JSZip from 'jszip';
 import { SEO } from '../../components/SEO';
-import { compressImage, type CompressionOptions, type CompressionResult } from '../../utils/imageCompression';
+import { compressImage, loadImageToCanvas, canvasToBlob, type CompressionOptions, type CompressionResult } from '../../utils/imageCompression';
 
 interface ProcessedFile {
     file: File;
@@ -121,23 +121,49 @@ export const ImageCompressor = () => {
         ));
 
         try {
-            const targetSizeKB = unit === 'KB' ? targetSize : targetSize * 1024;
+            let result: CompressionResult;
 
-            // Ultra mode: Aggressive dimension reduction
-            let compressionOptions: CompressionOptions;
             if (compressionMode === 'ultra') {
-                // Ultra mode: Reduce to max 1280px, very aggressive
-                compressionOptions = {
-                    targetSizeKB,
-                    format,
+                // Ultra mode: Maximum compression, ignore target size
+                // Reduce to max 800px, use quality 0.25-0.3 for maximum compression
+                const ultraOptions: CompressionOptions = {
+                    targetSizeKB: 1, // Dummy value, we'll use fixed quality
+                    format: format === 'image/png' ? 'image/webp' : format, // Force WebP if PNG selected for better compression
                     preserveDimensions: false,
-                    maxWidth: 1280,
-                    maxHeight: 1280,
-                    maxIterations: 20
+                    maxWidth: 800,
+                    maxHeight: 800,
+                    maxIterations: 1 // Single pass with fixed quality
+                };
+
+                // Load canvas and compress with fixed low quality
+                const { canvas } = await loadImageToCanvas(
+                    processedFile.file,
+                    ultraOptions.maxWidth,
+                    ultraOptions.maxHeight,
+                    false
+                );
+
+                // Use fixed quality for maximum compression
+                const quality = format === 'image/png' ? 1.0 : 0.25;
+                const blob = await canvasToBlob(canvas, ultraOptions.format, quality);
+
+                result = {
+                    blob,
+                    quality,
+                    compressionRatio: processedFile.file.size / blob.size,
+                    originalSize: processedFile.file.size,
+                    compressedSize: blob.size,
+                    dimensions: {
+                        width: canvas.width,
+                        height: canvas.height
+                    }
                 };
             } else {
-                // Normal mode: Respect user settings
-                compressionOptions = {
+                // Normal mode: Hit exact target size
+                const targetSizeKB = unit === 'KB' ? targetSize : targetSize * 1024;
+                const targetSizeBytes = targetSizeKB * 1024;
+
+                const compressionOptions: CompressionOptions = {
                     targetSizeKB,
                     format,
                     preserveDimensions,
@@ -145,19 +171,27 @@ export const ImageCompressor = () => {
                     maxHeight: !preserveDimensions && maxHeight > 0 ? maxHeight : undefined,
                     maxIterations: 15
                 };
-            }
 
-            const result = await compressImage(
-                processedFile.file,
-                compressionOptions,
-                (iteration, currentSize, quality) => {
-                    setFiles(prev => prev.map(f =>
-                        f.file.name === processedFile.file.name
-                            ? { ...f, progress: { iteration, currentSize, quality } }
-                            : f
-                    ));
+                result = await compressImage(
+                    processedFile.file,
+                    compressionOptions,
+                    (iteration, currentSize, quality) => {
+                        setFiles(prev => prev.map(f =>
+                            f.file.name === processedFile.file.name
+                                ? { ...f, progress: { iteration, currentSize, quality } }
+                                : f
+                        ));
+                    }
+                );
+
+                // Check if we hit target or if it's impossible
+                const targetTolerance = targetSizeBytes * 0.05; // 5% tolerance
+                if (result.compressedSize > targetSizeBytes + targetTolerance) {
+                    // Couldn't reach target even at lowest quality
+                    const minPossibleKB = (result.compressedSize / 1024).toFixed(2);
+                    toast.error(`${processedFile.file.name}: Cannot compress below ${minPossibleKB} KB. This is the minimum possible size.`);
                 }
-            );
+            }
 
             // Create preview of compressed image
             const compressedPreview = URL.createObjectURL(result.blob);
@@ -346,8 +380,7 @@ export const ImageCompressor = () => {
                                     <button
                                         onClick={() => {
                                             setCompressionMode('ultra');
-                                            setTargetSize(20);
-                                            setUnit('KB');
+                                            // Ultra mode doesn't use target size
                                             setFormat('image/jpeg');
                                         }}
                                         style={{
@@ -361,7 +394,7 @@ export const ImageCompressor = () => {
                                         }}
                                     >
                                         <div style={{ fontWeight: 600 }}>🔥 Ultra Mode (-99%)</div>
-                                        <div style={{ fontSize: '0.75rem', marginTop: '0.25rem', color: 'var(--text-muted)' }}>Max compression like ImageResizer</div>
+                                        <div style={{ fontSize: '0.75rem', marginTop: '0.25rem', color: 'var(--text-muted)' }}>Max compression, no target size</div>
                                     </button>
                                 </div>
                                 {compressionMode === 'ultra' && (
@@ -374,40 +407,42 @@ export const ImageCompressor = () => {
                                         fontSize: '0.85rem',
                                         color: '#ef4444'
                                     }}>
-                                        ⚠️ Ultra mode: Auto-reduces to max 1280px, uses very low quality for maximum compression
+                                        ⚠️ Ultra mode: Auto-reduces to 800px max, uses lowest quality (25%) for maximum compression without color loss
                                     </div>
                                 )}
                             </div>
 
-                            {/* Target Size */}
-                            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                                <label style={{ fontWeight: 500, minWidth: '100px' }}>Target Size:</label>
-                                <input
-                                    type="number"
-                                    min="1"
-                                    value={targetSize}
-                                    onChange={(e) => setTargetSize(parseFloat(e.target.value) || 1)}
-                                    style={{
-                                        padding: '0.5rem',
-                                        width: '120px',
-                                        borderRadius: 'var(--radius-md)',
-                                        border: '1px solid var(--border-subtle)'
-                                    }}
-                                />
-                                <select
-                                    value={unit}
-                                    onChange={(e) => setUnit(e.target.value as 'MB' | 'KB')}
-                                    style={{
-                                        padding: '0.5rem',
-                                        borderRadius: 'var(--radius-md)',
-                                        border: '1px solid var(--border-subtle)',
-                                        backgroundColor: 'var(--bg-surface)'
-                                    }}
-                                >
-                                    <option value="KB">KB</option>
-                                    <option value="MB">MB</option>
-                                </select>
-                            </div>
+                            {/* Target Size - Only show in Normal mode */}
+                            {compressionMode === 'normal' && (
+                                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                                    <label style={{ fontWeight: 500, minWidth: '100px' }}>Target Size:</label>
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        value={targetSize}
+                                        onChange={(e) => setTargetSize(parseFloat(e.target.value) || 1)}
+                                        style={{
+                                            padding: '0.5rem',
+                                            width: '120px',
+                                            borderRadius: 'var(--radius-md)',
+                                            border: '1px solid var(--border-subtle)'
+                                        }}
+                                    />
+                                    <select
+                                        value={unit}
+                                        onChange={(e) => setUnit(e.target.value as 'MB' | 'KB')}
+                                        style={{
+                                            padding: '0.5rem',
+                                            borderRadius: 'var(--radius-md)',
+                                            border: '1px solid var(--border-subtle)',
+                                            backgroundColor: 'var(--bg-surface)'
+                                        }}
+                                    >
+                                        <option value="KB">KB</option>
+                                        <option value="MB">MB</option>
+                                    </select>
+                                </div>
+                            )}
 
                             {/* Format Selection */}
                             <div>
@@ -718,7 +753,8 @@ export const ImageCompressor = () => {
                         )}
                     </div>
                 </div>
-            )}
+            )
+            }
 
             {/* How it Works */}
             <div style={{ marginTop: '3rem', backgroundColor: 'var(--bg-surface)', padding: '2rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-subtle)' }}>
@@ -736,6 +772,6 @@ export const ImageCompressor = () => {
             </div>
 
             <AdBanner />
-        </div>
+        </div >
     );
 };
