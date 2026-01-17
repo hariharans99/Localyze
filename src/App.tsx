@@ -11,6 +11,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 
 // Lazy load heavy tool components
 const ImageCompressor = lazy(() => import('./pages/tools/ImageCompressor').then(module => ({ default: module.ImageCompressor })));
+const LiveImageCompressor = lazy(() => import('./pages/tools/LiveImageCompressor').then(module => ({ default: module.LiveImageCompressor })));
 const ImageResizer = lazy(() => import('./pages/tools/ImageResizer').then(module => ({ default: module.ImageResizer })));
 const ImageConverter = lazy(() => import('./pages/tools/ImageConverter').then(module => ({ default: module.ImageConverter })));
 const ImageToPdf = lazy(() => import('./pages/tools/ImageToPdf').then(module => ({ default: module.ImageToPdf })));
@@ -53,6 +54,11 @@ function App() {
               <Route path="compress" element={
                 <Suspense fallback={<LoadingSpinner />}>
                   <ImageCompressor />
+                </Suspense>
+              } />
+              <Route path="live-compress" element={
+                <Suspense fallback={<LoadingSpinner />}>
+                  <LiveImageCompressor />
                 </Suspense>
               } />
               <Route path="resize" element={

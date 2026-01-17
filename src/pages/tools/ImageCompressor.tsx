@@ -28,12 +28,13 @@ export const ImageCompressor = () => {
     const [files, setFiles] = useState<ProcessedFile[]>([]);
     const [isProcessing, setIsProcessing] = useState(false);
 
-    // Settings
+    // Compression Settings
     const [targetSize, setTargetSize] = useState(100);
     const [unit, setUnit] = useState<'MB' | 'KB'>('KB');
     const [format, setFormat] = useState<'image/jpeg' | 'image/webp' | 'image/png'>('image/jpeg');
     const [preserveDimensions, setPreserveDimensions] = useState(true);
     const [maxWidth, setMaxWidth] = useState<number>(1920);
+    const [compressionMode, setCompressionMode] = useState<'normal' | 'ultra'>('normal');
     const [maxHeight, setMaxHeight] = useState<number>(1080);
 
     const getFormattedSize = (bytes: number) => {
@@ -122,18 +123,33 @@ export const ImageCompressor = () => {
         try {
             const targetSizeKB = unit === 'KB' ? targetSize : targetSize * 1024;
 
-            const options: CompressionOptions = {
-                targetSizeKB,
-                format,
-                preserveDimensions,
-                maxWidth: !preserveDimensions && maxWidth > 0 ? maxWidth : undefined,
-                maxHeight: !preserveDimensions && maxHeight > 0 ? maxHeight : undefined,
-                maxIterations: 15
-            };
+            // Ultra mode: Aggressive dimension reduction
+            let compressionOptions: CompressionOptions;
+            if (compressionMode === 'ultra') {
+                // Ultra mode: Reduce to max 1280px, very aggressive
+                compressionOptions = {
+                    targetSizeKB,
+                    format,
+                    preserveDimensions: false,
+                    maxWidth: 1280,
+                    maxHeight: 1280,
+                    maxIterations: 20
+                };
+            } else {
+                // Normal mode: Respect user settings
+                compressionOptions = {
+                    targetSizeKB,
+                    format,
+                    preserveDimensions,
+                    maxWidth: !preserveDimensions && maxWidth > 0 ? maxWidth : undefined,
+                    maxHeight: !preserveDimensions && maxHeight > 0 ? maxHeight : undefined,
+                    maxIterations: 15
+                };
+            }
 
             const result = await compressImage(
                 processedFile.file,
-                options,
+                compressionOptions,
                 (iteration, currentSize, quality) => {
                     setFiles(prev => prev.map(f =>
                         f.file.name === processedFile.file.name
@@ -308,6 +324,61 @@ export const ImageCompressor = () => {
                         </h4>
 
                         <div style={{ display: 'grid', gap: '1.5rem' }}>
+                            {/* Compression Mode */}
+                            <div>
+                                <label style={{ fontWeight: 500, display: 'block', marginBottom: '0.75rem' }}>Compression Mode:</label>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                                    <button
+                                        onClick={() => setCompressionMode('normal')}
+                                        style={{
+                                            padding: '0.75rem',
+                                            borderRadius: 'var(--radius-md)',
+                                            border: `2px solid ${compressionMode === 'normal' ? 'var(--color-primary)' : 'var(--border-subtle)'}`,
+                                            backgroundColor: compressionMode === 'normal' ? 'rgba(99, 102, 241, 0.1)' : 'var(--bg-surface)',
+                                            color: compressionMode === 'normal' ? 'var(--color-primary)' : 'var(--text-main)',
+                                            cursor: 'pointer',
+                                            textAlign: 'left'
+                                        }}
+                                    >
+                                        <div style={{ fontWeight: 600 }}>Normal Mode</div>
+                                        <div style={{ fontSize: '0.75rem', marginTop: '0.25rem', color: 'var(--text-muted)' }}>Balanced quality & size</div>
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            setCompressionMode('ultra');
+                                            setTargetSize(20);
+                                            setUnit('KB');
+                                            setFormat('image/jpeg');
+                                        }}
+                                        style={{
+                                            padding: '0.75rem',
+                                            borderRadius: 'var(--radius-md)',
+                                            border: `2px solid ${compressionMode === 'ultra' ? '#ef4444' : 'var(--border-subtle)'}`,
+                                            backgroundColor: compressionMode === 'ultra' ? 'rgba(239, 68, 68, 0.1)' : 'var(--bg-surface)',
+                                            color: compressionMode === 'ultra' ? '#ef4444' : 'var(--text-main)',
+                                            cursor: 'pointer',
+                                            textAlign: 'left'
+                                        }}
+                                    >
+                                        <div style={{ fontWeight: 600 }}>🔥 Ultra Mode (-99%)</div>
+                                        <div style={{ fontSize: '0.75rem', marginTop: '0.25rem', color: 'var(--text-muted)' }}>Max compression like ImageResizer</div>
+                                    </button>
+                                </div>
+                                {compressionMode === 'ultra' && (
+                                    <div style={{
+                                        marginTop: '0.75rem',
+                                        padding: '0.75rem',
+                                        backgroundColor: 'rgba(239, 68, 68, 0.05)',
+                                        border: '1px solid rgba(239, 68, 68, 0.2)',
+                                        borderRadius: 'var(--radius-sm)',
+                                        fontSize: '0.85rem',
+                                        color: '#ef4444'
+                                    }}>
+                                        ⚠️ Ultra mode: Auto-reduces to max 1280px, uses very low quality for maximum compression
+                                    </div>
+                                )}
+                            </div>
+
                             {/* Target Size */}
                             <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
                                 <label style={{ fontWeight: 500, minWidth: '100px' }}>Target Size:</label>
