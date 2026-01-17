@@ -222,6 +222,27 @@ export const ImageToPdf = () => {
                                         fontWeight: 600,
                                         flexShrink: 0
                                     }}>{index + 1}</span>
+
+                                    <div style={{
+                                        width: 'clamp(40px, 8vw, 48px)',
+                                        height: 'clamp(40px, 8vw, 48px)',
+                                        borderRadius: 'var(--radius-sm)',
+                                        overflow: 'hidden',
+                                        flexShrink: 0,
+                                        border: '1px solid var(--border-subtle)',
+                                        backgroundColor: 'var(--bg-app)'
+                                    }}>
+                                        <img
+                                            src={imagePreviews[index]}
+                                            alt={file.name}
+                                            style={{
+                                                width: '100%',
+                                                height: '100%',
+                                                objectFit: 'cover'
+                                            }}
+                                        />
+                                    </div>
+
                                     <span style={{
                                         fontWeight: 500,
                                         overflow: 'hidden',
@@ -335,51 +356,7 @@ export const ImageToPdf = () => {
                         />
 
 
-                        {/* Image Preview Grid */}
-                        {imagePreviews.length > 0 && (
-                            <div style={{ marginTop: '2rem' }}>
-                                <h4 style={{ marginBottom: '1rem' }}>Preview ({files.length} {files.length === 1 ? 'image' : 'images'})</h4>
-                                <div style={{
-                                    display: 'grid',
-                                    gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))',
-                                    gap: '0.75rem'
-                                }}>
-                                    {imagePreviews.map((preview, index) => (
-                                        <div key={index} style={{
-                                            position: 'relative',
-                                            aspectRatio: '1',
-                                            border: '2px solid var(--border-subtle)',
-                                            borderRadius: 'var(--radius-md)',
-                                            overflow: 'hidden',
-                                            backgroundColor: 'var(--bg-app)'
-                                        }}>
-                                            <img
-                                                src={preview}
-                                                alt={`Image ${index + 1}`}
-                                                style={{
-                                                    width: '100%',
-                                                    height: '100%',
-                                                    objectFit: 'cover'
-                                                }}
-                                            />
-                                            <div style={{
-                                                position: 'absolute',
-                                                top: '4px',
-                                                left: '4px',
-                                                backgroundColor: 'rgba(0, 0, 0, 0.7)',
-                                                color: 'white',
-                                                padding: '2px 6px',
-                                                borderRadius: '4px',
-                                                fontSize: '0.75rem',
-                                                fontWeight: 600
-                                            }}>
-                                                {index + 1}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
+
                     </div>
 
                     <div style={{
