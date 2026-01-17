@@ -35,7 +35,7 @@ export const Navbar = () => {
                     <span style={{ background: 'linear-gradient(to right, #6366f1, #a855f7)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Localyze</span>
                 </Link>
 
-                <div style={{ display: 'flex', gap: 'clamp(0.5rem, 3vw, 2rem)', alignItems: 'center', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', gap: 'clamp(0.5rem, 2vw, 1.5rem)', alignItems: 'center', flexWrap: 'nowrap' }}>
                     <Link to="/tools" style={{
                         color: 'var(--text-muted)',
                         transition: 'color 0.2s',
@@ -70,15 +70,16 @@ export const Navbar = () => {
                     </button>
 
                     {user ? (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginLeft: 'auto' }}>
                             {user.photoURL && (
-                                <Link to="/profile">
+                                <Link to="/profile" style={{ display: 'flex', alignItems: 'center' }}>
                                     <img src={user.photoURL} alt="User" style={{
-                                        width: '40px',
-                                        height: '40px',
+                                        width: '36px',
+                                        height: '36px',
                                         borderRadius: '50%',
                                         cursor: 'pointer',
-                                        border: '2px solid var(--border-subtle)'
+                                        border: '2px solid var(--border-subtle)',
+                                        flexShrink: 0
                                     }} />
                                 </Link>
                             )}
@@ -86,13 +87,14 @@ export const Navbar = () => {
                                 onClick={() => signOut()}
                                 style={{
                                     color: 'var(--text-muted)',
-                                    fontSize: '1.2rem',
+                                    fontSize: '1.1rem',
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
                                     padding: '0.5rem',
-                                    minHeight: '44px',
-                                    minWidth: '44px'
+                                    minHeight: '40px',
+                                    minWidth: '40px',
+                                    flexShrink: 0
                                 }}
                                 aria-label="Sign Out"
                             >
