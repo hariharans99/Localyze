@@ -12,20 +12,33 @@ export const ImageConverter = () => {
     const { checkLimit, incrementUsage, logActivity } = useUser();
     const { error, success } = useToast();
     const [file, setFile] = useState<File | null>(null);
+    const [originalPreview, setOriginalPreview] = useState<string | null>(null);
     const [convertedImage, setConvertedImage] = useState<string | null>(null);
+    const [originalSize, setOriginalSize] = useState<number>(0);
+    const [convertedSize, setConvertedSize] = useState<number>(0);
     const [format, setFormat] = useState('image/jpeg');
     const [quality, setQuality] = useState(0.92);
     const [isProcessing, setIsProcessing] = useState(false);
     const [progress, setProgress] = useState(0);
     const [estimatedTime, setEstimatedTime] = useState<number | undefined>(undefined);
 
-    const handleFileSelect = (selectedFile: File | File[]) => {
-        if (Array.isArray(selectedFile)) {
-            if (selectedFile.length > 0) setFile(selectedFile[0]);
-        } else {
-            setFile(selectedFile);
-        }
+    const handleFileSelect = async (selectedFile: File | File[]) => {
+        const selectedF = Array.isArray(selectedFile) ? selectedFile[0] : selectedFile;
+        if (!selectedF) return;
+
+        setFile(selectedF);
+        setOriginalSize(selectedF.size);
         setConvertedImage(null);
+
+        // Create preview for original image
+        try {
+            const preview = await processFile(selectedF);
+            setOriginalPreview(preview);
+        } catch (e) {
+            console.error('Failed to create preview:', e);
+            // Fallback to object URL
+            setOriginalPreview(URL.createObjectURL(selectedF));
+        }
     };
 
     const processFile = async (inputFile: File): Promise<string> => {
@@ -135,6 +148,11 @@ export const ImageConverter = () => {
                 await new Promise(r => setTimeout(r, 200));
 
                 setConvertedImage(dataUrl);
+                // Calculate converted size from data URL
+                const base64Length = dataUrl.split(',')[1].length;
+                const sizeInBytes = (base64Length * 3) / 4;
+                setConvertedSize(Math.round(sizeInBytes));
+
                 await incrementUsage('convert');
                 logActivity('convert', `${getExtension(file.type)} -> ${format.split('/')[1]}`);
                 success("Image converted successfully!");
@@ -305,6 +323,62 @@ export const ImageConverter = () => {
                                 </div>
                             )}
                         </div>
+
+                        {/* Image Previews */}
+                        {originalPreview && (
+                            <div style={{ marginBottom: '2rem' }}>
+                                <h4 style={{ marginBottom: '1rem' }}>Preview</h4>
+                                <div style={{ display: 'grid', gridTemplateColumns: convertedImage ? '1fr 1fr' : '1fr', gap: '1rem' }}>
+                                    {/* Original Preview */}
+                                    <div>
+                                        <div style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.5rem', color: 'var(--text-muted)' }}>
+                                            ORIGINAL ({(file?.type || 'unknown').split('/')[1].toUpperCase()} - {(originalSize / 1024).toFixed(1)} KB)
+                                        </div>
+                                        <div style={{
+                                            border: '2px solid var(--border-subtle)',
+                                            borderRadius: 'var(--radius-md)',
+                                            overflow: 'hidden',
+                                            backgroundColor: 'var(--bg-app)'
+                                        }}>
+                                            <img
+                                                src={originalPreview}
+                                                alt="Original"
+                                                style={{
+                                                    width: '100%',
+                                                    height: '200px',
+                                                    objectFit: 'contain'
+                                                }}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Converted Preview */}
+                                    {convertedImage && (
+                                        <div>
+                                            <div style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.5rem', color: '#10b981' }}>
+                                                CONVERTED ({format.split('/')[1].toUpperCase()} - {(convertedSize / 1024).toFixed(1)} KB)
+                                            </div>
+                                            <div style={{
+                                                border: '2px solid #10b981',
+                                                borderRadius: 'var(--radius-md)',
+                                                overflow: 'hidden',
+                                                backgroundColor: 'var(--bg-app)'
+                                            }}>
+                                                <img
+                                                    src={convertedImage}
+                                                    alt="Converted"
+                                                    style={{
+                                                        width: '100%',
+                                                        height: '200px',
+                                                        objectFit: 'contain'
+                                                    }}
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
 
                         {convertedImage ? (
                             <div style={{
