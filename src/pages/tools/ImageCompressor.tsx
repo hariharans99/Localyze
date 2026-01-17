@@ -9,7 +9,7 @@ import JSZip from 'jszip';
 import { SEO } from '../../components/SEO';
 
 export const ImageCompressor = () => {
-    const { checkLimit, incrementUsage } = useUser();
+    const { checkLimit, incrementUsage, profile } = useUser();
     const toast = useToast();
 
     // Batch State
@@ -40,6 +40,29 @@ export const ImageCompressor = () => {
 
     const handleFileSelect = (selectedFiles: File | File[]) => {
         const newFiles = Array.isArray(selectedFiles) ? selectedFiles : [selectedFiles];
+        const isFreeUser = !profile || profile.plan === 'free';
+
+        // For free users, limit to 2 images total
+        if (isFreeUser) {
+            const totalFiles = files.length + newFiles.length;
+            if (totalFiles > 2) {
+                toast.error(`Free tier limited to 2 images per compression. You can only add ${Math.max(0, 2 - files.length)} more image(s).`);
+                // Only take files that fit within the limit
+                const allowedCount = Math.max(0, 2 - files.length);
+                const limitedFiles = newFiles.slice(0, allowedCount);
+
+                if (limitedFiles.length === 0) return;
+
+                setFiles(prev => [...prev, ...limitedFiles]);
+                setProcessingStatus(prev => {
+                    const next = { ...prev };
+                    limitedFiles.forEach(f => next[f.name] = 'pending');
+                    return next;
+                });
+                return;
+            }
+        }
+
         // Append new files
         setFiles(prev => [...prev, ...newFiles]);
         // Reset process states for new files
@@ -126,16 +149,26 @@ export const ImageCompressor = () => {
             return;
         }
 
+        const isFreeUser = !profile || profile.plan === 'free';
+        const pendingFiles = files.filter(f => !compressedFiles[f.name]);
+
+        // For free users, only process first 2 images
+        const filesToProcess = isFreeUser ? pendingFiles.slice(0, 2) : pendingFiles;
+
+        if (isFreeUser && pendingFiles.length > 2) {
+            toast.error(`Free tier can only process 2 images per compression. Processing first 2 images only. Upgrade for unlimited!`);
+        }
+
         setIsGlobalProcessing(true);
         setGlobalEstimatedTime('Calculating...');
         batchStartTimeRef.current = Date.now();
 
-        const pendingFiles = files.filter(f => !compressedFiles[f.name]);
-        const totalBytes = pendingFiles.reduce((acc, f) => acc + f.size, 0);
+        const totalBytes = filesToProcess.reduce((acc, f) => acc + f.size, 0);
         let completedBytes = 0;
+        let processedCount = 0;
 
         // Process sequentially
-        for (const file of pendingFiles) {
+        for (const file of filesToProcess) {
             await compressSingleFile(file, (progress) => {
                 const currentFileBytes = (progress / 100) * file.size;
                 const totalProcessed = completedBytes + currentFileBytes;
@@ -156,11 +189,22 @@ export const ImageCompressor = () => {
             });
 
             completedBytes += file.size;
+            processedCount++;
+
+            // For free users, stop after 2 images
+            if (isFreeUser && processedCount >= 2) {
+                break;
+            }
         }
 
         setIsGlobalProcessing(false);
         setGlobalEstimatedTime('');
-        toast.success("Batch compression complete!");
+
+        if (isFreeUser && pendingFiles.length > 2) {
+            toast.success(`Processed 2 images. Upgrade to process unlimited images!`);
+        } else {
+            toast.success("Batch compression complete!");
+        }
     };
 
 
@@ -195,12 +239,28 @@ export const ImageCompressor = () => {
 
             <div style={{ marginBottom: '2rem' }}>
                 {files.length === 0 ? (
-                    <FileUploader
-                        onFileSelect={handleFileSelect}
-                        accept="image/*"
-                        label="Upload Images to Compress (Batch Supported)"
-                        multiple={true}
-                    />
+                    <>
+                        <FileUploader
+                            onFileSelect={handleFileSelect}
+                            accept="image/*"
+                            label="Upload Images to Compress (Batch Supported)"
+                            multiple={true}
+                        />
+                        {(!profile || profile.plan === 'free') && (
+                            <div style={{
+                                marginTop: '1rem',
+                                padding: '0.75rem 1rem',
+                                backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                                border: '1px solid rgba(245, 158, 11, 0.3)',
+                                borderRadius: 'var(--radius-md)',
+                                color: '#f59e0b',
+                                fontSize: '0.9rem',
+                                textAlign: 'center'
+                            }}>
+                                ⚠️ Free tier: Maximum 2 images per compression. Upgrade for unlimited!
+                            </div>
+                        )}
+                    </>
                 ) : (
                     <div className="bg-surface p-8 rounded-lg border border-subtle">
                         {/* Header Controls */}
