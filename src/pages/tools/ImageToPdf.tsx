@@ -16,6 +16,7 @@ export const ImageToPdf = () => {
     const { checkLimit, incrementUsage, logActivity } = useUser();
     const { error, success } = useToast();
     const [files, setFiles] = useState<File[]>([]);
+    const [imagePreviews, setImagePreviews] = useState<string[]>([]);
     const [pdfUrl, setPdfUrl] = useState<string | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
     const [progress, setProgress] = useState(0);
@@ -35,11 +36,23 @@ export const ImageToPdf = () => {
     const handleFileSelect = (selectedFiles: File | File[]) => {
         const newFiles = Array.isArray(selectedFiles) ? selectedFiles : [selectedFiles];
         setFiles(prev => [...prev, ...newFiles]);
+
+        // Create previews for new files
+        newFiles.forEach(file => {
+            const url = URL.createObjectURL(file);
+            setImagePreviews(prev => [...prev, url]);
+        });
+
         setPdfUrl(null);
     };
 
     const removeFile = (index: number) => {
         setFiles(prev => prev.filter((_, i) => i !== index));
+        setImagePreviews(prev => {
+            const newPreviews = prev.filter((_, i) => i !== index);
+            URL.revokeObjectURL(prev[index]); // Clean up
+            return newPreviews;
+        });
         setPdfUrl(null);
     };
 
@@ -52,6 +65,15 @@ export const ImageToPdf = () => {
                 [newFiles[index], newFiles[index + 1]] = [newFiles[index + 1], newFiles[index]];
             }
             return newFiles;
+        });
+        setImagePreviews(prev => {
+            const newPreviews = [...prev];
+            if (direction === 'up' && index > 0) {
+                [newPreviews[index], newPreviews[index - 1]] = [newPreviews[index - 1], newPreviews[index]];
+            } else if (direction === 'down' && index < newPreviews.length - 1) {
+                [newPreviews[index], newPreviews[index + 1]] = [newPreviews[index + 1], newPreviews[index]];
+            }
+            return newPreviews;
         });
         setPdfUrl(null);
     };
@@ -313,6 +335,53 @@ export const ImageToPdf = () => {
                         />
                     </div>
 
+                    {/* Image Preview Grid */}
+                    {imagePreviews.length > 0 && (
+                        <div style={{ marginTop: '2rem' }}>
+                            <h4 style={{ marginBottom: '1rem' }}>Preview ({files.length} {files.length === 1 ? 'image' : 'images'})</h4>
+                            <div style={{
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))',
+                                gap: '0.75rem'
+                            }}>
+                                {imagePreviews.map((preview, index) => (
+                                    <div key={index} style={{
+                                        position: 'relative',
+                                        aspectRatio: '1',
+                                        border: '2px solid var(--border-subtle)',
+                                        borderRadius: 'var(--radius-md)',
+                                        overflow: 'hidden',
+                                        backgroundColor: 'var(--bg-app)'
+                                    }}>
+                                        <img
+                                            src={preview}
+                                            alt={`Image ${index + 1}`}
+                                            style={{
+                                                width: '100%',
+                                                height: '100%',
+                                                objectFit: 'cover'
+                                            }}
+                                        />
+                                        <div style={{
+                                            position: 'absolute',
+                                            top: '4px',
+                                            left: '4px',
+                                            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                                            color: 'white',
+                                            padding: '2px 6px',
+                                            borderRadius: '4px',
+                                            fontSize: '0.75rem',
+                                            fontWeight: 600
+                                        }}>
+                                            {index + 1}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
+
                     <div style={{
                         backgroundColor: 'var(--bg-surface)',
                         padding: 'clamp(1rem, 3vw, 1.5rem)',
@@ -489,19 +558,19 @@ export const ImageToPdf = () => {
                         )}
                     </div>
                 </div>
-            )
-            }
+    )
+}
 
-            <div style={{ marginTop: '3rem', backgroundColor: 'var(--bg-surface)', padding: '2rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-subtle)' }}>
-                <h3 style={{ marginBottom: '1rem', color: 'var(--text-main)' }}>How it Works</h3>
-                <ol style={{ paddingLeft: '1.5rem', color: 'var(--text-muted)', lineHeight: '1.8' }}>
-                    <li><strong>Upload Images:</strong> Select one or multiple images from your device.</li>
-                    <li><strong>Arrange & Edit:</strong> Reorder images using the arrow buttons or remove unwanted ones.</li>
-                    <li><strong>Configure PDF:</strong> Choose page size (A4 or Fit), orientation, and margins.</li>
-                    <li><strong>Generate:</strong> Click "Create PDF" to merge your images into a single document.</li>
-                    <li><strong>Download:</strong> Save your newly created PDF file locally.</li>
-                </ol>
-            </div>
+<div style={{ marginTop: '3rem', backgroundColor: 'var(--bg-surface)', padding: '2rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-subtle)' }}>
+    <h3 style={{ marginBottom: '1rem', color: 'var(--text-main)' }}>How it Works</h3>
+    <ol style={{ paddingLeft: '1.5rem', color: 'var(--text-muted)', lineHeight: '1.8' }}>
+        <li><strong>Upload Images:</strong> Select one or multiple images from your device.</li>
+        <li><strong>Arrange & Edit:</strong> Reorder images using the arrow buttons or remove unwanted ones.</li>
+        <li><strong>Configure PDF:</strong> Choose page size (A4 or Fit), orientation, and margins.</li>
+        <li><strong>Generate:</strong> Click "Create PDF" to merge your images into a single document.</li>
+        <li><strong>Download:</strong> Save your newly created PDF file locally.</li>
+    </ol>
+</div>
         </div >
     );
 };
