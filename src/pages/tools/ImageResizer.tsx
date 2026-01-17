@@ -12,9 +12,12 @@ export const ImageResizer = () => {
     const { checkLimit, incrementUsage } = useUser();
     const toast = useToast();
     const [file, setFile] = useState<File | null>(null);
+    const [originalPreview, setOriginalPreview] = useState<string | null>(null);
     const [resizedImage, setResizedImage] = useState<string | null>(null);
     const [width, setWidth] = useState<number>(0);
     const [height, setHeight] = useState<number>(0);
+    const [originalWidth, setOriginalWidth] = useState<number>(0);
+    const [originalHeight, setOriginalHeight] = useState<number>(0);
     const [aspectRatio, setAspectRatio] = useState<number>(0);
     const [maintainAspect, setMaintainAspect] = useState(true);
     const [isProcessing, setIsProcessing] = useState(false);
@@ -26,11 +29,16 @@ export const ImageResizer = () => {
         if (!file) return;
 
         setFile(file);
+        const preview = URL.createObjectURL(file);
+        setOriginalPreview(preview);
+
         const img = new Image();
-        img.src = URL.createObjectURL(file);
+        img.src = preview;
         img.onload = () => {
             setWidth(img.width);
             setHeight(img.height);
+            setOriginalWidth(img.width);
+            setOriginalHeight(img.height);
             setAspectRatio(img.width / img.height);
         };
         setResizedImage(null);
@@ -269,6 +277,62 @@ export const ImageResizer = () => {
                                 <span>Maintain Aspect Ratio</span>
                             </label>
                         </div>
+
+                        {/* Image Previews - Show after file upload */}
+                        {originalPreview && (
+                            <div style={{ marginBottom: '2rem' }}>
+                                <h4 style={{ marginBottom: '1rem' }}>Preview</h4>
+                                <div style={{ display: 'grid', gridTemplateColumns: resizedImage ? '1fr 1fr' : '1fr', gap: '1rem' }}>
+                                    {/* Original Preview */}
+                                    <div>
+                                        <div style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.5rem', color: 'var(--text-muted)' }}>
+                                            ORIGINAL ({originalWidth} × {originalHeight})
+                                        </div>
+                                        <div style={{
+                                            border: '2px solid var(--border-subtle)',
+                                            borderRadius: 'var(--radius-md)',
+                                            overflow: 'hidden',
+                                            backgroundColor: 'var(--bg-app)'
+                                        }}>
+                                            <img
+                                                src={originalPreview}
+                                                alt="Original"
+                                                style={{
+                                                    width: '100%',
+                                                    height: '200px',
+                                                    objectFit: 'contain'
+                                                }}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Resized Preview */}
+                                    {resizedImage && (
+                                        <div>
+                                            <div style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.5rem', color: '#10b981' }}>
+                                                RESIZED ({width} × {height})
+                                            </div>
+                                            <div style={{
+                                                border: '2px solid #10b981',
+                                                borderRadius: 'var(--radius-md)',
+                                                overflow: 'hidden',
+                                                backgroundColor: 'var(--bg-app)'
+                                            }}>
+                                                <img
+                                                    src={resizedImage}
+                                                    alt="Resized"
+                                                    style={{
+                                                        width: '100%',
+                                                        height: '200px',
+                                                        objectFit: 'contain'
+                                                    }}
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
 
                         {resizedImage ? (
                             <div style={{
