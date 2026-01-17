@@ -356,6 +356,46 @@ export const ImageCompressor = () => {
                                         </label>
                                     </div>
                                 </div>
+
+                                {/* Color Preservation Option */}
+                                <div style={{
+                                    padding: '1rem',
+                                    border: `1px solid ${qualityPriority === 'color' ? 'var(--color-primary)' : 'var(--border-subtle)'}`,
+                                    borderRadius: 'var(--radius-md)',
+                                    backgroundColor: qualityPriority === 'color' ? 'rgba(99, 102, 241, 0.05)' : 'transparent'
+                                }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                                        <input
+                                            type="checkbox"
+                                            id="preserveColor"
+                                            checked={qualityPriority === 'color'}
+                                            onChange={(e) => setQualityPriority(e.target.checked ? 'color' : 'size')}
+                                            style={{ width: '1.2rem', height: '1.2rem', cursor: 'pointer' }}
+                                        />
+                                        <label htmlFor="preserveColor" style={{ fontSize: '0.9rem', cursor: 'pointer', userSelect: 'none', fontWeight: 500 }}>
+                                            Preserve Color Quality (Recommended for photos)
+                                        </label>
+                                    </div>
+                                    <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginLeft: '1.7rem' }}>
+                                        {qualityPriority === 'color'
+                                            ? '✓ Maintains original color format. May result in larger file sizes but better color accuracy.'
+                                            : '⚠️ Prioritizes file size reduction. Colors may shift slightly during compression.'}
+                                    </p>
+                                </div>
+
+                                {/* Minimum Size Warning */}
+                                {unit === 'KB' && options.maxSizeMB < 10 && (
+                                    <div style={{
+                                        padding: '0.75rem',
+                                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                                        border: '1px solid rgba(239, 68, 68, 0.3)',
+                                        borderRadius: 'var(--radius-md)',
+                                        fontSize: '0.85rem',
+                                        color: '#ef4444'
+                                    }}>
+                                        ⚠️ <strong>Very small target size!</strong> The lowest we can compress may be higher than {options.maxSizeMB} KB. Try enabling "Preserve Color Quality" for more control, or increase the target size.
+                                    </div>
+                                )}
                             </div>
                         </div>
 
