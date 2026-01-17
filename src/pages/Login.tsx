@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { FaGoogle, FaLayerGroup } from 'react-icons/fa';
+import { FaGoogle, FaLayerGroup, FaUserCircle } from 'react-icons/fa';
 import { useUser } from '../contexts/UserContext';
 import { useToast } from '../contexts/ToastContext';
 import { useEffect } from 'react';
@@ -72,6 +72,48 @@ export const Login = () => {
                 >
                     <FaGoogle />
                     <span>Sign in with Google</span>
+                </button>
+
+                <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '1rem',
+                    margin: '1.5rem 0',
+                    color: 'var(--text-muted)',
+                    fontSize: '0.875rem'
+                }}>
+                    <div style={{ flex: 1, height: '1px', backgroundColor: 'var(--border-subtle)' }}></div>
+                    <span>OR</span>
+                    <div style={{ flex: 1, height: '1px', backgroundColor: 'var(--border-subtle)' }}></div>
+                </div>
+
+                <button
+                    onClick={() => navigate('/profile')}
+                    style={{
+                        width: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.75rem',
+                        padding: '0.875rem',
+                        backgroundColor: 'var(--bg-app)',
+                        color: 'var(--text-main)',
+                        border: '1px solid var(--border-subtle)',
+                        borderRadius: 'var(--radius-md)',
+                        fontWeight: 600,
+                        transition: 'background-color 0.2s, border-color 0.2s'
+                    }}
+                    onMouseOver={(e) => {
+                        e.currentTarget.style.backgroundColor = 'var(--bg-surface-hover)';
+                        e.currentTarget.style.borderColor = 'var(--color-primary)';
+                    }}
+                    onMouseOut={(e) => {
+                        e.currentTarget.style.backgroundColor = 'var(--bg-app)';
+                        e.currentTarget.style.borderColor = 'var(--border-subtle)';
+                    }}
+                >
+                    <FaUserCircle />
+                    <span>Continue as Guest</span>
                 </button>
             </div>
         </div>
