@@ -112,8 +112,14 @@ export const ImageCompressor = () => {
             // Apply current settings
             const currentOptions = {
                 ...options,
-                // If priority is color, strict type
-                fileType: qualityPriority === 'color' ? file.type : undefined
+                // If priority is color, apply strict preservation settings
+                fileType: qualityPriority === 'color' ? file.type : undefined,
+                // Higher initial quality helps preserve colors
+                initialQuality: qualityPriority === 'color' ? 0.95 : 0.8,
+                // Preserve EXIF data which includes color profiles
+                preserveExif: qualityPriority === 'color' ? true : false,
+                // Stricter compression when color is priority
+                strict: qualityPriority === 'color' ? true : false
             };
 
             // Adjust max size relative to unit if needed (library takes MB)
@@ -378,8 +384,8 @@ export const ImageCompressor = () => {
                                     </div>
                                     <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginLeft: '1.7rem' }}>
                                         {qualityPriority === 'color'
-                                            ? '✓ Maintains original color format. May result in larger file sizes but better color accuracy.'
-                                            : '⚠️ Prioritizes file size reduction. Colors may shift slightly during compression.'}
+                                            ? '✓ Uses high initial quality (95%), preserves EXIF color profiles, and maintains original format. Best color accuracy but larger files.'
+                                            : '⚠️ Prioritizes file size reduction. May convert formats and reduce quality. Colors may shift during compression.'}
                                     </p>
                                 </div>
 
