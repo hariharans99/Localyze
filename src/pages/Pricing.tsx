@@ -143,12 +143,12 @@ export const Pricing = () => {
     ];
 
     return (
-        <div className="container">
-            <div style={{ textAlign: 'center', maxWidth: '700px', margin: '0 auto 4rem' }}>
-                <h1 className="text-gradient" style={{ fontSize: '3rem', marginBottom: '1rem' }}>
+        <div className="container" style={{ padding: 'clamp(1rem, 3vw, 2rem)' }}>
+            <div style={{ textAlign: 'center', maxWidth: '700px', margin: '0 auto clamp(2rem, 5vw, 4rem)', padding: '0 1rem' }}>
+                <h1 className="text-gradient" style={{ fontSize: 'clamp(2rem, 6vw, 3rem)', marginBottom: 'clamp(0.75rem, 2vw, 1rem)', lineHeight: 1.2 }}>
                     Simple, Transparent Pricing
                 </h1>
-                <p style={{ fontSize: '1.25rem', color: 'var(--text-muted)' }}>
+                <p style={{ fontSize: 'clamp(1rem, 2.5vw, 1.25rem)', color: 'var(--text-muted)', lineHeight: 1.6 }}>
                     Choose the plan that fits your needs.
                     <br />All plans include secure local processing.
                 </p>
@@ -156,8 +156,8 @@ export const Pricing = () => {
 
             <div style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-                gap: '2rem',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
+                gap: 'clamp(1rem, 3vw, 2rem)',
                 alignItems: 'start'
             }}>
                 {plans.map(plan => {
@@ -187,7 +187,7 @@ export const Pricing = () => {
                             backgroundColor: 'var(--bg-surface)',
                             borderRadius: 'var(--radius-lg)',
                             border: `1px solid ${plan.recommended ? 'var(--color-primary)' : 'var(--border-subtle)'}`,
-                            padding: '2rem',
+                            padding: 'clamp(1.5rem, 4vw, 2rem)',
                             position: 'relative',
                             boxShadow: plan.recommended ? 'var(--shadow-glow)' : 'var(--shadow-md)',
                             transform: plan.recommended ? 'scale(1.02)' : 'none'
