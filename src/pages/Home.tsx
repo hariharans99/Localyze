@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { FaImage, FaFilePdf, FaExpandArrowsAlt, FaRandom, FaCut, FaLayerGroup } from 'react-icons/fa';
+import { FaImage, FaFilePdf, FaExpandArrowsAlt, FaRandom, FaCut, FaLayerGroup, FaFileImage } from 'react-icons/fa';
 import { SEO } from '../components/SEO';
 
 export const Home = () => {
@@ -59,6 +59,14 @@ export const Home = () => {
             icon: <FaCut />,
             path: '/tools/split-pdf',
             color: '#06b6d4'
+        },
+        {
+            id: 'pdf-to-jpg',
+            name: 'PDF to JPG',
+            desc: 'Convert PDF pages to JPG images.',
+            icon: <FaFileImage />,
+            path: '/tools/pdf-to-jpg',
+            color: '#14b8a6'
         }
     ];
 
