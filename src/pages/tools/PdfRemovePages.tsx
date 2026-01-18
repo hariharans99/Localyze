@@ -8,10 +8,10 @@ import { FileUploader } from '../../components/FileUploader';
 import { useUser } from '../../contexts/UserContext';
 import { useToast } from '../../contexts/ToastContext';
 import { AdBanner } from '../../components/AdBanner';
-import { FaDownload, FaCut } from 'react-icons/fa';
+import { FaDownload, FaTrash } from 'react-icons/fa';
 import { SEO } from '../../components/SEO';
 
-export const PdfSplit = () => {
+export const PdfRemovePages = () => {
     const { checkLimit, incrementUsage } = useUser();
     const toast = useToast();
     const [file, setFile] = useState<File | null>(null);
@@ -19,7 +19,7 @@ export const PdfSplit = () => {
     const [rangeInput, setRangeInput] = useState('');
     const [previews, setPreviews] = useState<string[]>([]);
     const [selectedPages, setSelectedPages] = useState<Set<number>>(new Set());
-    const [splitPdfUrl, setSplitPdfUrl] = useState<string | null>(null);
+    const [resultPdfUrl, setResultPdfUrl] = useState<string | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
 
     const handleFileSelect = async (selectedFile: File | File[]) => {
@@ -36,7 +36,7 @@ export const PdfSplit = () => {
             const count = pdfBlob.numPages;
             setPageCount(count);
             setFile(fileToLoad);
-            setSplitPdfUrl(null);
+            setResultPdfUrl(null);
             setRangeInput('');
             setSelectedPages(new Set());
             setPreviews([]);
@@ -112,7 +112,7 @@ export const PdfSplit = () => {
         return Array.from(pages).sort((a, b) => a - b);
     };
 
-    const handleSplit = async () => {
+    const handleRemovePages = async () => {
         if (!file || !rangeInput.trim()) return;
 
         if (!checkLimit()) {
@@ -120,10 +120,15 @@ export const PdfSplit = () => {
             return;
         }
 
-        const indicesToKeep = parsePageRanges(rangeInput, pageCount);
+        const indicesToRemove = parsePageRanges(rangeInput, pageCount);
 
-        if (indicesToKeep.length === 0) {
-            toast.error('Invalid page range. Please check your input.');
+        if (indicesToRemove.length === 0) {
+            toast.error('No pages selected for removal.');
+            return;
+        }
+
+        if (indicesToRemove.length === pageCount) {
+            toast.error('Cannot remove all pages.');
             return;
         }
 
@@ -133,6 +138,9 @@ export const PdfSplit = () => {
             const srcPdf = await PDFDocument.load(arrayBuffer);
             const newPdf = await PDFDocument.create();
 
+            const allIndices = Array.from({ length: pageCount }, (_, i) => i);
+            const indicesToKeep = allIndices.filter(i => !indicesToRemove.includes(i));
+
             const copiedPages = await newPdf.copyPages(srcPdf, indicesToKeep);
             copiedPages.forEach(page => newPdf.addPage(page));
 
@@ -140,12 +148,12 @@ export const PdfSplit = () => {
             const blob = new Blob([pdfBytes as any], { type: 'application/pdf' });
             const url = URL.createObjectURL(blob);
 
-            setSplitPdfUrl(url);
-            await incrementUsage('pdf_split');
-            toast.success('PDF split successfully!');
+            setResultPdfUrl(url);
+            await incrementUsage('pdf_remove_pages');
+            toast.success('Pages removed successfully!');
         } catch (error) {
-            console.error('Error splitting PDF:', error);
-            toast.error('Failed to split PDF.');
+            console.error('Error removing pages:', error);
+            toast.error('Failed to process PDF.');
         } finally {
             setIsProcessing(false);
         }
@@ -154,11 +162,11 @@ export const PdfSplit = () => {
     return (
         <div className="container" style={{ maxWidth: '800px' }}>
             <SEO
-                title="Split PDF - Extract Pages Online"
-                description="Extract specific pages or ranges from your PDF document. Fast, free, and secure local processing."
+                title="Remove PDF Pages - Delete Pages Online"
+                description="Delete unwanted pages from your PDF document easily. Fast, free, and secure local processing."
             />
             <h1 className="text-gradient" style={{ fontSize: '2rem', marginBottom: '2rem', textAlign: 'center' }}>
-                Split PDF Pages
+                Remove PDF Pages
             </h1>
 
             <AdBanner style={{ marginBottom: '2rem' }} />
@@ -168,7 +176,7 @@ export const PdfSplit = () => {
                     <FileUploader
                         onFileSelect={handleFileSelect}
                         accept=".pdf,application/pdf"
-                        label="Upload PDF to Split"
+                        label="Upload PDF"
                         multiple={false}
                     />
                 ) : (
@@ -181,7 +189,7 @@ export const PdfSplit = () => {
                             <button
                                 onClick={() => {
                                     setFile(null);
-                                    setSplitPdfUrl(null);
+                                    setResultPdfUrl(null);
                                     setRangeInput('');
                                     setPreviews([]);
                                     setSelectedPages(new Set());
@@ -193,8 +201,8 @@ export const PdfSplit = () => {
                         </div>
 
                         <div style={{ marginBottom: '2rem' }}>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>
-                                Enter Page Numbers to Extract
+                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500, color: '#ef4444' }}>
+                                Pages to Remove (Selected pages will be deleted)
                             </label>
                             <input
                                 type="text"
@@ -220,7 +228,7 @@ export const PdfSplit = () => {
                         {previews.length > 0 && (
                             <div style={{ marginBottom: '2rem' }}>
                                 <label style={{ display: 'block', marginBottom: '1rem', fontWeight: 500 }}>
-                                    Select Pages to Extract (Click to select)
+                                    Select Pages to Remove (Click to select)
                                 </label>
                                 <div style={{
                                     display: 'grid',
@@ -239,11 +247,11 @@ export const PdfSplit = () => {
                                             style={{
                                                 position: 'relative',
                                                 cursor: 'pointer',
-                                                border: selectedPages.has(idx) ? '3px solid var(--color-primary)' : '1px solid var(--border-subtle)',
+                                                border: selectedPages.has(idx) ? '3px solid #ef4444' : '1px solid var(--border-subtle)',
                                                 borderRadius: 'var(--radius-sm)',
                                                 overflow: 'hidden',
-                                                opacity: selectedPages.has(idx) ? 1 : 0.7,
-                                                transform: selectedPages.has(idx) ? 'scale(1.05)' : 'scale(1)',
+                                                opacity: selectedPages.has(idx) ? 0.6 : 1,
+                                                transform: selectedPages.has(idx) ? 'scale(0.95)' : 'scale(1)',
                                                 transition: 'all 0.2s'
                                             }}
                                         >
@@ -252,7 +260,7 @@ export const PdfSplit = () => {
                                                 position: 'absolute',
                                                 bottom: 0,
                                                 right: 0,
-                                                background: selectedPages.has(idx) ? 'var(--color-primary)' : 'rgba(0,0,0,0.5)',
+                                                background: selectedPages.has(idx) ? '#ef4444' : 'rgba(0,0,0,0.5)',
                                                 color: 'white',
                                                 padding: '2px 6px',
                                                 fontSize: '0.75rem',
@@ -263,20 +271,23 @@ export const PdfSplit = () => {
                                             {selectedPages.has(idx) && (
                                                 <div style={{
                                                     position: 'absolute',
-                                                    top: '4px',
-                                                    right: '4px',
-                                                    color: 'var(--color-primary)',
-                                                    backgroundColor: 'white',
+                                                    top: '50%',
+                                                    left: '50%',
+                                                    transform: 'translate(-50%, -50%)',
+                                                    color: '#ef4444',
+                                                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
                                                     borderRadius: '50%',
-                                                    width: '20px',
-                                                    height: '20px',
+                                                    width: '40px',
+                                                    height: '40px',
                                                     display: 'flex',
                                                     alignItems: 'center',
                                                     justifyContent: 'center',
-                                                    fontSize: '0.8rem',
+                                                    fontSize: '1.2rem',
                                                     fontWeight: 'bold',
                                                     boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-                                                }}>✓</div>
+                                                }}>
+                                                    <FaTrash />
+                                                </div>
                                             )}
                                         </div>
                                     ))}
@@ -285,12 +296,12 @@ export const PdfSplit = () => {
                         )}
 
                         <button
-                            onClick={handleSplit}
+                            onClick={handleRemovePages}
                             disabled={isProcessing || !rangeInput.trim()}
                             style={{
                                 width: '100%',
                                 padding: '1rem',
-                                backgroundColor: isProcessing || !rangeInput.trim() ? 'var(--bg-surface-hover)' : 'var(--color-primary)',
+                                backgroundColor: isProcessing || !rangeInput.trim() ? 'var(--bg-surface-hover)' : '#ef4444',
                                 color: 'white',
                                 borderRadius: 'var(--radius-md)',
                                 fontWeight: 600,
@@ -302,17 +313,17 @@ export const PdfSplit = () => {
                         >
                             {isProcessing ? 'Processing...' : (
                                 <>
-                                    <FaCut /> Extract Pages
+                                    <FaTrash /> Remove Selected Pages
                                 </>
                             )}
                         </button>
 
-                        {splitPdfUrl && (
+                        {resultPdfUrl && (
                             <div style={{ marginTop: '2rem', textAlign: 'center', padding: '2rem', backgroundColor: 'var(--bg-app)', borderRadius: 'var(--radius-md)' }}>
-                                <h3 style={{ marginBottom: '1rem', color: '#10b981' }}>Pages Extracted Successfully!</h3>
+                                <h3 style={{ marginBottom: '1rem', color: '#10b981' }}>Pages Removed Successfully!</h3>
                                 <a
-                                    href={splitPdfUrl}
-                                    download={`split-${file.name}`}
+                                    href={resultPdfUrl}
+                                    download={`edited-${file.name}`}
                                     style={{
                                         display: 'inline-flex',
                                         alignItems: 'center',
@@ -337,17 +348,16 @@ export const PdfSplit = () => {
             </div>
 
             <div style={{ marginTop: '3rem', backgroundColor: 'var(--bg-surface)', padding: '2rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-subtle)' }}>
-                <h3 style={{ marginBottom: '1rem', color: 'var(--text-main)' }}>How to Split PDF</h3>
+                <h3 style={{ marginBottom: '1rem', color: 'var(--text-main)' }}>How to Remove Pages from PDF</h3>
                 <ol style={{ paddingLeft: '1.5rem', color: 'var(--text-muted)', lineHeight: '1.8' }}>
-                    <li><strong>Upload</strong>: Select the PDF file you want to split.</li>
-                    <li><strong>Define Range</strong>: Type the page numbers you want to keep.
+                    <li><strong>Upload</strong>: Select the PDF file you want to edit.</li>
+                    <li><strong>Select Pages</strong>: Click on the pages or enter page numbers you want to REMOVE.
                         <ul style={{ marginTop: '0.5rem', marginBottom: '0.5rem' }}>
-                            <li>Single pages: <code>1, 5, 8</code></li>
-                            <li>Ranges: <code>1-5</code> or <code>10-15</code></li>
-                            <li>Mixed: <code>1-3, 5, 8-10</code></li>
+                            <li>Single pages: <code>1, 5, 8</code> (will be deleted)</li>
+                            <li>Ranges: <code>1-5</code> (pages 1 to 5 will be deleted)</li>
                         </ul>
                     </li>
-                    <li><strong>Extract</strong>: Click the button to create a new PDF with only your selected pages.</li>
+                    <li><strong>Remove</strong>: Click the button to create a new PDF without the selected pages.</li>
                 </ol>
             </div>
 

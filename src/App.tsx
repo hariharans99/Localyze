@@ -18,6 +18,7 @@ const PdfCompressor = lazy(() => import('./pages/tools/PdfCompressor').then(modu
 const PdfMerge = lazy(() => import('./pages/tools/PdfMerge').then(module => ({ default: module.PdfMerge })));
 const PdfSplit = lazy(() => import('./pages/tools/PdfSplit').then(module => ({ default: module.PdfSplit })));
 const PdfToJpg = lazy(() => import('./pages/tools/PdfToJpg').then(module => ({ default: module.PdfToJpg })));
+const PdfRemovePages = lazy(() => import('./pages/tools/PdfRemovePages').then(module => ({ default: module.PdfRemovePages })));
 
 // Loading component
 const LoadingSpinner = () => (
@@ -88,6 +89,11 @@ function App() {
               <Route path="pdf-to-jpg" element={
                 <Suspense fallback={<LoadingSpinner />}>
                   <PdfToJpg />
+                </Suspense>
+              } />
+              <Route path="remove-pages" element={
+                <Suspense fallback={<LoadingSpinner />}>
+                  <PdfRemovePages />
                 </Suspense>
               } />
             </Route>

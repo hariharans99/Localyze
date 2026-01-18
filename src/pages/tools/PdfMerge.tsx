@@ -115,7 +115,7 @@ export const PdfMerge = () => {
                 copiedPages.forEach((page) => mergedPdf.addPage(page));
             }
 
-            const mergedPdfBytes = await mergedPdf.save();
+            const mergedPdfBytes = await mergedPdf.save({ useObjectStreams: false, addDefaultPage: false });
             const blob = new Blob([mergedPdfBytes as any], { type: 'application/pdf' });
             const url = URL.createObjectURL(blob);
 
@@ -306,6 +306,9 @@ export const PdfMerge = () => {
                                 >
                                     <FaDownload /> Download Merged PDF
                                 </a>
+                                <p style={{ marginTop: '1rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                                    💡 Need a smaller file? Use the <a href="/tools/compress-pdf" style={{ color: 'var(--color-primary)', textDecoration: 'underline' }}>PDF Compressor</a> to reduce the size.
+                                </p>
                             </div>
                         )}
                     </div>

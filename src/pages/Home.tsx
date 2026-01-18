@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { FaImage, FaFilePdf, FaExpandArrowsAlt, FaRandom, FaCut, FaLayerGroup, FaFileImage } from 'react-icons/fa';
+import { FaImage, FaFilePdf, FaExpandArrowsAlt, FaRandom, FaCut, FaLayerGroup, FaFileImage, FaMinusCircle } from 'react-icons/fa';
 import { SEO } from '../components/SEO';
 
 export const Home = () => {
@@ -67,6 +67,14 @@ export const Home = () => {
             icon: <FaFileImage />,
             path: '/tools/pdf-to-jpg',
             color: '#14b8a6'
+        },
+        {
+            id: 'remove-pages',
+            name: 'Remove Pages',
+            desc: 'Delete unwanted pages from your PDF.',
+            icon: <FaMinusCircle />,
+            path: '/tools/remove-pages',
+            color: '#ef4444'
         }
     ];
 

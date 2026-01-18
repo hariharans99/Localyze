@@ -27,11 +27,12 @@ export const ImageToPdf = () => {
         orientation: 'p',
         margin: 10
     });
+    const [imageQuality, setImageQuality] = useState(0.7);
 
     // Clear generated PDF when settings change
     useEffect(() => {
         setPdfUrl(null);
-    }, [settings]);
+    }, [settings, imageQuality]);
 
     const handleFileSelect = (selectedFiles: File | File[]) => {
         const newFiles = Array.isArray(selectedFiles) ? selectedFiles : [selectedFiles];
@@ -108,6 +109,15 @@ export const ImageToPdf = () => {
                     img.onload = () => resolve(true);
                 });
 
+                // Compress image using canvas
+                const canvas = document.createElement('canvas');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                const ctx = canvas.getContext('2d');
+                if (!ctx) throw new Error('Canvas context failed');
+                ctx.drawImage(img, 0, 0);
+                const compressedImageData = canvas.toDataURL('image/jpeg', imageQuality);
+
                 // Calculate dimensions in mm (1px = 0.264583mm at 96dpi)
                 const imgWidthMm = img.width * 0.264583;
                 const imgHeightMm = img.height * 0.264583;
@@ -120,8 +130,8 @@ export const ImageToPdf = () => {
                     // Add new page matching image dimensions
                     doc.addPage([imgWidthMm, imgHeightMm], orientation);
 
-                    // Draw image covering the full page
-                    doc.addImage(img, 'JPEG', 0, 0, imgWidthMm, imgHeightMm);
+                    // Draw compressed image covering the full page
+                    doc.addImage(compressedImageData, 'JPEG', 0, 0, imgWidthMm, imgHeightMm);
                 } else {
                     // A4 Logic (or fixed size)
                     // Add standard page respecting user's global orientation setting
@@ -155,7 +165,7 @@ export const ImageToPdf = () => {
                     const x = margin + (maxWidth - finalWidth) / 2;
                     const y = margin + (maxHeight - finalHeight) / 2;
 
-                    doc.addImage(img, 'JPEG', x, y, finalWidth, finalHeight);
+                    doc.addImage(compressedImageData, 'JPEG', x, y, finalWidth, finalHeight);
                 }
 
                 setProgress(((i + 1) / files.length) * 100);
@@ -339,6 +349,7 @@ export const ImageToPdf = () => {
                                         orientation: 'p',
                                         margin: 10
                                     });
+                                    setImageQuality(0.7);
                                 }}
                                 style={{
                                     padding: 'clamp(0.75rem, 2vw, 1rem)',
@@ -475,6 +486,34 @@ export const ImageToPdf = () => {
                                     minHeight: '44px'
                                 }}
                             />
+                            <p style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                                Disabled when using "Fit to Image Size".
+                            </p>
+                        </div>
+
+                        <div style={{ marginBottom: '2rem' }}>
+                            <label style={{
+                                display: 'block',
+                                marginBottom: '0.5rem',
+                                fontWeight: 500,
+                                fontSize: 'clamp(0.9rem, 2vw, 1rem)'
+                            }}>Image Quality: {Math.round(imageQuality * 100)}%</label>
+                            <input
+                                type="range"
+                                min="0.3"
+                                max="0.95"
+                                step="0.05"
+                                value={imageQuality}
+                                onChange={(e) => setImageQuality(parseFloat(e.target.value))}
+                                style={{
+                                    width: '100%',
+                                    accentColor: 'var(--color-primary)',
+                                    minHeight: '44px'
+                                }}
+                            />
+                            <p style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                                Lower quality = smaller file size. 70% recommended for most uses.
+                            </p>
                         </div>
 
                         {pdfUrl ? (
