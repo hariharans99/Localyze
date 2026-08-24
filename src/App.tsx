@@ -2,9 +2,6 @@ import { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { Home } from './pages/Home';
-import { Login } from './pages/Login';
-import { Pricing } from './pages/Pricing';
-import { Profile } from './pages/Profile';
 import { NotFound } from './pages/NotFound';
 import { Terms } from './pages/Terms';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -20,17 +17,48 @@ const PdfSplit = lazy(() => import('./pages/tools/PdfSplit').then(module => ({ d
 const PdfToJpg = lazy(() => import('./pages/tools/PdfToJpg').then(module => ({ default: module.PdfToJpg })));
 const PdfRemovePages = lazy(() => import('./pages/tools/PdfRemovePages').then(module => ({ default: module.PdfRemovePages })));
 
-// Loading component
+// Frosted Glass Glowing Loading Component
 const LoadingSpinner = () => (
-  <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}>
-    <div className="spinner" style={{
-      width: '40px',
-      height: '40px',
-      border: '4px solid var(--border-subtle)',
-      borderTopColor: 'var(--color-primary)',
-      borderRadius: '50%',
-      animation: 'spin 1s linear infinite'
-    }} />
+  <div style={{
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '4rem 2rem',
+    gap: '1.25rem'
+  }}>
+    <div style={{
+      position: 'relative',
+      width: '56px',
+      height: '56px'
+    }}>
+      <div style={{
+        position: 'absolute',
+        inset: 0,
+        borderRadius: '50%',
+        background: 'linear-gradient(135deg, var(--color-primary), #9d50bb)',
+        opacity: 0.3,
+        filter: 'blur(10px)',
+        animation: 'pulseGlow 2s ease-in-out infinite alternate'
+      }} />
+      <div style={{
+        width: '100%',
+        height: '100%',
+        border: '3px solid rgba(255, 255, 255, 0.1)',
+        borderTopColor: 'var(--color-primary)',
+        borderRightColor: '#9d50bb',
+        borderRadius: '50%',
+        animation: 'spin 0.8s cubic-bezier(0.4, 0, 0.2, 1) infinite'
+      }} />
+    </div>
+    <span style={{
+      fontSize: '0.9rem',
+      fontWeight: 500,
+      color: 'var(--text-muted)',
+      letterSpacing: '0.05em'
+    }}>
+      Loading Tool...
+    </span>
     <style>{`
       @keyframes spin {
         to { transform: rotate(360deg); }
@@ -46,9 +74,9 @@ function App() {
         <Routes>
           <Route path="/" element={<Layout />}>
             <Route index element={<Home />} />
-            <Route path="login" element={<Login />} />
-            <Route path="pricing" element={<Pricing />} />
-            <Route path="profile" element={<Profile />} />
+            <Route path="login" element={<Navigate to="/" replace />} />
+            <Route path="pricing" element={<Navigate to="/" replace />} />
+            <Route path="profile" element={<Navigate to="/" replace />} />
             <Route path="tools">
               <Route index element={<Navigate to="/" replace />} />
               <Route path="compress" element={

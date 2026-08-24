@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { FileUploader } from '../../components/FileUploader';
-import { useUser } from '../../contexts/UserContext';
 import { AdBanner } from '../../components/AdBanner';
 import { useToast } from '../../contexts/ToastContext';
 import { FaDownload, FaRandom } from 'react-icons/fa';
@@ -9,7 +8,6 @@ import { ProgressBar } from '../../components/ProgressBar';
 import { SEO } from '../../components/SEO';
 
 export const ImageConverter = () => {
-    const { checkLimit, incrementUsage, logActivity } = useUser();
     const { error, success } = useToast();
     const [file, setFile] = useState<File | null>(null);
     const [originalPreview, setOriginalPreview] = useState<string | null>(null);
@@ -92,11 +90,6 @@ export const ImageConverter = () => {
     };
 
     const handleConvert = async () => {
-        if (!checkLimit()) {
-            error("Daily limit reached! Please upgrade to continue.");
-            return;
-        }
-
         if (!file) return;
 
         setIsProcessing(true);
@@ -153,8 +146,6 @@ export const ImageConverter = () => {
                 const sizeInBytes = (base64Length * 3) / 4;
                 setConvertedSize(Math.round(sizeInBytes));
 
-                await incrementUsage('convert');
-                logActivity('convert', `${getExtension(file.type)} -> ${format.split('/')[1]}`);
                 success("Image converted successfully!");
             }
         } catch (e) {
@@ -207,21 +198,20 @@ export const ImageConverter = () => {
                         label="Upload Image to Convert"
                     />
                 ) : (
-                    <div style={{
-                        backgroundColor: 'var(--bg-surface)',
-                        padding: '2rem',
-                        borderRadius: 'var(--radius-lg)',
-                        border: '1px solid var(--border-subtle)'
+                    <div className="glass-panel" style={{
+                        padding: 'clamp(1.5rem, 4vw, 2.5rem)',
+                        borderRadius: 'var(--radius-xl)'
                     }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
                             <div>
-                                <h3 style={{ marginBottom: '0.5rem' }}>{file.name}</h3>
-                                <p style={{ color: 'var(--text-muted)' }}>Original: {file.type || getExtension(file.name).toUpperCase()}</p>
+                                <h3 style={{ marginBottom: '0.25rem', fontSize: '1.25rem' }}>{file.name}</h3>
+                                <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Original: {file.type || getExtension(file.name).toUpperCase()}</p>
                             </div>
                             <div style={{ display: 'flex', gap: '1rem' }}>
                                 <button
                                     onClick={() => document.getElementById('change-file-input')?.click()}
-                                    style={{ color: 'var(--color-accent)', fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer' }}
+                                    className="glass-btn-secondary"
+                                    style={{ padding: '0.45rem 1rem', fontSize: '0.85rem' }}
                                 >
                                     Change File
                                 </button>
@@ -253,7 +243,13 @@ export const ImageConverter = () => {
                             </div>
                         </div>
 
-                        <div style={{ marginBottom: '2rem', backgroundColor: 'var(--bg-app)', padding: '1.5rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
+                        <div style={{
+                            marginBottom: '2rem',
+                            background: 'rgba(255, 255, 255, 0.03)',
+                            border: '1px solid var(--border-subtle)',
+                            padding: '1.5rem',
+                            borderRadius: 'var(--radius-lg)'
+                        }}>
                             <h4 style={{ marginBottom: '1rem', fontSize: '0.9rem', color: 'var(--text-main)' }}>📥 Supported Input Formats</h4>
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1rem' }}>
                                 {['PNG', 'JPG', 'WebP', 'BMP', 'TIFF', 'HEIC', 'AVIF', 'SVG', 'ICO'].map(fmt => (
@@ -382,28 +378,31 @@ export const ImageConverter = () => {
 
                         {convertedImage ? (
                             <div style={{
-                                backgroundColor: 'rgba(99, 102, 241, 0.1)',
-                                padding: '1.5rem',
-                                borderRadius: 'var(--radius-md)',
-                                marginBottom: '2rem',
-                                border: '1px solid var(--color-primary)'
+                                backgroundColor: 'rgba(16, 185, 129, 0.08)',
+                                padding: '1.75rem',
+                                borderRadius: 'var(--radius-lg)',
+                                marginBottom: '1rem',
+                                border: '1px solid rgba(16, 185, 129, 0.4)',
+                                boxShadow: '0 0 25px -5px rgba(16, 185, 129, 0.2)'
                             }}>
-                                <h3 style={{ color: 'var(--color-primary)', marginBottom: '0.5rem' }}>Conversion Complete!</h3>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                                    <span className="neon-badge neon-badge-success">
+                                        ✓ Conversion Complete!
+                                    </span>
+                                </div>
                                 <a
                                     href={convertedImage}
                                     download={`converted-${file.name.split('.')[0]}.${getExtension(format)}`}
+                                    className="glass-btn-primary"
                                     style={{
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        gap: '0.5rem',
-                                        backgroundColor: 'var(--color-primary)',
-                                        color: 'white',
-                                        padding: '0.75rem 1.5rem',
-                                        borderRadius: 'var(--radius-md)',
-                                        fontWeight: 600
+                                        background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                                        boxShadow: '0 0 20px -3px rgba(16, 185, 129, 0.5)',
+                                        padding: '0.85rem 1.75rem',
+                                        fontSize: '1rem',
+                                        textDecoration: 'none'
                                     }}
                                 >
-                                    <FaDownload /> Download Image
+                                    <FaDownload /> Download Converted Image
                                 </a>
                             </div>
                         ) : isProcessing ? (
@@ -413,18 +412,14 @@ export const ImageConverter = () => {
                         ) : (
                             <button
                                 onClick={handleConvert}
+                                className="glass-btn-primary"
                                 style={{
                                     width: '100%',
                                     padding: '1rem',
-                                    backgroundColor: 'var(--color-primary)',
-                                    color: 'white',
-                                    borderRadius: 'var(--radius-md)',
-                                    fontWeight: 600,
-                                    fontSize: '1rem',
-                                    cursor: 'pointer'
+                                    fontSize: '1rem'
                                 }}
                             >
-                                Convert Now
+                                <FaRandom /> Convert Image Now
                             </button>
                         )}
                     </div>

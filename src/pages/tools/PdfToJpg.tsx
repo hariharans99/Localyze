@@ -3,10 +3,10 @@ import * as pdfjsLib from 'pdfjs-dist';
 import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import JSZip from 'jszip';
 import { FileUploader } from '../../components/FileUploader';
-import { useUser } from '../../contexts/UserContext';
 import { useToast } from '../../contexts/ToastContext';
-import { AdBanner } from '../../components/AdBanner';
-import { FaDownload, FaCog, FaRedo, FaImage } from 'react-icons/fa';
+import { FaDownload, FaCog, FaRedo, FaImage, FaFileArchive } from 'react-icons/fa';
+import { canvasToBlob } from '../../utils/imageCompression';
+import { SEO } from '../../components/SEO';
 
 // Worker setup
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
@@ -19,7 +19,6 @@ interface PagePreview {
 }
 
 export const PdfToJpg = () => {
-    const { checkLimit, incrementUsage } = useUser();
     const toast = useToast();
     const [file, setFile] = useState<File | null>(null);
     const [pages, setPages] = useState<PagePreview[]>([]);
@@ -28,15 +27,15 @@ export const PdfToJpg = () => {
     const [totalPages, setTotalPages] = useState(0);
 
     // Settings
-    const [quality, setQuality] = useState(0.85); // JPEG Quality (0-1)
-    const [scale, setScale] = useState(2.0); // Scale factor (2 = 144dpi)
+    const [quality, setQuality] = useState(0.85);
+    const [scale, setScale] = useState(2.0); // 2.0 = ~144 DPI
+    const [format, setFormat] = useState<'image/jpeg' | 'image/webp' | 'image/png'>('image/jpeg');
 
     useEffect(() => {
-        // Reset converted output when settings change
         if (pages.length > 0) {
             setPages(pages.map(p => ({ ...p, jpgBlob: null })));
         }
-    }, [quality, scale]);
+    }, [quality, scale, format]);
 
     const handleFileSelect = async (selectedFile: File | File[]) => {
         if (Array.isArray(selectedFile)) {
@@ -57,11 +56,10 @@ export const PdfToJpg = () => {
             const numPages = pdf.numPages;
             setTotalPages(numPages);
 
-            // Generate thumbnails for all pages
             const pagePreviewsTemp: PagePreview[] = [];
             for (let i = 1; i <= numPages; i++) {
                 const page = await pdf.getPage(i);
-                const viewport = page.getViewport({ scale: 0.5 }); // Small scale for thumbnails
+                const viewport = page.getViewport({ scale: 0.3 });
 
                 const canvas = document.createElement('canvas');
                 const context = canvas.getContext('2d');
@@ -69,13 +67,15 @@ export const PdfToJpg = () => {
                 canvas.width = viewport.width;
 
                 if (!context) throw new Error("Canvas context failed");
+                context.imageSmoothingEnabled = true;
+                context.imageSmoothingQuality = 'high';
 
                 await page.render({
                     canvasContext: context,
                     viewport: viewport
                 } as any).promise;
 
-                const thumbnail = canvas.toDataURL('image/jpeg', 0.7);
+                const thumbnail = canvas.toDataURL('image/jpeg', 0.6);
 
                 pagePreviewsTemp.push({
                     pageNum: i,
@@ -98,14 +98,10 @@ export const PdfToJpg = () => {
         setProgress(0);
         setQuality(0.85);
         setScale(2.0);
+        setFormat('image/jpeg');
     };
 
     const handleConvertAll = async () => {
-        if (!checkLimit()) {
-            toast.error("Daily limit reached! Please upgrade to continue.");
-            return;
-        }
-
         if (!file || pages.length === 0) return;
 
         setIsProcessing(true);
@@ -120,7 +116,7 @@ export const PdfToJpg = () => {
             for (let i = 0; i < pages.length; i++) {
                 const pageNum = pages[i].pageNum;
                 const page = await pdf.getPage(pageNum);
-                const viewport = page.getViewport({ scale: scale });
+                const viewport = page.getViewport({ scale });
 
                 const canvas = document.createElement('canvas');
                 const context = canvas.getContext('2d');
@@ -128,15 +124,19 @@ export const PdfToJpg = () => {
                 canvas.width = viewport.width;
 
                 if (!context) throw new Error("Canvas context failed");
+                context.imageSmoothingEnabled = true;
+                context.imageSmoothingQuality = 'high';
 
                 await page.render({
                     canvasContext: context,
                     viewport: viewport
                 } as any).promise;
 
-                // Convert to JPG
-                const dataUrl = canvas.toDataURL('image/jpeg', quality);
-                const blob = await (await fetch(dataUrl)).blob();
+                const blob = await canvasToBlob(canvas, format, quality);
+
+                // Zero canvas to free GPU memory
+                canvas.width = 0;
+                canvas.height = 0;
 
                 updatedPages.push({
                     ...pages[i],
@@ -144,16 +144,15 @@ export const PdfToJpg = () => {
                     isConverting: false
                 });
 
-                // Update progress
                 setProgress(Math.round(((i + 1) / pages.length) * 100));
             }
 
             setPages(updatedPages);
-            await incrementUsage('pdf');
-            toast.success(`Converted ${pages.length} page${pages.length > 1 ? 's' : ''} to JPG`);
+            const ext = format === 'image/jpeg' ? 'JPG' : format === 'image/webp' ? 'WebP' : 'PNG';
+            toast.success(`Converted ${pages.length} page${pages.length > 1 ? 's' : ''} to ${ext}!`);
 
         } catch (error) {
-            console.error("PDF to JPG conversion failed:", error);
+            console.error("PDF conversion failed:", error);
             toast.error("Failed to convert PDF. Please try again.");
         } finally {
             setIsProcessing(false);
@@ -167,65 +166,71 @@ export const PdfToJpg = () => {
         const url = URL.createObjectURL(page.jpgBlob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `${file?.name.replace('.pdf', '')}-page-${pageNum}.jpg`;
+        const ext = format === 'image/jpeg' ? 'jpg' : format === 'image/webp' ? 'webp' : 'png';
+        const pdfName = file?.name.replace(/\.[^/.]+$/, '') || 'document';
+        a.download = `${pdfName}-page-${pageNum}.${ext}`;
         a.click();
         URL.revokeObjectURL(url);
     };
 
     const downloadAll = async () => {
+        const converted = pages.filter(p => p.jpgBlob);
+        if (converted.length === 0) return;
+
         try {
             const zip = new JSZip();
-            const pdfName = file?.name.replace('.pdf', '') || 'converted';
+            const ext = format === 'image/jpeg' ? 'jpg' : format === 'image/webp' ? 'webp' : 'png';
+            const pdfName = file?.name.replace(/\.[^/.]+$/, '') || 'document';
 
-            // Add all converted pages to the ZIP
             pages.forEach(page => {
                 if (page.jpgBlob) {
-                    zip.file(`${pdfName}-page-${page.pageNum}.jpg`, page.jpgBlob);
+                    zip.file(`${pdfName}-page-${page.pageNum}.${ext}`, page.jpgBlob);
                 }
             });
 
-            // Generate ZIP file
             const zipBlob = await zip.generateAsync({ type: 'blob' });
-
-            // Download the ZIP file
             const url = URL.createObjectURL(zipBlob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `${pdfName}-all-pages.zip`;
+            a.download = `${pdfName}-extracted-images.zip`;
             a.click();
             URL.revokeObjectURL(url);
 
-            toast.success(`Downloaded ${pages.filter(p => p.jpgBlob).length} pages as ZIP file`);
+            toast.success(`Downloaded ${converted.length} pages as ZIP file`);
         } catch (error) {
             console.error('Failed to create ZIP:', error);
             toast.error('Failed to create ZIP file');
         }
     };
 
-    const hasConvertedPages = pages.some(p => p.jpgBlob !== null);
-
     return (
         <div className="container" style={{ maxWidth: '1000px' }}>
-            <h1 className="text-gradient" style={{ fontSize: '2rem', marginBottom: '2rem', textAlign: 'center' }}>
-                PDF to JPG
+            <SEO
+                title="PDF to Image Converter - High-Res Extraction (JPG, WebP, PNG)"
+                description="Extract pages from PDF documents to crisp JPG, WebP, or PNG images with customizable DPI resolution."
+            />
+            <h1 className="text-gradient" style={{ fontSize: '2.25rem', marginBottom: '0.5rem', textAlign: 'center' }}>
+                PDF to Image Converter
             </h1>
-
-            <AdBanner style={{ marginBottom: '2rem' }} />
+            <p style={{ textAlign: 'center', color: 'var(--text-muted)', marginBottom: '2.5rem' }}>
+                Convert document pages to high-resolution standalone images with selectable DPI and format options.
+            </p>
 
             <div style={{ marginBottom: '2rem' }}>
                 {!file ? (
-                    <FileUploader onFileSelect={handleFileSelect} accept=".pdf" label="Upload PDF to Convert" maxSizeMB={100} />
+                    <FileUploader onFileSelect={handleFileSelect} accept=".pdf,application/pdf" label="Upload PDF to Extract Images" maxSizeMB={100} />
                 ) : (
-                    <div className="bg-surface p-8 rounded-lg border border-subtle">
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                    <div className="glass-panel" style={{ padding: 'clamp(1.5rem, 4vw, 2.5rem)', borderRadius: 'var(--radius-xl)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
                             <div>
-                                <h3 style={{ marginBottom: '0.5rem' }}>{file.name}</h3>
-                                <p style={{ color: 'var(--text-muted)' }}>{totalPages} page{totalPages > 1 ? 's' : ''}</p>
+                                <h3 style={{ marginBottom: '0.25rem', fontSize: '1.25rem' }}>{file.name}</h3>
+                                <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>{totalPages} page{totalPages > 1 ? 's' : ''} detected</p>
                             </div>
-                            <div style={{ display: 'flex', gap: '1rem' }}>
+                            <div style={{ display: 'flex', gap: '0.75rem' }}>
                                 <button
                                     onClick={() => document.getElementById('change-file-input')?.click()}
-                                    style={{ color: 'var(--color-accent)', fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer' }}
+                                    className="glass-btn-secondary"
+                                    style={{ padding: '0.45rem 1rem', fontSize: '0.85rem' }}
                                 >
                                     Change File
                                 </button>
@@ -247,154 +252,139 @@ export const PdfToJpg = () => {
                                         alignItems: 'center',
                                         gap: '0.5rem',
                                         color: 'var(--text-muted)',
-                                        fontWeight: 500,
                                         background: 'none',
                                         border: 'none',
                                         cursor: 'pointer'
                                     }}
                                 >
-                                    <FaRedo /> Reset Settings
+                                    <FaRedo /> Reset
                                 </button>
                             </div>
                         </div>
 
-                        <div style={{ marginBottom: '2rem', backgroundColor: 'var(--bg-app)', padding: '1rem', borderRadius: 'var(--radius-md)' }}>
-                            <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-                                <FaCog /> Conversion Settings
+                        {/* Settings Grid */}
+                        <div style={{
+                            marginBottom: '2rem',
+                            background: 'rgba(255, 255, 255, 0.03)',
+                            border: '1px solid var(--border-subtle)',
+                            padding: '1.5rem',
+                            borderRadius: 'var(--radius-lg)'
+                        }}>
+                            <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem', fontSize: '1rem' }}>
+                                <FaCog /> Output Quality & Format Controls
                             </h4>
 
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                                {/* Preset Buttons */}
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem' }}>
                                 <div>
-                                    <label style={{ marginBottom: '0.5rem', display: 'block' }}>Quality Presets</label>
-                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem' }}>
-                                        {[
-                                            { label: 'Low', q: 0.5, s: 1.5, desc: 'Small Size' },
-                                            { label: 'Medium', q: 0.7, s: 2.0, desc: 'Balanced' },
-                                            { label: 'High', q: 0.9, s: 2.5, desc: 'Best Quality' }
-                                        ].map(preset => (
-                                            <button
-                                                key={preset.label}
-                                                onClick={() => {
-                                                    setQuality(preset.q);
-                                                    setScale(preset.s);
-                                                }}
-                                                style={{
-                                                    padding: '0.75rem',
-                                                    borderRadius: 'var(--radius-md)',
-                                                    border: `1px solid ${quality === preset.q && scale === preset.s ? 'var(--color-primary)' : 'var(--border-subtle)'}`,
-                                                    backgroundColor: quality === preset.q && scale === preset.s ? 'rgba(99, 102, 241, 0.1)' : 'var(--bg-surface)',
-                                                    color: quality === preset.q && scale === preset.s ? 'var(--color-primary)' : 'var(--text-main)',
-                                                    cursor: 'pointer',
-                                                    transition: 'all 0.2s'
-                                                }}
-                                            >
-                                                <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{preset.label}</div>
-                                                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{preset.desc}</div>
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                {/* Quality Slider */}
-                                <div>
-                                    <label style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                                        <span>JPEG Quality ({(quality * 100).toFixed(0)}%)</span>
-                                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Higher = Better Quality</span>
+                                    <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.85rem', fontWeight: 600 }}>
+                                        Output Format
                                     </label>
-                                    <input
-                                        type="range"
-                                        min="0.3"
-                                        max="1.0"
-                                        step="0.05"
-                                        value={quality}
-                                        onChange={(e) => setQuality(parseFloat(e.target.value))}
-                                        style={{ width: '100%' }}
-                                    />
+                                    <select
+                                        value={format}
+                                        onChange={(e) => setFormat(e.target.value as any)}
+                                        className="glass-input"
+                                        style={{ width: '100%', padding: '0.6rem' }}
+                                    >
+                                        <option value="image/jpeg">JPEG (.jpg - Standard)</option>
+                                        <option value="image/webp">WebP (.webp - Compact)</option>
+                                        <option value="image/png">PNG (.png - Lossless)</option>
+                                    </select>
                                 </div>
 
-                                {/* Resolution */}
                                 <div>
-                                    <label style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                                        <span>Resolution (DPI)</span>
-                                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Higher = Sharper</span>
+                                    <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.85rem', fontWeight: 600 }}>
+                                        Resolution (DPI Scaling)
                                     </label>
                                     <select
                                         value={scale}
                                         onChange={(e) => setScale(parseFloat(e.target.value))}
-                                        style={{
-                                            width: '100%',
-                                            padding: '0.5rem',
-                                            borderRadius: 'var(--radius-md)',
-                                            border: '1px solid var(--border-subtle)',
-                                            backgroundColor: 'var(--bg-surface)'
-                                        }}
+                                        className="glass-input"
+                                        style={{ width: '100%', padding: '0.6rem' }}
                                     >
-                                        <option value="1.0">Low (72 DPI)</option>
-                                        <option value="1.5">Medium (108 DPI)</option>
-                                        <option value="2.0">High (144 DPI) - Recommended</option>
-                                        <option value="2.5">Very High (180 DPI)</option>
-                                        <option value="3.0">Ultra (216 DPI)</option>
+                                        <option value="1.0">Standard 72 DPI (Web/Email - Fast)</option>
+                                        <option value="1.5">Balanced 108 DPI (Crisp Text)</option>
+                                        <option value="2.0">High-Res 144 DPI (Print Quality)</option>
+                                        <option value="3.0">Ultra-Sharp 216 DPI (Fine Detail)</option>
+                                        <option value="4.16">Master 300 DPI (Archival)</option>
                                     </select>
                                 </div>
+
+                                {format !== 'image/png' && (
+                                    <div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem', fontSize: '0.85rem' }}>
+                                            <span style={{ fontWeight: 600 }}>Quality: {(quality * 100).toFixed(0)}%</span>
+                                        </div>
+                                        <input
+                                            type="range"
+                                            min="0.3"
+                                            max="1.0"
+                                            step="0.05"
+                                            value={quality}
+                                            onChange={(e) => setQuality(parseFloat(e.target.value))}
+                                            style={{ width: '100%', marginTop: '0.35rem', accentColor: 'var(--color-primary)' }}
+                                        />
+                                    </div>
+                                )}
                             </div>
                         </div>
 
-                        {/* Page Previews */}
+                        {/* Page Thumbnails & Conversion Cards */}
                         {pages.length > 0 && (
                             <div style={{ marginBottom: '2rem' }}>
-                                <h4 style={{ marginBottom: '1rem' }}>Pages ({pages.length})</h4>
+                                <h4 style={{ marginBottom: '1rem', fontSize: '1rem' }}>Page Previews ({pages.length} Pages)</h4>
                                 <div style={{
                                     display: 'grid',
-                                    gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
+                                    gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))',
                                     gap: '1rem',
                                     maxHeight: '400px',
                                     overflowY: 'auto',
-                                    padding: '1rem',
-                                    backgroundColor: 'var(--bg-app)',
-                                    borderRadius: 'var(--radius-md)'
+                                    padding: '0.75rem',
+                                    border: '1px solid var(--glass-border)',
+                                    borderRadius: 'var(--radius-lg)',
+                                    backgroundColor: 'rgba(0, 0, 0, 0.15)'
                                 }}>
-                                    {pages.map(page => (
-                                        <div key={page.pageNum} style={{
-                                            border: '1px solid var(--border-subtle)',
-                                            borderRadius: 'var(--radius-md)',
-                                            padding: '0.5rem',
-                                            backgroundColor: 'var(--bg-surface)',
-                                            textAlign: 'center'
-                                        }}>
+                                    {pages.map((page) => (
+                                        <div
+                                            key={page.pageNum}
+                                            style={{
+                                                border: page.jpgBlob ? '2px solid #10b981' : '1px solid var(--glass-border)',
+                                                borderRadius: 'var(--radius-md)',
+                                                padding: '0.65rem',
+                                                backgroundColor: 'rgba(255, 255, 255, 0.02)',
+                                                textAlign: 'center',
+                                                transition: 'all 0.2s ease'
+                                            }}
+                                        >
                                             <img
                                                 src={page.thumbnail}
                                                 alt={`Page ${page.pageNum}`}
                                                 style={{
                                                     width: '100%',
-                                                    height: 'auto',
-                                                    marginBottom: '0.5rem',
-                                                    borderRadius: 'var(--radius-sm)'
+                                                    height: '130px',
+                                                    objectFit: 'contain',
+                                                    backgroundColor: '#ffffff',
+                                                    borderRadius: 'var(--radius-sm)',
+                                                    marginBottom: '0.5rem'
                                                 }}
                                             />
-                                            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
+                                            <div style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.4rem' }}>
                                                 Page {page.pageNum}
                                             </div>
-                                            {page.jpgBlob && (
+                                            {page.jpgBlob ? (
                                                 <button
                                                     onClick={() => downloadPage(page.pageNum)}
+                                                    className="glass-btn-primary"
                                                     style={{
                                                         width: '100%',
-                                                        padding: '0.4rem',
-                                                        fontSize: '0.8rem',
-                                                        backgroundColor: 'var(--color-primary)',
-                                                        color: 'white',
-                                                        border: 'none',
-                                                        borderRadius: 'var(--radius-sm)',
-                                                        cursor: 'pointer',
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        justifyContent: 'center',
-                                                        gap: '0.3rem'
+                                                        padding: '0.35rem',
+                                                        fontSize: '0.75rem',
+                                                        background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
                                                     }}
                                                 >
-                                                    <FaDownload size={10} /> Download
+                                                    <FaDownload /> Download
                                                 </button>
+                                            ) : (
+                                                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Ready</span>
                                             )}
                                         </div>
                                     ))}
@@ -402,77 +392,40 @@ export const PdfToJpg = () => {
                             </div>
                         )}
 
-                        {hasConvertedPages ? (
-                            <div style={{
-                                backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                                padding: '1.5rem',
-                                borderRadius: 'var(--radius-md)',
-                                marginBottom: '1rem',
-                                border: '1px solid #10b981'
-                            }}>
-                                <h3 style={{ color: '#10b981', marginBottom: '0.5rem' }}>Conversion Complete!</h3>
-                                <p style={{ marginBottom: '1rem', color: 'var(--text-muted)' }}>
-                                    Download individual pages above or download all as a ZIP file
-                                </p>
-                                <button
-                                    onClick={downloadAll}
-                                    style={{
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        gap: '0.5rem',
-                                        backgroundColor: '#10b981',
-                                        color: 'white',
-                                        padding: '0.75rem 1.5rem',
-                                        borderRadius: 'var(--radius-md)',
-                                        fontWeight: 600,
-                                        border: 'none',
-                                        cursor: 'pointer'
-                                    }}
-                                >
-                                    <FaDownload /> Download All as ZIP
-                                </button>
-                            </div>
-                        ) : (
+                        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
                             <button
                                 onClick={handleConvertAll}
-                                disabled={isProcessing || pages.length === 0}
+                                disabled={isProcessing}
+                                className="glass-btn-primary"
                                 style={{
-                                    width: '100%',
+                                    flex: 1,
                                     padding: '1rem',
-                                    backgroundColor: isProcessing ? 'var(--bg-surface-hover)' : 'var(--color-primary)',
-                                    color: 'white',
-                                    borderRadius: 'var(--radius-md)',
-                                    fontWeight: 600,
                                     fontSize: '1rem',
-                                    cursor: isProcessing ? 'wait' : 'pointer',
-                                    border: 'none',
-                                    opacity: isProcessing ? 0.7 : 1,
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    gap: '0.5rem'
+                                    opacity: isProcessing ? 0.6 : 1
                                 }}
                             >
                                 <FaImage />
-                                {isProcessing ? `Converting... ${progress}%` : `Convert ${pages.length} Page${pages.length > 1 ? 's' : ''} to JPG`}
+                                {isProcessing ? `Extracting Images... ${progress}%` : `Convert All ${pages.length} Pages`}
                             </button>
-                        )}
+
+                            {pages.some(p => p.jpgBlob) && (
+                                <button
+                                    onClick={downloadAll}
+                                    className="glass-btn-primary"
+                                    style={{
+                                        padding: '1rem 1.5rem',
+                                        fontSize: '1rem',
+                                        background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                                        boxShadow: '0 0 20px -3px rgba(16, 185, 129, 0.5)'
+                                    }}
+                                >
+                                    <FaFileArchive /> Download All (ZIP)
+                                </button>
+                            )}
+                        </div>
                     </div>
                 )}
             </div>
-
-            <div style={{ marginTop: '3rem', backgroundColor: 'var(--bg-surface)', padding: '2rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-subtle)' }}>
-                <h3 style={{ marginBottom: '1rem', color: 'var(--text-main)' }}>How it Works</h3>
-                <ol style={{ paddingLeft: '1.5rem', color: 'var(--text-muted)', lineHeight: '1.8' }}>
-                    <li><strong>Upload your PDF</strong>: Select any PDF document from your device.</li>
-                    <li><strong>Preview Pages</strong>: See thumbnails of all pages in your PDF.</li>
-                    <li><strong>Choose Quality</strong>: Select preset options or fine-tune quality and resolution settings.</li>
-                    <li><strong>Convert</strong>: Click the convert button to transform all pages to JPG images.</li>
-                    <li><strong>Download</strong>: Download individual pages or all at once. All processing happens 100% on your device.</li>
-                </ol>
-            </div>
-
-            <AdBanner />
         </div>
     );
 };

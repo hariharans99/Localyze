@@ -5,14 +5,12 @@ import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 // Worker setup
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
 import { FileUploader } from '../../components/FileUploader';
-import { useUser } from '../../contexts/UserContext';
 import { useToast } from '../../contexts/ToastContext';
 import { AdBanner } from '../../components/AdBanner';
-import { FaTrash, FaArrowUp, FaArrowDown, FaDownload } from 'react-icons/fa';
+import { FaTrash, FaArrowUp, FaArrowDown, FaDownload, FaLayerGroup } from 'react-icons/fa';
 import { SEO } from '../../components/SEO';
 
 export const PdfMerge = () => {
-    const { checkLimit, incrementUsage } = useUser();
     const toast = useToast();
     const [files, setFiles] = useState<File[]>([]);
     const [thumbnails, setThumbnails] = useState<string[]>([]);
@@ -99,11 +97,6 @@ export const PdfMerge = () => {
             return;
         }
 
-        if (!checkLimit()) {
-            toast.error("Daily limit reached! Please upgrade to continue.");
-            return;
-        }
-
         setIsProcessing(true);
         try {
             const mergedPdf = await PDFDocument.create();
@@ -120,7 +113,6 @@ export const PdfMerge = () => {
             const url = URL.createObjectURL(blob);
 
             setMergedPdfUrl(url);
-            await incrementUsage('pdf_merge');
             toast.success('PDFs merged successfully!');
         } catch (error) {
             console.error('Error merging PDFs:', error);
@@ -152,16 +144,20 @@ export const PdfMerge = () => {
                         maxSizeMB={100}
                     />
                 ) : (
-                    <div className="bg-surface p-8 rounded-lg border border-subtle">
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                    <div className="glass-panel" style={{
+                        padding: 'clamp(1.5rem, 4vw, 2.5rem)',
+                        borderRadius: 'var(--radius-xl)'
+                    }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
                             <div>
-                                <h3 style={{ marginBottom: '0.5rem' }}>{files.length} PDFs Selected</h3>
-                                <p style={{ color: 'var(--text-muted)' }}>Arrange files in the order you want them merged</p>
+                                <h3 style={{ marginBottom: '0.25rem', fontSize: '1.25rem' }}>{files.length} PDFs Selected</h3>
+                                <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Arrange files in the order you want them merged</p>
                             </div>
                             <div style={{ display: 'flex', gap: '1rem' }}>
                                 <button
                                     onClick={() => document.getElementById('add-more-pdf')?.click()}
-                                    style={{ color: 'var(--color-accent)', fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer' }}
+                                    className="glass-btn-secondary"
+                                    style={{ padding: '0.45rem 1rem', fontSize: '0.85rem' }}
                                 >
                                     + Add More
                                 </button>
@@ -192,15 +188,16 @@ export const PdfMerge = () => {
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem', maxHeight: '400px', overflowY: 'auto' }}>
                             {files.map((file, idx) => (
-                                <div key={`${file.name}-${idx}`} style={{
+                                <div key={`${file.name}-${idx}`} className="glass-panel" style={{
                                     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                                    padding: '1rem', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)',
-                                    backgroundColor: 'var(--bg-surface)'
+                                    padding: '1rem', border: '1px solid var(--glass-border)', borderRadius: 'var(--radius-lg)',
+                                    backgroundColor: 'rgba(255, 255, 255, 0.02)'
                                 }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                                         <div style={{
-                                            width: '30px', height: '30px', borderRadius: '50%', backgroundColor: 'var(--bg-app)',
-                                            display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', color: 'var(--text-muted)'
+                                            width: '32px', height: '32px', borderRadius: '50%', backgroundColor: 'rgba(0, 210, 255, 0.12)',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', color: 'var(--color-primary)',
+                                            fontSize: '0.85rem'
                                         }}>
                                             {idx + 1}
                                         </div>
@@ -208,12 +205,12 @@ export const PdfMerge = () => {
                                         {/* Thumbnail */}
                                         {thumbnails[idx] && (
                                             <div style={{
-                                                width: '40px',
-                                                height: '50px',
-                                                border: '1px solid var(--border-subtle)',
+                                                width: '42px',
+                                                height: '54px',
+                                                border: '1px solid var(--glass-border)',
                                                 borderRadius: 'var(--radius-sm)',
                                                 overflow: 'hidden',
-                                                backgroundColor: 'white',
+                                                backgroundColor: '#ffffff',
                                                 flexShrink: 0
                                             }}>
                                                 <img
@@ -225,7 +222,7 @@ export const PdfMerge = () => {
                                         )}
 
                                         <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                            <span style={{ fontWeight: 500 }}>{file.name}</span>
+                                            <span style={{ fontWeight: 600, fontSize: '0.95rem' }}>{file.name}</span>
                                             <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                                                 {(file.size / 1024 / 1024).toFixed(2)} MB
                                             </span>
@@ -238,7 +235,8 @@ export const PdfMerge = () => {
                                             disabled={idx === 0}
                                             style={{
                                                 padding: '0.5rem', background: 'none', border: 'none', cursor: idx === 0 ? 'not-allowed' : 'pointer',
-                                                color: idx === 0 ? 'var(--text-muted)' : 'var(--text-main)'
+                                                color: idx === 0 ? 'var(--text-muted)' : 'var(--text-main)',
+                                                opacity: idx === 0 ? 0.3 : 1
                                             }}
                                             title="Move Up"
                                         >
@@ -249,7 +247,8 @@ export const PdfMerge = () => {
                                             disabled={idx === files.length - 1}
                                             style={{
                                                 padding: '0.5rem', background: 'none', border: 'none', cursor: idx === files.length - 1 ? 'not-allowed' : 'pointer',
-                                                color: idx === files.length - 1 ? 'var(--text-muted)' : 'var(--text-main)'
+                                                color: idx === files.length - 1 ? 'var(--text-muted)' : 'var(--text-main)',
+                                                opacity: idx === files.length - 1 ? 0.3 : 1
                                             }}
                                             title="Move Down"
                                         >
@@ -257,7 +256,7 @@ export const PdfMerge = () => {
                                         </button>
                                         <button
                                             onClick={() => removeFile(idx)}
-                                            style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', marginLeft: '0.5rem' }}
+                                            style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', marginLeft: '0.5rem', padding: '0.5rem' }}
                                             title="Remove"
                                         >
                                             <FaTrash />
@@ -270,45 +269,46 @@ export const PdfMerge = () => {
                         <button
                             onClick={handleMerge}
                             disabled={isProcessing || files.length < 2}
+                            className="glass-btn-primary"
                             style={{
                                 width: '100%',
                                 padding: '1rem',
-                                backgroundColor: isProcessing || files.length < 2 ? 'var(--bg-surface-hover)' : 'var(--color-primary)',
-                                color: 'white',
-                                borderRadius: 'var(--radius-md)',
-                                fontWeight: 600,
                                 fontSize: '1rem',
-                                cursor: isProcessing || files.length < 2 ? 'not-allowed' : 'pointer',
-                                border: 'none',
-                                display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem'
+                                opacity: isProcessing || files.length < 2 ? 0.5 : 1
                             }}
                         >
-                            {isProcessing ? 'Merging PDFs...' : 'Merge PDFs'}
+                            <FaLayerGroup /> {isProcessing ? 'Merging PDFs...' : 'Merge PDFs into One File'}
                         </button>
 
                         {mergedPdfUrl && (
-                            <div style={{ marginTop: '2rem', textAlign: 'center', padding: '2rem', backgroundColor: 'var(--bg-app)', borderRadius: 'var(--radius-md)' }}>
-                                <h3 style={{ marginBottom: '1rem', color: '#10b981' }}>Merge Successful!</h3>
+                            <div style={{
+                                marginTop: '2rem',
+                                textAlign: 'center',
+                                padding: '2rem',
+                                backgroundColor: 'rgba(16, 185, 129, 0.08)',
+                                borderRadius: 'var(--radius-lg)',
+                                border: '1px solid rgba(16, 185, 129, 0.4)',
+                                boxShadow: '0 0 25px -5px rgba(16, 185, 129, 0.2)'
+                            }}>
+                                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.75rem' }}>
+                                    <span className="neon-badge neon-badge-success">
+                                        ✓ Merge Complete!
+                                    </span>
+                                </div>
                                 <a
                                     href={mergedPdfUrl}
                                     download="merged-document.pdf"
+                                    className="glass-btn-primary"
                                     style={{
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        gap: '0.5rem',
-                                        padding: '0.75rem 1.5rem',
-                                        backgroundColor: '#10b981',
-                                        color: 'white',
-                                        borderRadius: 'var(--radius-full)',
-                                        textDecoration: 'none',
-                                        fontWeight: 600
+                                        background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                                        boxShadow: '0 0 20px -3px rgba(16, 185, 129, 0.5)',
+                                        padding: '0.85rem 1.75rem',
+                                        fontSize: '1rem',
+                                        textDecoration: 'none'
                                     }}
                                 >
                                     <FaDownload /> Download Merged PDF
                                 </a>
-                                <p style={{ marginTop: '1rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                                    💡 Need a smaller file? Use the <a href="/tools/compress-pdf" style={{ color: 'var(--color-primary)', textDecoration: 'underline' }}>PDF Compressor</a> to reduce the size.
-                                </p>
                             </div>
                         )}
                     </div>

@@ -2,11 +2,10 @@ import { useState, useEffect } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
 import { jsPDF } from 'jspdf';
 import { FileUploader } from '../../components/FileUploader';
-import { useUser } from '../../contexts/UserContext';
 import { useToast } from '../../contexts/ToastContext';
 import { AdBanner } from '../../components/AdBanner';
-import { FaDownload, FaCog, FaRedo, FaExclamationTriangle } from 'react-icons/fa';
-
+import { FaDownload, FaCog, FaRedo, FaExclamationTriangle, FaFilePdf } from 'react-icons/fa';
+import { SEO } from '../../components/SEO';
 
 import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
@@ -14,7 +13,6 @@ import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
 
 export const PdfCompressor = () => {
-    const { checkLimit, incrementUsage } = useUser();
     const toast = useToast();
     const [file, setFile] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -23,13 +21,26 @@ export const PdfCompressor = () => {
     const [progress, setProgress] = useState(0);
 
     // Settings
-    const [quality, setQuality] = useState(0.5); // JPEG Quality (0-1)
-    const [scale, setScale] = useState(1.5); // Scale factor (1 = 72dpi, 2 = 144dpi)
+    const [quality, setQuality] = useState(0.65); // JPEG Quality (0.01 - 1.0)
+    const [scale, setScale] = useState(1.5); // Resolution factor (1.0 = 72dpi, 1.5 = 108dpi, 2.0 = 144dpi)
+    const [useTargetSize, setUseTargetSize] = useState(true);
+    const [targetSize, setTargetSize] = useState(100);
+    const [unit, setUnit] = useState<'KB' | 'MB'>('KB');
+
+    const presets = [
+        { label: '20 KB (Gov/Exams)', size: 20, unit: 'KB' as const },
+        { label: '50 KB (Passport/Visa)', size: 50, unit: 'KB' as const },
+        { label: '100 KB (Web/Email)', size: 100, unit: 'KB' as const },
+        { label: '200 KB', size: 200, unit: 'KB' as const },
+        { label: '500 KB', size: 500, unit: 'KB' as const },
+        { label: '1 MB', size: 1, unit: 'MB' as const },
+        { label: '2 MB', size: 2, unit: 'MB' as const },
+        { label: '5 MB', size: 5, unit: 'MB' as const }
+    ];
 
     useEffect(() => {
-        // Reset compressed output when settings change
         if (compressedPdf) setCompressedPdf(null);
-    }, [quality, scale]);
+    }, [quality, scale, targetSize, unit, useTargetSize]);
 
     const handleFileSelect = async (selectedFile: File | File[]) => {
         const fileToLoad = Array.isArray(selectedFile) ? (selectedFile.length > 0 ? selectedFile[0] : null) : selectedFile;
@@ -40,7 +51,7 @@ export const PdfCompressor = () => {
         setProgress(0);
         setPreviewUrl(null);
 
-        // Generate preview
+        // Generate preview of Page 1
         try {
             const arrayBuffer = await fileToLoad.arrayBuffer();
             const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
@@ -53,6 +64,8 @@ export const PdfCompressor = () => {
             canvas.width = viewport.width;
 
             if (context) {
+                context.imageSmoothingEnabled = true;
+                context.imageSmoothingQuality = 'high';
                 await page.render({ canvasContext: context, viewport } as any).promise;
                 setPreviewUrl(canvas.toDataURL());
             }
@@ -61,65 +74,86 @@ export const PdfCompressor = () => {
         }
     };
 
-    // Target Size State
-    const [useTargetSize, setUseTargetSize] = useState(false);
-    const [targetSizeMB, setTargetSizeMB] = useState(1.0);
-
-    // Standardized Reset (Settings only)
     const handleReset = () => {
         setCompressedPdf(null);
         setProgress(0);
-        // Reset settings
-        setQuality(0.5);
+        setQuality(0.65);
         setScale(1.5);
-        setUseTargetSize(false);
-        setTargetSizeMB(1.0);
+        setUseTargetSize(true);
+        setTargetSize(500);
+        setUnit('KB');
     };
 
-    const calculateOptimumQuality = async (pdf: any, scale: number, targetBytesPerPage: number): Promise<number> => {
-        // Sample the first page to estimate quality
-        try {
-            const page = await pdf.getPage(1);
-            const viewport = page.getViewport({ scale });
-            const canvas = document.createElement('canvas');
-            const context = canvas.getContext('2d');
-            canvas.height = viewport.height;
-            canvas.width = viewport.width;
+    /**
+     * Compute optimal quality and scale factor across pages to guarantee meeting target byte size
+     */
+    const computeOptimalCompressionParams = async (
+        pdf: any,
+        totalPages: number,
+        targetSizeBytes: number
+    ): Promise<{ optQuality: number; optScale: number }> => {
+        // Reserve 8% for PDF header/xref tables/metadata stream overhead
+        const usableTargetBytes = targetSizeBytes * 0.92;
 
-            await page.render({ canvasContext: context!, viewport }).promise;
+        // Sample up to 3 representative pages (first, middle, last)
+        const sampleIndices = Array.from(new Set([1, Math.ceil(totalPages / 2), totalPages])).filter(i => i <= totalPages);
+        let currentScale = scale;
 
-            // Binary search for quality
-            let min = 0.1;
-            let max = 1.0;
-            let bestQ = 0.5;
-
-            // Try 5 iterations
-            for (let i = 0; i < 5; i++) {
-                const mid = (min + max) / 2;
-                const dataUrl = canvas.toDataURL('image/jpeg', mid);
-                // Base64 length is approx 4/3 of bytes
-                const size = (dataUrl.length - 22) * 0.75;
-
-                if (size > targetBytesPerPage) {
-                    max = mid;
-                } else {
-                    min = mid;
-                    bestQ = mid;
+        // Bisection to find best quality for current scale
+        const testQualityForScale = async (testScale: number, testQ: number): Promise<number> => {
+            let totalSampleBytes = 0;
+            for (const pageIdx of sampleIndices) {
+                const page = await pdf.getPage(pageIdx);
+                const viewport = page.getViewport({ scale: testScale });
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = viewport.width;
+                canvas.height = viewport.height;
+                if (ctx) {
+                    ctx.imageSmoothingEnabled = true;
+                    ctx.imageSmoothingQuality = 'high';
+                    await page.render({ canvasContext: ctx, viewport } as any).promise;
+                    const dataUrl = canvas.toDataURL('image/jpeg', testQ);
+                    const base64Len = dataUrl.length - 23; // Subtract data:image/jpeg;base64,
+                    totalSampleBytes += (base64Len * 3) / 4;
                 }
             }
-            return bestQ;
-        } catch (e) {
-            console.error("Error sampling page quality", e);
-            return 0.5; // fallback
+            return (totalSampleBytes / sampleIndices.length) * totalPages;
+        };
+
+        // If target size is very small, auto-adjust scale first
+        const maxScale = Math.max(1.0, currentScale);
+
+        // Check if even min quality at max scale is too big
+        const estimatedMinBytes = await testQualityForScale(maxScale, 0.04);
+        if (estimatedMinBytes > usableTargetBytes) {
+            // Need to reduce scale
+            currentScale = Math.max(0.3, Math.sqrt(usableTargetBytes / estimatedMinBytes) * maxScale);
+        } else {
+            currentScale = maxScale;
         }
+
+        // Now binary search for the highest quality that stays under budget
+        let minQ = 0.01;
+        let maxQ = 0.95;
+        let bestQ = minQ;
+
+        for (let iter = 0; iter < 6; iter++) {
+            const midQ = Number(((minQ + maxQ) / 2).toFixed(3));
+            const estBytes = await testQualityForScale(currentScale, midQ);
+
+            if (estBytes <= usableTargetBytes) {
+                bestQ = midQ;
+                minQ = midQ; // Try higher quality
+            } else {
+                maxQ = midQ; // Too big, lower quality
+            }
+        }
+
+        return { optQuality: Math.max(0.02, bestQ), optScale: Number(currentScale.toFixed(2)) };
     };
 
     const handleCompress = async () => {
-        if (!checkLimit()) {
-            toast.error("Daily limit reached! Please upgrade to continue.");
-            return;
-        }
-
         if (!file) return;
 
         setIsProcessing(true);
@@ -130,96 +164,112 @@ export const PdfCompressor = () => {
             const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
             const totalPages = pdf.numPages;
 
-            // Determine final quality
             let finalQuality = quality;
+            let finalScale = scale;
 
             if (useTargetSize) {
-                // Target: 90% of total limit allocated to images (10% overhead safety)
-                const totalTargetBytes = targetSizeMB * 1024 * 1024;
-                const targetBytesPerPage = (totalTargetBytes * 0.9) / totalPages;
-
-                // Notify user we are calculating
-                toast.success(`Calculating best quality for ${targetSizeMB}MB target...`);
-
-                finalQuality = await calculateOptimumQuality(pdf, scale, targetBytesPerPage);
-                console.log(`Optimum quality calculated: ${finalQuality.toFixed(2)}`);
+                const targetBytes = unit === 'MB' ? targetSize * 1024 * 1024 : targetSize * 1024;
+                const { optQuality, optScale } = await computeOptimalCompressionParams(pdf, totalPages, targetBytes);
+                finalQuality = optQuality;
+                finalScale = optScale;
             }
 
-            // Initialize new PDF
-            const newPdf = new jsPDF();
+            // Get first page dimensions in points to initialize jsPDF with exact geometry
+            const firstPage = await pdf.getPage(1);
+            const firstViewport = firstPage.getViewport({ scale: 1.0 });
+            const firstOrientation = firstViewport.width > firstViewport.height ? 'l' : 'p';
+
+            const newPdf = new jsPDF({
+                orientation: firstOrientation,
+                unit: 'pt',
+                format: [firstViewport.width, firstViewport.height]
+            });
 
             for (let i = 1; i <= totalPages; i++) {
                 const page = await pdf.getPage(i);
-                const viewport = page.getViewport({ scale: scale });
+                const originalViewport = page.getViewport({ scale: 1.0 });
+                const renderViewport = page.getViewport({ scale: finalScale });
 
                 const canvas = document.createElement('canvas');
-                const context = canvas.getContext('2d');
-                canvas.height = viewport.height;
-                canvas.width = viewport.width;
+                canvas.width = renderViewport.width;
+                canvas.height = renderViewport.height;
 
-                if (!context) throw new Error("Canvas context failed");
+                const context = canvas.getContext('2d');
+                if (!context) throw new Error("Canvas context initialization failed");
+
+                context.imageSmoothingEnabled = true;
+                context.imageSmoothingQuality = 'high';
 
                 await page.render({
                     canvasContext: context,
-                    viewport: viewport
+                    viewport: renderViewport
                 } as any).promise;
 
                 const imgData = canvas.toDataURL('image/jpeg', finalQuality);
+                const pageOrientation = originalViewport.width > originalViewport.height ? 'l' : 'p';
 
-                const imgProps = newPdf.getImageProperties(imgData);
-                const pdfWidth = newPdf.internal.pageSize.getWidth();
-                const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+                if (i > 1) {
+                    newPdf.addPage([originalViewport.width, originalViewport.height], pageOrientation);
+                }
 
-                if (i > 1) newPdf.addPage();
+                // Add image filling exact original page dimensions
+                newPdf.addImage(
+                    imgData,
+                    'JPEG',
+                    0,
+                    0,
+                    originalViewport.width,
+                    originalViewport.height,
+                    undefined,
+                    'FAST'
+                );
 
-                newPdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
-
-                // Update progress
                 setProgress(Math.round((i / totalPages) * 100));
             }
 
             const outputBlob = newPdf.output('blob');
             setCompressedPdf(outputBlob);
-            await incrementUsage('pdf');
 
-            const resultMB = outputBlob.size / 1024 / 1024;
-            if (useTargetSize && resultMB > targetSizeMB * 1.2) {
-                toast.error(`Result (${resultMB.toFixed(2)}MB) is slightly larger than target. Try reducing resolution.`);
-            } else {
-                toast.success(`Compressed to ${resultMB.toFixed(2)} MB`);
-            }
+            const resultKB = outputBlob.size / 1024;
+            const formattedResult = resultKB >= 1024 ? `${(resultKB / 1024).toFixed(2)} MB` : `${resultKB.toFixed(0)} KB`;
+            toast.success(`Compressed successfully to ${formattedResult}!`);
 
         } catch (error) {
             console.error("PDF Compression failed:", error);
-            toast.error("Failed to compress PDF. File might be corrupted or protected.");
+            toast.error("Failed to compress PDF. File might be corrupted or password-protected.");
         } finally {
             setIsProcessing(false);
         }
     };
 
     return (
-        <div className="container" style={{ maxWidth: '800px' }}>
+        <div className="container" style={{ maxWidth: '850px' }}>
+            <SEO
+                title="Precision PDF Compressor - Accurate Target Size Control"
+                description="Compress PDF files to exact sizes (e.g. 200KB, 500KB, 1MB) with aspect ratio preservation and crisp text rendering."
+            />
             <h1 className="text-gradient" style={{ fontSize: '2rem', marginBottom: '2rem', textAlign: 'center' }}>
-                Compress PDF
+                Precision PDF Compressor
             </h1>
 
             <AdBanner style={{ marginBottom: '2rem' }} />
 
             <div style={{ marginBottom: '2rem' }}>
                 {!file ? (
-                    <FileUploader onFileSelect={handleFileSelect} accept=".pdf" label="Upload PDF to Compress" maxSizeMB={100} />
+                    <FileUploader onFileSelect={handleFileSelect} accept=".pdf,application/pdf" label="Upload PDF to Compress" maxSizeMB={100} />
                 ) : (
-                    <div className="bg-surface p-8 rounded-lg border border-subtle">
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                    <div className="glass-panel" style={{ padding: 'clamp(1.5rem, 4vw, 2.5rem)', borderRadius: 'var(--radius-xl)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                                 {previewUrl && (
                                     <div style={{
-                                        width: '60px',
-                                        height: '80px',
-                                        borderRadius: 'var(--radius-sm)',
+                                        width: '64px',
+                                        height: '84px',
+                                        borderRadius: 'var(--radius-md)',
                                         overflow: 'hidden',
-                                        border: '1px solid var(--border-subtle)',
-                                        backgroundColor: 'white',
+                                        border: '1px solid var(--glass-border)',
+                                        backgroundColor: '#ffffff',
+                                        boxShadow: 'var(--shadow-sm)',
                                         flexShrink: 0
                                     }}>
                                         <img
@@ -230,14 +280,17 @@ export const PdfCompressor = () => {
                                     </div>
                                 )}
                                 <div>
-                                    <h3 style={{ marginBottom: '0.5rem' }}>{file.name}</h3>
-                                    <p style={{ color: 'var(--text-muted)' }}>Original Size: {(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                                    <h3 style={{ marginBottom: '0.25rem', fontSize: '1.25rem' }}>{file.name}</h3>
+                                    <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                                        Original Size: {file.size >= 1024 * 1024 ? `${(file.size / 1024 / 1024).toFixed(2)} MB` : `${(file.size / 1024).toFixed(0)} KB`}
+                                    </p>
                                 </div>
                             </div>
                             <div style={{ display: 'flex', gap: '1rem' }}>
                                 <button
                                     onClick={() => document.getElementById('change-file-input')?.click()}
-                                    style={{ color: 'var(--color-accent)', fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer' }}
+                                    className="glass-btn-secondary"
+                                    style={{ padding: '0.45rem 1rem', fontSize: '0.85rem' }}
                                 >
                                     Change File
                                 </button>
@@ -248,7 +301,6 @@ export const PdfCompressor = () => {
                                     onChange={(e) => {
                                         if (e.target.files?.length) {
                                             handleFileSelect(e.target.files[0]);
-                                            // Reset result but keep settings
                                             setCompressedPdf(null);
                                             setProgress(0);
                                         }
@@ -268,25 +320,27 @@ export const PdfCompressor = () => {
                                         cursor: 'pointer'
                                     }}
                                 >
-                                    <FaRedo /> Reset Settings
+                                    <FaRedo /> Reset
                                 </button>
                             </div>
                         </div>
 
-                        <div style={{ marginBottom: '2rem', backgroundColor: 'var(--bg-app)', padding: '1rem', borderRadius: 'var(--radius-md)' }}>
-                            <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-                                <FaCog /> Compression Settings
+                        {/* Settings */}
+                        <div style={{
+                            marginBottom: '2rem',
+                            background: 'rgba(255, 255, 255, 0.03)',
+                            border: '1px solid var(--border-subtle)',
+                            padding: '1.5rem',
+                            borderRadius: 'var(--radius-lg)'
+                        }}>
+                            <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem' }}>
+                                <FaCog /> Compression Configuration
                             </h4>
 
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                                {/* Target Size Toggle */}
-                                <div style={{
-                                    padding: '1rem',
-                                    border: '1px solid var(--border-subtle)',
-                                    borderRadius: 'var(--radius-md)',
-                                    backgroundColor: useTargetSize ? 'rgba(99, 102, 241, 0.05)' : 'transparent'
-                                }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: useTargetSize ? '1rem' : 0 }}>
+                                {/* Mode Selection */}
+                                <div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
                                         <input
                                             type="checkbox"
                                             id="useTargetSize"
@@ -294,156 +348,164 @@ export const PdfCompressor = () => {
                                             onChange={(e) => setUseTargetSize(e.target.checked)}
                                             style={{ width: '1.2rem', height: '1.2rem', cursor: 'pointer' }}
                                         />
-                                        <label htmlFor="useTargetSize" style={{ cursor: 'pointer', fontWeight: 500 }}>
-                                            Reduce to specific file size
+                                        <label htmlFor="useTargetSize" style={{ cursor: 'pointer', fontWeight: 600 }}>
+                                            🎯 Target File Size Mode (Recommended)
                                         </label>
                                     </div>
 
-                                    {useTargetSize && (
-                                        <div>
-                                            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                                    {useTargetSize ? (
+                                        <div style={{ paddingLeft: '1.7rem' }}>
+                                            <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.5rem' }}>
+                                                Quick Presets:
+                                            </label>
+                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                                                {presets.map((preset) => (
+                                                    <button
+                                                        key={preset.label}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setTargetSize(preset.size);
+                                                            setUnit(preset.unit);
+                                                        }}
+                                                        style={{
+                                                            padding: '0.35rem 0.65rem',
+                                                            borderRadius: 'var(--radius-full)',
+                                                            border: `1px solid ${targetSize === preset.size && unit === preset.unit ? 'var(--color-primary)' : 'var(--border-subtle)'}`,
+                                                            backgroundColor: targetSize === preset.size && unit === preset.unit ? 'rgba(99, 102, 241, 0.15)' : 'var(--bg-surface)',
+                                                            color: targetSize === preset.size && unit === preset.unit ? 'var(--color-primary)' : 'var(--text-muted)',
+                                                            fontSize: '0.8rem',
+                                                            fontWeight: 500,
+                                                            cursor: 'pointer'
+                                                        }}
+                                                    >
+                                                        {preset.label}
+                                                    </button>
+                                                ))}
+                                            </div>
+
+                                            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
                                                 <input
                                                     type="number"
-                                                    min="0.1"
-                                                    step="0.1"
-                                                    value={targetSizeMB}
-                                                    onChange={(e) => setTargetSizeMB(parseFloat(e.target.value))}
+                                                    min="10"
+                                                    value={targetSize}
+                                                    onChange={(e) => setTargetSize(parseFloat(e.target.value) || 10)}
                                                     style={{
-                                                        padding: '0.5rem',
-                                                        width: '100px',
+                                                        padding: '0.5rem 0.75rem',
+                                                        width: '130px',
                                                         borderRadius: 'var(--radius-md)',
-                                                        border: '1px solid var(--border-subtle)'
+                                                        border: '1px solid var(--border-subtle)',
+                                                        backgroundColor: 'var(--bg-surface)',
+                                                        fontWeight: 600
                                                     }}
                                                 />
-                                                <span>MB</span>
+                                                <select
+                                                    value={unit}
+                                                    onChange={(e) => setUnit(e.target.value as 'KB' | 'MB')}
+                                                    style={{
+                                                        padding: '0.5rem 0.75rem',
+                                                        borderRadius: 'var(--radius-md)',
+                                                        border: '1px solid var(--border-subtle)',
+                                                        backgroundColor: 'var(--bg-surface)',
+                                                        fontWeight: 600
+                                                    }}
+                                                >
+                                                    <option value="KB">KB</option>
+                                                    <option value="MB">MB</option>
+                                                </select>
                                             </div>
                                             <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
-                                                We'll try to adjust quality to meet this target. Lower targets might reduce clarity.
+                                                ✨ Automatically balances DPI resolution and JPEG quantization per page to strictly hit your target size.
                                             </p>
+                                        </div>
+                                    ) : (
+                                        <div style={{ paddingLeft: '1.7rem', display: 'grid', gap: '1rem' }}>
+                                            <div>
+                                                <label style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.9rem' }}>
+                                                    <span>Image Quality: {(quality * 100).toFixed(0)}%</span>
+                                                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Lower = Smaller</span>
+                                                </label>
+                                                <input
+                                                    type="range"
+                                                    min="0.05"
+                                                    max="0.95"
+                                                    step="0.05"
+                                                    value={quality}
+                                                    onChange={(e) => setQuality(parseFloat(e.target.value))}
+                                                    style={{ width: '100%' }}
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>
+                                                    Rendering Resolution (DPI):
+                                                </label>
+                                                <select
+                                                    value={scale}
+                                                    onChange={(e) => setScale(parseFloat(e.target.value))}
+                                                    style={{
+                                                        width: '100%',
+                                                        padding: '0.5rem',
+                                                        borderRadius: 'var(--radius-md)',
+                                                        border: '1px solid var(--border-subtle)',
+                                                        backgroundColor: 'var(--bg-surface)'
+                                                    }}
+                                                >
+                                                    <option value="1.0">Standard 72 DPI (Web & Email, compact)</option>
+                                                    <option value="1.5">Balanced 108 DPI (Clean clarity)</option>
+                                                    <option value="2.0">Sharp 144 DPI (Print quality)</option>
+                                                    <option value="0.75">Ultra Compact 54 DPI (Gov portal limits)</option>
+                                                </select>
+                                            </div>
                                         </div>
                                     )}
                                 </div>
 
-                                {/* Manual Controls (Disable if Target Size is ON) */}
-                                <div style={{
-                                    opacity: useTargetSize ? 0.5 : 1,
-                                    pointerEvents: useTargetSize ? 'none' : 'auto',
-                                    transition: 'opacity 0.2s'
-                                }}>
-                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem', marginBottom: '1.5rem' }}>
-                                        {[
-                                            { label: 'Extreme', q: 0.3, s: 0.75, desc: 'Smallest Size' },
-                                            { label: 'Recommended', q: 0.5, s: 1.0, desc: 'Balanced' },
-                                            { label: 'High Quality', q: 0.8, s: 1.5, desc: 'Best Visuals' }
-                                        ].map(preset => (
-                                            <button
-                                                key={preset.label}
-                                                onClick={() => {
-                                                    setQuality(preset.q);
-                                                    setScale(preset.s);
-                                                }}
-                                                style={{
-                                                    padding: '0.75rem',
-                                                    borderRadius: 'var(--radius-md)',
-                                                    border: `1px solid ${quality === preset.q && scale === preset.s ? 'var(--color-primary)' : 'var(--border-subtle)'}`,
-                                                    backgroundColor: quality === preset.q && scale === preset.s ? 'rgba(99, 102, 241, 0.1)' : 'var(--bg-surface)',
-                                                    color: quality === preset.q && scale === preset.s ? 'var(--color-primary)' : 'var(--text-main)',
-                                                    cursor: 'pointer',
-                                                    transition: 'all 0.2s'
-                                                }}
-                                            >
-                                                <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{preset.label}</div>
-                                                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{preset.desc}</div>
-                                            </button>
-                                        ))}
-                                    </div>
-
-                                    <div style={{ marginBottom: '1.5rem' }}>
-                                        <label style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                                            <span>Image Quality ({(quality * 100).toFixed(0)}%)</span>
-                                            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Lower = Smaller Size</span>
-                                        </label>
-                                        <input
-                                            type="range"
-                                            min="0.1"
-                                            max="1.0"
-                                            step="0.1"
-                                            value={quality}
-                                            onChange={(e) => setQuality(parseFloat(e.target.value))}
-                                            style={{ width: '100%' }}
-                                        />
-                                    </div>
-                                </div>
-
-                                {/* Resolution always available as it affects base size significantly */}
-                                <div>
-                                    <label style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                                        <span>Resolution (DPI)</span>
-                                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Lower = Blurry but Tiny</span>
-                                    </label>
-                                    <select
-                                        value={scale}
-                                        onChange={(e) => setScale(parseFloat(e.target.value))}
-                                        style={{
-                                            width: '100%',
-                                            padding: '0.5rem',
-                                            borderRadius: 'var(--radius-md)',
-                                            border: '1px solid var(--border-subtle)',
-                                            backgroundColor: 'var(--bg-surface)'
-                                        }}
-                                    >
-                                        <option value="1.0">Standard (72 DPI) - Good for Screens</option>
-                                        <option value="1.5">Medium (108 DPI) - Balanced</option>
-                                        <option value="2.0">High (144 DPI) - Sharpest</option>
-                                        <option value="0.75">Low (54 DPI) - Smallest Size</option>
-                                    </select>
-                                </div>
-
                                 <div style={{
                                     padding: '0.75rem',
-                                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                    backgroundColor: 'rgba(99, 102, 241, 0.08)',
                                     borderRadius: 'var(--radius-md)',
-                                    fontSize: '0.9rem',
+                                    fontSize: '0.85rem',
                                     display: 'flex',
                                     gap: '0.5rem',
                                     color: 'var(--text-main)'
                                 }}>
-                                    <FaExclamationTriangle style={{ color: '#3b82f6', marginTop: '3px' }} flex-shrink={0} />
+                                    <FaExclamationTriangle style={{ color: 'var(--color-primary)', marginTop: '2px', flexShrink: 0 }} />
                                     <div>
-                                        <strong>Note:</strong> This process converts pages to images ("Rasterization").
-                                        Text will no longer be selectable. Great for scanned docs.
+                                        <strong>Page Geometry Preserved:</strong> Landscape and custom page dimensions are preserved 1:1 with crisp anti-aliasing.
                                     </div>
                                 </div>
                             </div>
                         </div>
 
+                        {/* Results or Action Button */}
                         {compressedPdf ? (
                             <div style={{
-                                backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                                padding: '1.5rem',
-                                borderRadius: 'var(--radius-md)',
-                                marginBottom: '2rem',
-                                border: '1px solid #10b981'
+                                backgroundColor: 'rgba(16, 185, 129, 0.08)',
+                                padding: '1.75rem',
+                                borderRadius: 'var(--radius-lg)',
+                                marginBottom: '1rem',
+                                border: '1px solid rgba(16, 185, 129, 0.4)',
+                                boxShadow: '0 0 25px -5px rgba(16, 185, 129, 0.2)'
                             }}>
-                                <h3 style={{ color: '#10b981', marginBottom: '0.5rem' }}>Success!</h3>
-                                <p style={{ marginBottom: '1rem' }}>
-                                    New Size: {(compressedPdf.size / 1024 / 1024).toFixed(2)} MB
-                                    <span style={{ marginLeft: '0.5rem', fontWeight: 600 }}>
-                                        ({((compressedPdf.size / file.size) * 100).toFixed(0)}% of original)
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                                    <span className="neon-badge neon-badge-success">
+                                        ✓ Compression Complete!
                                     </span>
+                                </div>
+                                <p style={{ marginBottom: '1.25rem', fontSize: '1rem' }}>
+                                    Original: <strong>{(file.size / 1024).toFixed(0)} KB</strong> &rarr; Compressed:{' '}
+                                    <strong style={{ color: '#10b981' }}>{(compressedPdf.size / 1024).toFixed(0)} KB</strong>{' '}
+                                    ({((1 - compressedPdf.size / file.size) * 100).toFixed(0)}% space saved)
                                 </p>
                                 <a
                                     href={URL.createObjectURL(compressedPdf)}
                                     download={`compressed-${file.name}`}
+                                    className="glass-btn-primary"
                                     style={{
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        gap: '0.5rem',
-                                        backgroundColor: '#10b981',
-                                        color: 'white',
-                                        padding: '0.75rem 1.5rem',
-                                        borderRadius: 'var(--radius-md)',
-                                        fontWeight: 600,
+                                        background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                                        boxShadow: '0 0 20px -3px rgba(16, 185, 129, 0.5)',
+                                        padding: '0.85rem 1.75rem',
+                                        fontSize: '1rem',
                                         textDecoration: 'none'
                                     }}
                                 >
@@ -454,20 +516,16 @@ export const PdfCompressor = () => {
                             <button
                                 onClick={handleCompress}
                                 disabled={isProcessing}
+                                className="glass-btn-primary"
                                 style={{
                                     width: '100%',
                                     padding: '1rem',
-                                    backgroundColor: isProcessing ? 'var(--bg-surface-hover)' : 'var(--color-primary)',
-                                    color: 'white',
-                                    borderRadius: 'var(--radius-md)',
-                                    fontWeight: 600,
                                     fontSize: '1rem',
-                                    cursor: isProcessing ? 'wait' : 'pointer',
-                                    border: 'none',
-                                    opacity: isProcessing ? 0.7 : 1
+                                    opacity: isProcessing ? 0.6 : 1
                                 }}
                             >
-                                {isProcessing ? `Compressing Page... ${progress}%` : 'Compress PDF'}
+                                <FaFilePdf />
+                                {isProcessing ? `Optimizing & Compressing... ${progress}%` : 'Compress PDF'}
                             </button>
                         )}
                     </div>
@@ -475,13 +533,11 @@ export const PdfCompressor = () => {
             </div>
 
             <div style={{ marginTop: '3rem', backgroundColor: 'var(--bg-surface)', padding: '2rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-subtle)' }}>
-                <h3 style={{ marginBottom: '1rem', color: 'var(--text-main)' }}>How it Works</h3>
+                <h3 style={{ marginBottom: '1rem', color: 'var(--text-main)' }}>PDF Optimization Highlights</h3>
                 <ol style={{ paddingLeft: '1.5rem', color: 'var(--text-muted)', lineHeight: '1.8' }}>
-                    <li><strong>Upload your PDF</strong>: We accept any standard PDF document.</li>
-                    <li><strong>Choose Target Size (Optional)</strong>: Set a specific file size (e.g., "0.5 MB") if you need to meet a limit.</li>
-                    <li><strong>Adjust Quality</strong>: Or use manual presets to balance clarity vs. file size. Lower DPI saves the most space.</li>
-                    <li><strong>Rasterization</strong>: We convert each page to an optimized image to achieve maximum compression.</li>
-                    <li><strong>Download</strong>: Get your smaller PDF instantly. All processing happens 100% on your device.</li>
+                    <li><strong>Exact Geometry Preservation</strong>: Supports mixed portrait/landscape and custom-sized documents without clipping.</li>
+                    <li><strong>Adaptive Target Sizing</strong>: Dynamically samples document complexity and allocates quantization budgets per page.</li>
+                    <li><strong>Client-Side Security</strong>: No uploads to cloud servers. Fast, secure, and private.</li>
                 </ol>
             </div>
 

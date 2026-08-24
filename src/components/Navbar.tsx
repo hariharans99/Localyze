@@ -1,129 +1,130 @@
-import { Link } from 'react-router-dom';
-import { FaUserCircle, FaSun, FaMoon, FaSignOutAlt } from 'react-icons/fa';
-import { useUser } from '../contexts/UserContext';
+import { Link, useLocation } from 'react-router-dom';
+import { FaSun, FaMoon, FaLayerGroup, FaShieldAlt } from 'react-icons/fa';
 import { useTheme } from '../contexts/ThemeContext';
 
 export const Navbar = () => {
-    const { user, signOut } = useUser();
     const { theme, toggleTheme } = useTheme();
+    const location = useLocation();
 
     return (
-        <nav style={{
-            borderBottom: '1px solid var(--border-subtle)',
-            backgroundColor: 'var(--bg-app)', /* Fallback/Base */
+        <header style={{
             position: 'sticky',
-            top: 0,
-            zIndex: 50,
-            transition: 'border-color 0.3s ease, background-color 0.3s ease'
+            top: '1rem',
+            zIndex: 100,
+            padding: '0 1rem',
+            marginBottom: '1rem'
         }}>
-            <div style={{
-                position: 'absolute',
-                inset: 0,
-                backgroundColor: 'var(--bg-app)',
-                opacity: 0.8,
-                backdropFilter: 'blur(10px)',
-                zIndex: -1
-            }} />
-            <div className="container" style={{
-                height: '64px',
+            <nav className="container glass-panel" style={{
+                height: '68px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                position: 'relative'
+                padding: '0 1.5rem',
+                borderRadius: 'var(--radius-xl)',
+                border: '1px solid var(--glass-border)',
+                background: 'var(--glass-bg)',
+                backdropFilter: 'var(--glass-blur-lg)',
+                WebkitBackdropFilter: 'var(--glass-blur-lg)',
+                boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.25), var(--glass-highlight)'
             }}>
-                <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '1.25rem', fontWeight: 700 }}>
-                    <span style={{ background: 'linear-gradient(to right, #6366f1, #a855f7)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Localyze</span>
+                <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <div style={{
+                        width: '38px',
+                        height: '38px',
+                        borderRadius: 'var(--radius-md)',
+                        background: 'linear-gradient(135deg, #00d2ff 0%, #6366f1 50%, #9d50bb 100%)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#ffffff',
+                        fontSize: '1.15rem',
+                        boxShadow: '0 0 16px -2px rgba(0, 210, 255, 0.6)'
+                    }}>
+                        <FaLayerGroup />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <span style={{
+                            fontFamily: 'var(--font-display)',
+                            fontSize: '1.35rem',
+                            fontWeight: 800,
+                            letterSpacing: '-0.02em',
+                            background: 'linear-gradient(135deg, #00d2ff 0%, #a855f7 50%, #ec4899 100%)',
+                            WebkitBackgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent'
+                        }}>
+                            Localyze
+                        </span>
+                    </div>
                 </Link>
 
-                <div style={{ display: 'flex', gap: 'clamp(0.5rem, 2vw, 1.5rem)', alignItems: 'center', flexWrap: 'nowrap' }}>
-                    <Link to="/tools" style={{
-                        color: 'var(--text-muted)',
-                        transition: 'color 0.2s',
-                        fontSize: 'clamp(0.9rem, 2vw, 1rem)',
-                        padding: '0.5rem'
-                    }}>All Tools</Link>
-                    <Link to="/pricing" style={{
-                        color: 'var(--text-muted)',
-                        transition: 'color 0.2s',
-                        fontSize: 'clamp(0.9rem, 2vw, 1rem)',
-                        padding: '0.5rem'
-                    }}>Pricing</Link>
+                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                    <Link
+                        to="/"
+                        style={{
+                            padding: '0.5rem 1rem',
+                            borderRadius: 'var(--radius-full)',
+                            fontSize: '0.9rem',
+                            fontWeight: 600,
+                            color: location.pathname === '/' ? 'var(--color-primary)' : 'var(--text-muted)',
+                            backgroundColor: location.pathname === '/' ? 'rgba(0, 210, 255, 0.12)' : 'transparent',
+                            border: `1px solid ${location.pathname === '/' ? 'rgba(0, 210, 255, 0.3)' : 'transparent'}`,
+                            transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.4rem'
+                        }}
+                    >
+                        Tools
+                    </Link>
+
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.4rem',
+                        padding: '0.35rem 0.75rem',
+                        borderRadius: 'var(--radius-full)',
+                        background: 'rgba(16, 185, 129, 0.1)',
+                        border: '1px solid rgba(16, 185, 129, 0.25)',
+                        fontSize: '0.75rem',
+                        color: '#10b981',
+                        fontWeight: 600
+                    }}>
+                        <FaShieldAlt style={{ fontSize: '0.7rem' }} /> Local Only
+                    </div>
 
                     <button
                         onClick={toggleTheme}
                         style={{
-                            color: 'var(--text-muted)',
+                            width: '42px',
+                            height: '42px',
+                            borderRadius: 'var(--radius-full)',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            padding: '0.5rem',
-                            borderRadius: 'var(--radius-full)',
-                            transition: 'color 0.2s, background-color 0.2s',
-                            minWidth: '44px',
-                            minHeight: '44px'
+                            color: 'var(--text-main)',
+                            background: 'rgba(255, 255, 255, 0.06)',
+                            border: '1px solid var(--glass-border)',
+                            cursor: 'pointer',
+                            transition: 'all 0.25s ease',
+                            fontSize: '1rem'
                         }}
-                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-surface-hover)'}
-                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                        aria-label="Toggle theme"
+                        onMouseEnter={(e) => {
+                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';
+                            e.currentTarget.style.borderColor = 'var(--color-primary)';
+                            e.currentTarget.style.transform = 'scale(1.05)';
+                        }}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)';
+                            e.currentTarget.style.borderColor = 'var(--glass-border)';
+                            e.currentTarget.style.transform = 'none';
+                        }}
+                        aria-label="Toggle dark/light theme"
+                        title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
                     >
-                        {theme === 'dark' ? <FaSun /> : <FaMoon />}
+                        {theme === 'dark' ? <FaSun style={{ color: '#fbbf24' }} /> : <FaMoon style={{ color: '#6366f1' }} />}
                     </button>
-
-                    {user ? (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginLeft: 'auto' }}>
-                            {user.photoURL && (
-                                <Link to="/profile" style={{ display: 'flex', alignItems: 'center' }}>
-                                    <img src={user.photoURL} alt="User" style={{
-                                        width: '36px',
-                                        height: '36px',
-                                        borderRadius: '50%',
-                                        cursor: 'pointer',
-                                        border: '2px solid var(--border-subtle)',
-                                        flexShrink: 0
-                                    }} />
-                                </Link>
-                            )}
-                            <button
-                                onClick={() => signOut()}
-                                style={{
-                                    color: 'var(--text-muted)',
-                                    fontSize: '1.1rem',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    padding: '0.5rem',
-                                    minHeight: '40px',
-                                    minWidth: '40px',
-                                    flexShrink: 0
-                                }}
-                                aria-label="Sign Out"
-                            >
-                                <FaSignOutAlt />
-                            </button>
-                        </div>
-                    ) : (
-                        <Link to="/login">
-                            <button style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.5rem',
-                                padding: '0.5rem 1rem',
-                                backgroundColor: 'var(--color-primary)',
-                                border: 'none',
-                                borderRadius: 'var(--radius-md)',
-                                color: 'white',
-                                fontWeight: 500,
-                                transition: 'background-color 0.2s',
-                                minHeight: '44px',
-                                fontSize: 'clamp(0.85rem, 2vw, 1rem)'
-                            }}>
-                                <FaUserCircle />
-                                <span style={{ display: window.innerWidth < 480 ? 'none' : 'inline' }}>Sign In</span>
-                            </button>
-                        </Link>
-                    )}
                 </div>
-            </div>
-        </nav>
+            </nav>
+        </header>
     );
 };

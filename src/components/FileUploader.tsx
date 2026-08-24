@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { FaCloudUploadAlt } from 'react-icons/fa';
+import { FaCloudUploadAlt, FaFolderOpen, FaLock } from 'react-icons/fa';
 
 interface FileUploaderProps {
     onFileSelect: (file: File | File[]) => void;
@@ -12,7 +12,7 @@ interface FileUploaderProps {
 export const FileUploader: React.FC<FileUploaderProps> = ({
     onFileSelect,
     accept = "image/*",
-    label = "Click or Drag to Upload",
+    label = "Click or Drag Files to Upload",
     maxSizeMB = 50,
     multiple = false
 }) => {
@@ -64,23 +64,40 @@ export const FileUploader: React.FC<FileUploaderProps> = ({
 
     return (
         <div
-            className={`file-uploader ${isDragOver ? 'drag-over' : ''}`}
+            className={`file-uploader glass-panel ${isDragOver ? 'drag-over-pulse' : ''}`}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
             onClick={() => inputRef.current?.click()}
             style={{
-                border: `2px dashed ${isDragOver ? 'var(--color-primary)' : 'var(--border-subtle)'}`,
-                borderRadius: 'var(--radius-lg)',
-                padding: '3rem',
+                border: `2px dashed ${isDragOver ? 'var(--color-primary)' : 'rgba(255, 255, 255, 0.2)'}`,
+                borderRadius: 'var(--radius-xl)',
+                padding: 'clamp(2.5rem, 5vw, 4rem) 2rem',
                 textAlign: 'center',
                 cursor: 'pointer',
-                backgroundColor: isDragOver ? 'rgba(99, 102, 241, 0.05)' : 'var(--bg-surface)',
-                transition: 'all 0.2s ease',
+                backgroundColor: isDragOver ? 'rgba(0, 210, 255, 0.08)' : 'var(--glass-bg)',
+                backdropFilter: 'var(--glass-blur)',
+                WebkitBackdropFilter: 'var(--glass-blur)',
+                boxShadow: isDragOver ? 'var(--shadow-glow)' : 'var(--glass-highlight), var(--shadow-md)',
+                transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                gap: '1rem'
+                gap: '1.25rem',
+                position: 'relative',
+                overflow: 'hidden'
+            }}
+            onMouseEnter={(e) => {
+                if (!isDragOver) {
+                    e.currentTarget.style.borderColor = 'rgba(0, 210, 255, 0.5)';
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                }
+            }}
+            onMouseLeave={(e) => {
+                if (!isDragOver) {
+                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+                    e.currentTarget.style.transform = 'none';
+                }
             }}
         >
             <input
@@ -92,20 +109,58 @@ export const FileUploader: React.FC<FileUploaderProps> = ({
                 style={{ display: 'none' }}
             />
 
+            {/* Glowing Icon Container */}
             <div style={{
-                fontSize: '3rem',
-                color: isDragOver ? 'var(--color-primary)' : 'var(--text-dim)'
+                width: '76px',
+                height: '76px',
+                borderRadius: 'var(--radius-lg)',
+                background: isDragOver
+                    ? 'linear-gradient(135deg, rgba(0, 210, 255, 0.3), rgba(99, 102, 241, 0.3))'
+                    : 'linear-gradient(135deg, rgba(0, 210, 255, 0.12), rgba(99, 102, 241, 0.12))',
+                border: '1px solid rgba(0, 210, 255, 0.3)',
+                boxShadow: '0 0 24px -4px rgba(0, 210, 255, 0.3)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '2.25rem',
+                color: isDragOver ? '#ffffff' : 'var(--color-primary)',
+                transition: 'all 0.3s ease'
             }}>
                 <FaCloudUploadAlt />
             </div>
 
             <div>
-                <h3 style={{ fontSize: '1.25rem', marginBottom: '0.5rem', fontWeight: 600 }}>
+                <h3 style={{
+                    fontSize: 'clamp(1.2rem, 3vw, 1.45rem)',
+                    marginBottom: '0.5rem',
+                    fontWeight: 700,
+                    letterSpacing: '-0.01em',
+                    color: 'var(--text-main)'
+                }}>
                     {label}
                 </h3>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-                    Max file size: {maxSizeMB}MB
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '0.75rem' }}>
+                    Drag & drop {multiple ? 'multiple files' : 'your file'} here, or click to browse
                 </p>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem' }}>
+                    <span className="glass-btn-primary" style={{ padding: '0.5rem 1.25rem', fontSize: '0.85rem' }}>
+                        <FaFolderOpen /> Browse Files
+                    </span>
+                </div>
+            </div>
+
+            <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.75rem',
+                padding: '0.4rem 0.9rem',
+                borderRadius: 'var(--radius-full)',
+                background: 'rgba(255, 255, 255, 0.04)',
+                border: '1px solid var(--border-subtle)',
+                fontSize: '0.75rem',
+                color: 'var(--text-dim)'
+            }}>
+                <FaLock style={{ color: '#10b981' }} /> Local Browser Execution &bull; Max {maxSizeMB}MB
             </div>
         </div>
     );
