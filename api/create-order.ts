@@ -4,6 +4,23 @@ const PLANS: Record<string, { amountPaise: number; name: string }> = {
     month: { amountPaise: 6900, name: '1-Month Pro Pass' }
 };
 
+const getRazorpayCredentials = () => {
+    let keyId = (process.env.RAZORPAY_KEY_ID || process.env.VITE_RAZORPAY_KEY_ID || '').trim();
+    let keySecret = (process.env.RAZORPAY_KEY_SECRET || '').trim();
+
+    // If key is missing or dummy placeholder, use the valid verified test key
+    if (!keyId || keyId === 'rzp_test_localyzePublic') {
+        keyId = 'rzp_test_TTVaAFshs31QBq';
+    }
+
+    // If secret is missing or dummy placeholder, use the valid verified test secret
+    if (!keySecret || keySecret === 'rzp_test_secret') {
+        keySecret = 'VpeJSw6n0YKh4x5Tu8l8IVW4';
+    }
+
+    return { keyId, keySecret };
+};
+
 export default async function handler(req: any, res: any) {
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
@@ -18,8 +35,7 @@ export default async function handler(req: any, res: any) {
             return res.status(400).json({ error: 'Invalid plan selected' });
         }
 
-        const keyId = (process.env.RAZORPAY_KEY_ID || process.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_TTVaAFshs31QBq').trim();
-        const keySecret = (process.env.RAZORPAY_KEY_SECRET || 'VpeJSw6n0YKh4x5Tu8l8IVW4').trim();
+        const { keyId, keySecret } = getRazorpayCredentials();
 
         const basicAuth = Buffer.from(`${keyId}:${keySecret}`).toString('base64');
         const response = await fetch('https://api.razorpay.com/v1/orders', {

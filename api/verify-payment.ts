@@ -6,6 +6,21 @@ const PLANS: Record<string, { durationDays: number; amountInr: number; name: str
     month: { durationDays: 30, amountInr: 69, name: '1-Month Pro Pass' }
 };
 
+const getRazorpayCredentials = () => {
+    let keyId = (process.env.RAZORPAY_KEY_ID || process.env.VITE_RAZORPAY_KEY_ID || '').trim();
+    let keySecret = (process.env.RAZORPAY_KEY_SECRET || '').trim();
+
+    if (!keyId || keyId === 'rzp_test_localyzePublic') {
+        keyId = 'rzp_test_TTVaAFshs31QBq';
+    }
+
+    if (!keySecret || keySecret === 'rzp_test_secret') {
+        keySecret = 'VpeJSw6n0YKh4x5Tu8l8IVW4';
+    }
+
+    return { keyId, keySecret };
+};
+
 export default async function handler(req: any, res: any) {
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
@@ -31,7 +46,7 @@ export default async function handler(req: any, res: any) {
             return res.status(400).json({ error: 'Invalid plan' });
         }
 
-        const keySecret = (process.env.RAZORPAY_KEY_SECRET || 'VpeJSw6n0YKh4x5Tu8l8IVW4').trim();
+        const { keySecret } = getRazorpayCredentials();
 
         // 1. If Razorpay Secret is configured and signature is provided, verify HMAC SHA-256
         if (keySecret && razorpay_order_id && razorpay_signature) {
