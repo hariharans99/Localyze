@@ -269,9 +269,19 @@ export const PdfCompressor = () => {
             setCompressedPdf(outputBlob);
             await incrementUsage();
 
+            // Direct instant download
+            const downloadUrl = URL.createObjectURL(outputBlob);
+            const a = document.createElement('a');
+            a.href = downloadUrl;
+            a.download = `compressed-${file.name}`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
+
             const resultKB = outputBlob.size / 1024;
             const formattedResult = resultKB >= 1024 ? `${(resultKB / 1024).toFixed(2)} MB` : `${resultKB.toFixed(0)} KB`;
-            toast.success(`Compressed successfully to ${formattedResult}!`);
+            toast.success(`Compressed & downloaded successfully (${formattedResult})!`);
 
         } catch (error) {
             console.error("PDF Compression failed:", error);
@@ -577,22 +587,26 @@ export const PdfCompressor = () => {
                         </div>
 
                         {/* Action Button */}
-                        {!compressedPdf && (
-                            <button
-                                onClick={handleCompress}
-                                disabled={isProcessing}
-                                className="glass-btn-primary"
-                                style={{
-                                    width: '100%',
-                                    padding: '1rem',
-                                    fontSize: '1rem',
-                                    opacity: isProcessing ? 0.6 : 1
-                                }}
-                            >
-                                <FaFilePdf />
-                                {isProcessing ? `Compressing PDF... ${progress}%` : `Compress PDF ${useTargetSize ? `to ≤ ${targetSize} ${unit}` : ''}`}
-                            </button>
-                        )}
+                        <button
+                            onClick={handleCompress}
+                            disabled={isProcessing}
+                            className="glass-btn-primary"
+                            style={{
+                                width: '100%',
+                                padding: '1rem',
+                                fontSize: '1rem',
+                                opacity: isProcessing ? 0.6 : 1,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '0.5rem'
+                            }}
+                        >
+                            <FaDownload />
+                            {isProcessing
+                                ? `Compressing & Downloading PDF... ${progress}%`
+                                : `Compress & Download PDF ${useTargetSize ? `to ≤ ${targetSize} ${unit}` : ''}`}
+                        </button>
                     </div>
                 )}
             </div>

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import JSZip from 'jszip';
 import { FileUploader } from '../../components/FileUploader';
 import { useToast } from '../../contexts/ToastContext';
-import { FaDownload, FaRandom, FaFileArchive, FaRedo } from 'react-icons/fa';
+import { FaDownload, FaRedo } from 'react-icons/fa';
 import { ProgressBar } from '../../components/ProgressBar';
 import { SEO } from '../../components/SEO';
 import { usePlan } from '../../contexts/PlanContext';
@@ -187,7 +187,15 @@ export const ImageConverter = () => {
             setFiles(updated);
             await incrementUsage();
             const extLabel = getExtension(format).toUpperCase();
-            success(`Converted ${files.length} file${files.length > 1 ? 's' : ''} to ${extLabel}!`);
+
+            // Direct instant auto-download
+            if (updated.length === 1 && updated[0].convertedUrl) {
+                downloadSingle(updated[0]);
+                success(`Converted & downloaded ${updated[0].file.name} to ${extLabel}!`);
+            } else if (updated.length > 1) {
+                await downloadAllZipWithItems(updated);
+                success(`Converted & downloaded ${updated.length} files as ZIP!`);
+            }
         } catch (e) {
             console.error('Conversion error:', e);
             error('Failed to convert files. Please try again.');
@@ -215,11 +223,13 @@ export const ImageConverter = () => {
         const a = document.createElement('a');
         a.href = item.convertedUrl;
         a.download = `${name}.${ext}`;
+        document.body.appendChild(a);
         a.click();
+        document.body.removeChild(a);
     };
 
-    const downloadAllZip = async () => {
-        const converted = files.filter(f => f.convertedUrl);
+    const downloadAllZipWithItems = async (items: ConvertedFileItem[]) => {
+        const converted = items.filter(f => f.convertedUrl);
         if (converted.length === 0) return;
 
         try {
@@ -240,13 +250,12 @@ export const ImageConverter = () => {
             const a = document.createElement('a');
             a.href = url;
             a.download = `converted-images-${ext}.zip`;
+            document.body.appendChild(a);
             a.click();
-            URL.revokeObjectURL(url);
-
-            success(`Downloaded ${converted.length} converted images in ZIP!`);
+            document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
         } catch (err) {
-            console.error('ZIP generation error:', err);
-            error('Failed to generate ZIP archive');
+            console.error('ZIP download error:', err);
         }
     };
 
@@ -481,36 +490,28 @@ export const ImageConverter = () => {
                         )}
 
                         {/* Action Buttons */}
-                        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                        <div style={{ width: '100%', minWidth: 0 }}>
                             <button
                                 onClick={handleConvert}
                                 disabled={isProcessing || files.length === 0}
                                 className="glass-btn-primary"
                                 style={{
-                                    flex: '1 1 220px',
-                                    padding: '0.9rem',
-                                    fontSize: '0.95rem',
-                                    opacity: isProcessing ? 0.6 : 1
+                                    width: '100%',
+                                    padding: '1rem',
+                                    fontSize: '1rem',
+                                    opacity: isProcessing ? 0.6 : 1,
+                                    boxSizing: 'border-box',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '0.5rem'
                                 }}
                             >
-                                <FaRandom />
-                                {isProcessing ? `Converting... ${progress}%` : `Convert ${files.length} Image${files.length > 1 ? 's' : ''} to ${getExtension(format).toUpperCase()}`}
+                                <FaDownload />
+                                {isProcessing
+                                    ? `Converting & Downloading... ${progress}%`
+                                    : `Convert & Download ${files.length} Image${files.length > 1 ? 's' : ''} to ${getExtension(format).toUpperCase()}`}
                             </button>
-
-                            {files.some(f => f.convertedUrl) && (
-                                <button
-                                    onClick={downloadAllZip}
-                                    className="glass-btn-primary"
-                                    style={{
-                                        padding: '0.9rem 1.4rem',
-                                        fontSize: '0.95rem',
-                                        background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                                        boxShadow: '0 0 20px -3px rgba(16, 185, 129, 0.5)'
-                                    }}
-                                >
-                                    <FaFileArchive /> Download All (ZIP)
-                                </button>
-                            )}
                         </div>
                     </div>
                 )}

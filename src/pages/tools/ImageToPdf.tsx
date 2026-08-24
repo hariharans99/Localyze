@@ -10,7 +10,6 @@ import {
     FaSyncAlt,
     FaLink,
     FaUnlink,
-    FaFilePdf,
     FaLayerGroup
 } from 'react-icons/fa';
 import { ProgressBar } from '../../components/ProgressBar';
@@ -307,15 +306,20 @@ export const ImageToPdf = () => {
                 }
             }
 
-            // Remove initial default blank page
-            if (files.length > 0) {
-                doc.deletePage(1);
-            }
-
             const pdfBlob = doc.output('blob');
-            setPdfUrl(URL.createObjectURL(pdfBlob));
+            const url = URL.createObjectURL(pdfBlob);
+            setPdfUrl(url);
             await incrementUsage();
-            success('PDF generated successfully with custom margins!');
+
+            // Direct instant auto-download
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `images-document.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+
+            success('PDF generated & downloaded successfully!');
         } catch (e) {
             console.error('PDF creation error:', e);
             error('Failed to generate PDF. Please try again.');
@@ -738,13 +742,14 @@ export const ImageToPdf = () => {
                         </div>
 
                         {/* Convert Button or Download Box */}
-                        {pdfUrl ? (
+                        {pdfUrl && (
                             <div style={{
                                 backgroundColor: 'rgba(16, 185, 129, 0.08)',
                                 padding: '1.5rem',
                                 borderRadius: 'var(--radius-lg)',
                                 border: '1px solid rgba(16, 185, 129, 0.4)',
-                                textAlign: 'center'
+                                textAlign: 'center',
+                                marginBottom: '1rem'
                             }}>
                                 <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.75rem' }}>
                                     <span className="neon-badge neon-badge-success">
@@ -771,31 +776,36 @@ export const ImageToPdf = () => {
                                     <FaDownload /> Download Generated PDF
                                 </a>
                             </div>
-                        ) : isProcessing ? (
-                            <div style={{ width: '100%' }}>
+                        )}
+
+                        {isProcessing && (
+                            <div style={{ width: '100%', marginBottom: '1rem' }}>
                                 <ProgressBar
                                     progress={progress}
                                     label={`Processing image ${Math.ceil((progress / 100) * files.length)} of ${files.length}...`}
                                     estimatedSeconds={estimatedTime}
                                 />
                             </div>
-                        ) : (
-                            <button
-                                onClick={handleConvert}
-                                className="glass-btn-primary"
-                                style={{
-                                    width: '100%',
-                                    padding: '1rem',
-                                    fontSize: '1.05rem',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    gap: '0.5rem'
-                                }}
-                            >
-                                <FaFilePdf /> Create PDF Document
-                            </button>
                         )}
+
+                        <button
+                            onClick={handleConvert}
+                            disabled={isProcessing}
+                            className="glass-btn-primary"
+                            style={{
+                                width: '100%',
+                                padding: '1rem',
+                                fontSize: '1.05rem',
+                                opacity: isProcessing ? 0.6 : 1,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '0.5rem'
+                            }}
+                        >
+                            <FaDownload />
+                            {isProcessing ? `Creating & Downloading PDF... ${progress}%` : `Convert & Download PDF (${files.length} Image${files.length > 1 ? 's' : ''})`}
+                        </button>
                     </div>
                 </div>
             )}

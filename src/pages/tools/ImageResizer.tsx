@@ -3,7 +3,6 @@ import { FileUploader } from '../../components/FileUploader';
 import { useToast } from '../../contexts/ToastContext';
 import {
     FaDownload,
-    FaExpand,
     FaLock,
     FaUnlock,
     FaRedo,
@@ -158,13 +157,19 @@ export const ImageResizer = () => {
             const mime = outputFormat === 'original' ? (file.type || 'image/jpeg') : outputFormat;
             const dataUrl = finalCanvas.toDataURL(mime, quality);
 
-            // Cleanup
-            transformCanvas.width = 0;
-            transformCanvas.height = 0;
-
             setResizedImage(dataUrl);
             await incrementUsage();
-            toast.success('Image resized with high quality anti-aliasing!');
+
+            // Direct instant auto-download
+            const ext = outputFormat === 'image/png' ? 'png' : outputFormat === 'image/webp' ? 'webp' : 'jpg';
+            const a = document.createElement('a');
+            a.href = dataUrl;
+            a.download = `resized-${file.name.replace(/\.[^/.]+$/, '')}.${ext}`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+
+            toast.success('Resized & downloaded successfully!');
             setIsProcessing(false);
             setProgress(0);
         };
@@ -540,7 +545,7 @@ export const ImageResizer = () => {
                         </div>
 
                         {/* Action Buttons & Results */}
-                        {resizedImage ? (
+                        {resizedImage && (
                             <div style={{
                                 backgroundColor: 'rgba(16, 185, 129, 0.08)',
                                 padding: '1.75rem',
@@ -571,23 +576,32 @@ export const ImageResizer = () => {
                                     <FaDownload /> Download Resized Image
                                 </a>
                             </div>
-                        ) : isProcessing ? (
-                            <div style={{ width: '100%' }}>
+                        )}
+
+                        {isProcessing && (
+                            <div style={{ width: '100%', marginBottom: '1rem' }}>
                                 <ProgressBar progress={progress} label="Resizing with Stepped Anti-Aliasing..." estimatedSeconds={estimatedTime} />
                             </div>
-                        ) : (
-                            <button
-                                onClick={handleResize}
-                                className="glass-btn-primary"
-                                style={{
-                                    width: '100%',
-                                    padding: '1rem',
-                                    fontSize: '1rem'
-                                }}
-                            >
-                                <FaExpand /> Apply Resize ({width} × {height} px)
-                            </button>
                         )}
+
+                        <button
+                            onClick={handleResize}
+                            disabled={isProcessing}
+                            className="glass-btn-primary"
+                            style={{
+                                width: '100%',
+                                padding: '1rem',
+                                fontSize: '1rem',
+                                opacity: isProcessing ? 0.6 : 1,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '0.5rem'
+                            }}
+                        >
+                            <FaDownload />
+                            {isProcessing ? 'Resizing & Downloading...' : `Resize & Download Image (${width} × ${height} px)`}
+                        </button>
                     </div>
                 )}
             </div>

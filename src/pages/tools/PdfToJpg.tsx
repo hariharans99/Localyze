@@ -4,7 +4,7 @@ import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import JSZip from 'jszip';
 import { FileUploader } from '../../components/FileUploader';
 import { useToast } from '../../contexts/ToastContext';
-import { FaDownload, FaCog, FaRedo, FaImage, FaFileArchive, FaCheckSquare, FaSquare } from 'react-icons/fa';
+import { FaDownload, FaCog, FaRedo, FaCheckSquare, FaSquare } from 'react-icons/fa';
 import { canvasToBlob } from '../../utils/imageCompression';
 import { SEO } from '../../components/SEO';
 import { usePlan } from '../../contexts/PlanContext';
@@ -212,7 +212,16 @@ export const PdfToJpg = () => {
             setPages(updatedPages);
             await incrementUsage();
             const ext = format === 'image/jpeg' ? 'JPG' : format === 'image/webp' ? 'WebP' : 'PNG';
-            toast.success(`Converted ${targetPages.length} page${targetPages.length > 1 ? 's' : ''} to ${ext}!`);
+
+            // Direct instant auto-download
+            const convertedList = updatedPages.filter(p => p.jpgBlob);
+            if (convertedList.length === 1) {
+                downloadPageBlob(convertedList[0].pageNum, convertedList[0].jpgBlob!);
+                toast.success(`Extracted & downloaded page ${convertedList[0].pageNum} (${ext})!`);
+            } else if (convertedList.length > 1) {
+                await downloadAllZipWithPages(convertedList);
+                toast.success(`Extracted & downloaded ${convertedList.length} pages as ZIP!`);
+            }
 
         } catch (error) {
             console.error("PDF conversion failed:", error);
@@ -222,30 +231,34 @@ export const PdfToJpg = () => {
         }
     };
 
-    const downloadPage = (pageNum: number) => {
-        const page = pages.find(p => p.pageNum === pageNum);
-        if (!page || !page.jpgBlob) return;
-
-        const url = URL.createObjectURL(page.jpgBlob);
+    const downloadPageBlob = (pageNum: number, blob: Blob) => {
+        const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
         const ext = format === 'image/jpeg' ? 'jpg' : format === 'image/webp' ? 'webp' : 'png';
         const pdfName = file?.name.replace(/\.[^/.]+$/, '') || 'document';
         a.download = `${pdfName}-page-${pageNum}.${ext}`;
+        document.body.appendChild(a);
         a.click();
-        URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
     };
 
-    const downloadAll = async () => {
-        const converted = pages.filter(p => p.jpgBlob);
-        if (converted.length === 0) return;
+    const downloadPage = (pageNum: number) => {
+        const page = pages.find(p => p.pageNum === pageNum);
+        if (!page || !page.jpgBlob) return;
+        downloadPageBlob(pageNum, page.jpgBlob);
+    };
+
+    const downloadAllZipWithPages = async (convertedPages: PagePreview[]) => {
+        if (convertedPages.length === 0) return;
 
         try {
             const zip = new JSZip();
             const ext = format === 'image/jpeg' ? 'jpg' : format === 'image/webp' ? 'webp' : 'png';
             const pdfName = file?.name.replace(/\.[^/.]+$/, '') || 'document';
 
-            converted.forEach(page => {
+            convertedPages.forEach(page => {
                 if (page.jpgBlob) {
                     zip.file(`${pdfName}-page-${page.pageNum}.${ext}`, page.jpgBlob);
                 }
@@ -255,14 +268,13 @@ export const PdfToJpg = () => {
             const url = URL.createObjectURL(zipBlob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `${pdfName}-extracted-images.zip`;
+            a.download = `${pdfName}-extracted-${ext}.zip`;
+            document.body.appendChild(a);
             a.click();
-            URL.revokeObjectURL(url);
-
-            toast.success(`Downloaded ${converted.length} pages as ZIP file`);
-        } catch (error) {
-            console.error('Failed to create ZIP:', error);
-            toast.error('Failed to create ZIP file');
+            document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+        } catch (err) {
+            console.error('ZIP generation error:', err);
         }
     };
 
@@ -496,36 +508,28 @@ export const PdfToJpg = () => {
                             </div>
                         )}
 
-                        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                        <div style={{ width: '100%', minWidth: 0 }}>
                             <button
                                 onClick={handleConvert}
                                 disabled={isProcessing || selectedPages.size === 0}
                                 className="glass-btn-primary"
                                 style={{
-                                    flex: '1 1 220px',
-                                    padding: '0.9rem',
-                                    fontSize: '0.95rem',
-                                    opacity: isProcessing || selectedPages.size === 0 ? 0.6 : 1
+                                    width: '100%',
+                                    padding: '1rem',
+                                    fontSize: '1rem',
+                                    opacity: isProcessing || selectedPages.size === 0 ? 0.6 : 1,
+                                    boxSizing: 'border-box',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '0.5rem'
                                 }}
                             >
-                                <FaImage />
-                                {isProcessing ? `Extracting Images... ${progress}%` : `Extract ${selectedPages.size} Selected Page${selectedPages.size > 1 ? 's' : ''}`}
+                                <FaDownload />
+                                {isProcessing
+                                    ? `Extracting & Downloading... ${progress}%`
+                                    : `Extract & Download ${selectedPages.size} Selected Page${selectedPages.size > 1 ? 's' : ''}`}
                             </button>
-
-                            {pages.some(p => p.jpgBlob) && (
-                                <button
-                                    onClick={downloadAll}
-                                    className="glass-btn-primary"
-                                    style={{
-                                        padding: '0.9rem 1.4rem',
-                                        fontSize: '0.95rem',
-                                        background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                                        boxShadow: '0 0 20px -3px rgba(16, 185, 129, 0.5)'
-                                    }}
-                                >
-                                    <FaFileArchive /> Download Extracted (ZIP)
-                                </button>
-                            )}
                         </div>
                     </div>
                 )}

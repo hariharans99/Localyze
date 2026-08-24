@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { FileUploader } from '../../components/FileUploader';
 import { useToast } from '../../contexts/ToastContext';
-import { FaDownload, FaCog, FaRedo, FaTrash, FaFileArchive, FaImage, FaMagic } from 'react-icons/fa';
+import { FaDownload, FaCog, FaRedo, FaTrash, FaMagic, FaImage } from 'react-icons/fa';
 import JSZip from 'jszip';
 import { SEO } from '../../components/SEO';
 import { compressImage, type CompressionOptions, type CompressionResult } from '../../utils/imageCompression';
@@ -164,6 +164,33 @@ export const ImageCompressor = () => {
         }
     };
 
+    const triggerZipDownload = async (itemsToZip: ProcessedFile[]) => {
+        const valid = itemsToZip.filter(f => f.result);
+        if (valid.length === 0) return;
+
+        try {
+            const zip = new JSZip();
+            valid.forEach(({ file, result }) => {
+                if (result) {
+                    const ext = format.split('/')[1] || 'jpg';
+                    zip.file(`compressed-${file.name.replace(/\.[^/.]+$/, '')}.${ext}`, result.blob);
+                }
+            });
+
+            const content = await zip.generateAsync({ type: "blob" });
+            const url = URL.createObjectURL(content);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = "compressed-images.zip";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+        } catch (err) {
+            console.error('ZIP generation error:', err);
+        }
+    };
+
     const handleCompressAll = async () => {
         if (!checkCanProcess()) return;
 
@@ -178,40 +205,33 @@ export const ImageCompressor = () => {
 
         setIsProcessing(false);
         await incrementUsage();
-        toast.success(`Compression complete!`);
-    };
 
-    const handleDownloadAll = async () => {
-        const completedFiles = files.filter(f => f.status === 'done' && f.result);
-        if (completedFiles.length === 0) return;
-
-        const zip = new JSZip();
-        completedFiles.forEach(({ file, result }) => {
-            if (result) {
-                const ext = format.split('/')[1];
-                zip.file(`compressed-${file.name.replace(/\.[^/.]+$/, '')}.${ext}`, result.blob);
+        // Direct instant auto-download
+        setFiles(currentFiles => {
+            const completed = currentFiles.filter(f => f.status === 'done' && f.result);
+            if (completed.length === 1) {
+                downloadSingle(completed[0]);
+                toast.success(`Compressed & downloaded ${completed[0].file.name}!`);
+            } else if (completed.length > 1) {
+                triggerZipDownload(completed);
+                toast.success(`Compressed & downloaded ${completed.length} images as ZIP!`);
             }
+            return currentFiles;
         });
-
-        const content = await zip.generateAsync({ type: "blob" });
-        const url = URL.createObjectURL(content);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = "compressed-images.zip";
-        a.click();
-        URL.revokeObjectURL(url);
     };
 
     const downloadSingle = (processedFile: ProcessedFile) => {
         if (!processedFile.result) return;
 
-        const ext = format.split('/')[1];
+        const ext = format.split('/')[1] || 'jpg';
         const url = URL.createObjectURL(processedFile.result.blob);
         const a = document.createElement('a');
         a.href = url;
         a.download = `compressed-${processedFile.file.name.replace(/\.[^/.]+$/, '')}.${ext}`;
+        document.body.appendChild(a);
         a.click();
-        URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
     };
 
     return (
@@ -655,39 +675,30 @@ export const ImageCompressor = () => {
                     </div>
 
                     {/* Primary Action Buttons */}
-                    <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', width: '100%', minWidth: 0 }}>
+                    <div style={{ width: '100%', minWidth: 0 }}>
                         <button
                             onClick={handleCompressAll}
-                            disabled={isProcessing || files.every(f => f.status !== 'pending')}
+                            disabled={isProcessing}
                             className="glass-btn-primary"
                             style={{
-                                flex: '1 1 200px',
-                                padding: '0.95rem',
+                                width: '100%',
+                                padding: '1rem',
                                 fontSize: '1rem',
-                                opacity: (isProcessing || files.every(f => f.status !== 'pending')) ? 0.6 : 1,
-                                boxSizing: 'border-box'
+                                opacity: isProcessing ? 0.6 : 1,
+                                boxSizing: 'border-box',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '0.5rem'
                             }}
                         >
-                            <FaImage />
-                            {isProcessing ? 'Compressing Images...' : `Compress ${files.filter(f => f.status === 'pending').length} Ready Images`}
+                            <FaDownload />
+                            {isProcessing
+                                ? 'Compressing & Downloading...'
+                                : files.length === 1
+                                    ? 'Compress & Download Image'
+                                    : `Compress & Download All (${files.length} Images)`}
                         </button>
-
-                        {files.some(f => f.status === 'done') && (
-                            <button
-                                onClick={handleDownloadAll}
-                                className="glass-btn-primary"
-                                style={{
-                                    flex: '1 1 180px',
-                                    padding: '0.95rem 1.25rem',
-                                    fontSize: '1rem',
-                                    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                                    boxShadow: '0 0 20px -3px rgba(16, 185, 129, 0.5)',
-                                    boxSizing: 'border-box'
-                                }}
-                            >
-                                <FaFileArchive /> Download All (ZIP)
-                            </button>
-                        )}
                     </div>
                 </div>
             )}

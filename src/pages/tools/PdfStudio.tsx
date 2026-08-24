@@ -219,9 +219,19 @@ export const PdfStudio = () => {
 
             const pdfBytes = await masterPdf.save({ useObjectStreams: false, addDefaultPage: false });
             const blob = new Blob([pdfBytes as any], { type: 'application/pdf' });
-            setExportResultUrl(URL.createObjectURL(blob));
+            const url = URL.createObjectURL(blob);
+            setExportResultUrl(url);
             await incrementUsage();
-            toast.success(`Successfully generated Master PDF (${pagesToExport.length} pages)!`);
+
+            // Direct instant auto-download
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `localyze-master-document.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+
+            toast.success(`Exported & downloaded Master PDF (${pagesToExport.length} pages)!`);
         } catch (error) {
             console.error('PDF export error:', error);
             toast.error('Failed to export master PDF');
@@ -273,9 +283,19 @@ export const PdfStudio = () => {
             }
 
             const zipBlob = await zip.generateAsync({ type: 'blob' });
-            setZipResultUrl(URL.createObjectURL(zipBlob));
+            const url = URL.createObjectURL(zipBlob);
+            setZipResultUrl(url);
             await incrementUsage();
-            toast.success(`Created ZIP with ${pagesToExport.length} standalone page PDFs!`);
+
+            // Direct instant auto-download
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `split-pages-archive.zip`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+
+            toast.success(`Exported & downloaded ZIP (${pagesToExport.length} page PDFs)!`);
         } catch (e) {
             console.error('ZIP export error:', e);
             toast.error('Failed to create ZIP package');
