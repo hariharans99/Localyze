@@ -5,10 +5,8 @@ import {
     FaFilePdf, 
     FaExpandArrowsAlt, 
     FaRandom, 
-    FaCut, 
     FaLayerGroup, 
     FaFileImage, 
-    FaMinusCircle,
     FaArrowRight
 } from 'react-icons/fa';
 import { SEO } from '../components/SEO';
@@ -16,14 +14,14 @@ import { SEO } from '../components/SEO';
 export const Home = () => {
     const [selectedCategory, setSelectedCategory] = useState<'All' | 'Image Tools' | 'PDF Tools'>('All');
 
-    // Cleanly Ordered: Image Tools Group followed by PDF Tools Group
+    // Consolidated Core Tools Suite (Redundant Split/Merge/Remove consolidated into All-in-One PDF Studio)
     const tools = [
         // ================= IMAGE TOOLS =================
         {
             id: 'compress',
             name: 'Image Compressor',
             category: 'Image Tools',
-            desc: 'Precision target size matching (e.g. 20KB, 50KB, 100KB) with adaptive bicubic scaling.',
+            desc: 'Precision target size matching (e.g. 20KB, 50KB, 100KB) with adaptive bicubic downsampling.',
             icon: <FaImage />,
             path: '/tools/compress',
             badge: 'High Precision',
@@ -34,10 +32,10 @@ export const Home = () => {
             id: 'resize',
             name: 'Image Resizer',
             category: 'Image Tools',
-            desc: 'Resize images to exact pixel bounds or social media dimensions with anti-aliasing.',
+            desc: 'Resize images to exact pixel dimensions, social media presets, or percentage scaling.',
             icon: <FaExpandArrowsAlt />,
             path: '/tools/resize',
-            badge: 'Anti-Aliased',
+            badge: 'Social Presets',
             color: '#a855f7',
             glowColor: 'rgba(168, 85, 247, 0.4)'
         },
@@ -45,10 +43,10 @@ export const Home = () => {
             id: 'convert',
             name: 'Format Converter',
             category: 'Image Tools',
-            desc: 'Fast batch conversion between PNG, JPG, WebP, AVIF, HEIC, TIFF, BMP, SVG & ICO.',
+            desc: 'Batch convert between PNG, JPG, WebP, AVIF, HEIC, TIFF, BMP, SVG & ICO with ZIP export.',
             icon: <FaRandom />,
             path: '/tools/convert',
-            badge: '9 Formats',
+            badge: '9 Formats + ZIP',
             color: '#10b981',
             glowColor: 'rgba(16, 185, 129, 0.4)'
         },
@@ -56,10 +54,10 @@ export const Home = () => {
             id: 'pdf',
             name: 'Image to PDF',
             category: 'Image Tools',
-            desc: 'Turn photos and scans into multi-page PDF documents with custom margins and fit.',
+            desc: 'Turn photos and document scans into multi-page PDF documents with custom 4-side margins.',
             icon: <FaFilePdf />,
             path: '/tools/pdf',
-            badge: 'Instant Fit',
+            badge: 'Independent Margins',
             color: '#f59e0b',
             glowColor: 'rgba(245, 158, 11, 0.4)'
         },
@@ -69,10 +67,10 @@ export const Home = () => {
             id: 'pdf-studio',
             name: 'All-in-One PDF Studio',
             category: 'PDF Tools',
-            desc: 'Organize, merge, rotate, reorder, and delete pages visually across multiple documents.',
+            desc: 'Merge, split, organize, rotate, and delete pages visually across multiple documents in one workspace.',
             icon: <FaLayerGroup />,
             path: '/tools/pdf-studio',
-            badge: 'Pro All-in-One',
+            badge: 'Merge • Split • Rotate',
             color: '#ff2a44',
             glowColor: 'rgba(255, 42, 68, 0.45)'
         },
@@ -80,7 +78,7 @@ export const Home = () => {
             id: 'compress-pdf',
             name: 'PDF Compressor',
             category: 'PDF Tools',
-            desc: 'Accurate multi-page budget allocation & aspect ratio preservation for government limits.',
+            desc: 'Multi-page budget allocation & aspect ratio preservation for strict government and portal limits.',
             icon: <FaFilePdf />,
             path: '/tools/compress-pdf',
             badge: 'Gov Presets',
@@ -89,47 +87,14 @@ export const Home = () => {
         },
         {
             id: 'pdf-to-jpg',
-            name: 'PDF to Image',
+            name: 'PDF to Image Extractor',
             category: 'PDF Tools',
-            desc: 'Extract all pages to crystal clear JPG, WebP, or PNG with up to 300 DPI scaling.',
+            desc: 'Extract selected pages to crystal-clear JPG, WebP, or PNG with up to 300 DPI scaling and ZIP export.',
             icon: <FaFileImage />,
             path: '/tools/pdf-to-jpg',
             badge: 'Up to 300 DPI',
             color: '#06b6d4',
             glowColor: 'rgba(6, 182, 212, 0.4)'
-        },
-        {
-            id: 'merge-pdf',
-            name: 'Merge PDF',
-            category: 'PDF Tools',
-            desc: 'Combine multiple PDF files into one clean document with instant drag-and-drop ordering.',
-            icon: <FaLayerGroup />,
-            path: '/tools/merge-pdf',
-            badge: 'Drag & Drop',
-            color: '#8b5cf6',
-            glowColor: 'rgba(139, 92, 246, 0.4)'
-        },
-        {
-            id: 'split-pdf',
-            name: 'Split PDF',
-            category: 'PDF Tools',
-            desc: 'Extract specific page ranges or split large documents into individual PDF files.',
-            icon: <FaCut />,
-            path: '/tools/split-pdf',
-            badge: 'Range Select',
-            color: '#ec4899',
-            glowColor: 'rgba(236, 72, 153, 0.4)'
-        },
-        {
-            id: 'remove-pages',
-            name: 'Remove Pages',
-            category: 'PDF Tools',
-            desc: 'Visually select and delete unwanted or duplicate pages from any PDF document.',
-            icon: <FaMinusCircle />,
-            path: '/tools/remove-pages',
-            badge: 'Visual Grid',
-            color: '#f43f5e',
-            glowColor: 'rgba(244, 63, 94, 0.4)'
         }
     ];
 

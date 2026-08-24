@@ -6,16 +6,13 @@ import { NotFound } from './pages/NotFound';
 import { Terms } from './pages/Terms';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
-// Lazy load heavy tool components
+// Lazy load core tool components
 const ImageCompressor = lazy(() => import('./pages/tools/ImageCompressor').then(module => ({ default: module.ImageCompressor })));
 const ImageResizer = lazy(() => import('./pages/tools/ImageResizer').then(module => ({ default: module.ImageResizer })));
 const ImageConverter = lazy(() => import('./pages/tools/ImageConverter').then(module => ({ default: module.ImageConverter })));
 const ImageToPdf = lazy(() => import('./pages/tools/ImageToPdf').then(module => ({ default: module.ImageToPdf })));
 const PdfCompressor = lazy(() => import('./pages/tools/PdfCompressor').then(module => ({ default: module.PdfCompressor })));
-const PdfMerge = lazy(() => import('./pages/tools/PdfMerge').then(module => ({ default: module.PdfMerge })));
-const PdfSplit = lazy(() => import('./pages/tools/PdfSplit').then(module => ({ default: module.PdfSplit })));
 const PdfToJpg = lazy(() => import('./pages/tools/PdfToJpg').then(module => ({ default: module.PdfToJpg })));
-const PdfRemovePages = lazy(() => import('./pages/tools/PdfRemovePages').then(module => ({ default: module.PdfRemovePages })));
 const PdfStudio = lazy(() => import('./pages/tools/PdfStudio').then(module => ({ default: module.PdfStudio })));
 
 // Frosted Glass Glowing Loading Component
@@ -105,24 +102,9 @@ function App() {
                   <PdfCompressor />
                 </Suspense>
               } />
-              <Route path="merge-pdf" element={
-                <Suspense fallback={<LoadingSpinner />}>
-                  <PdfMerge />
-                </Suspense>
-              } />
-              <Route path="split-pdf" element={
-                <Suspense fallback={<LoadingSpinner />}>
-                  <PdfSplit />
-                </Suspense>
-              } />
               <Route path="pdf-to-jpg" element={
                 <Suspense fallback={<LoadingSpinner />}>
                   <PdfToJpg />
-                </Suspense>
-              } />
-              <Route path="remove-pages" element={
-                <Suspense fallback={<LoadingSpinner />}>
-                  <PdfRemovePages />
                 </Suspense>
               } />
               <Route path="pdf-studio" element={
@@ -130,11 +112,11 @@ function App() {
                   <PdfStudio />
                 </Suspense>
               } />
-              <Route path="organize-pdf" element={
-                <Suspense fallback={<LoadingSpinner />}>
-                  <PdfStudio />
-                </Suspense>
-              } />
+              {/* Backward compatibility redirects to unified All-in-One PDF Studio */}
+              <Route path="merge-pdf" element={<Navigate to="/tools/pdf-studio" replace />} />
+              <Route path="split-pdf" element={<Navigate to="/tools/pdf-studio" replace />} />
+              <Route path="remove-pages" element={<Navigate to="/tools/pdf-studio" replace />} />
+              <Route path="organize-pdf" element={<Navigate to="/tools/pdf-studio" replace />} />
             </Route>
           </Route>
           <Route path="terms" element={<Terms />} />
