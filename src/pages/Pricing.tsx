@@ -24,6 +24,7 @@ export const Pricing = () => {
         try {
             await openRazorpayCheckout({
                 plan,
+                userId: user.id,
                 userName: user.user_metadata?.name || user.email?.split('@')[0] || 'Localyze Member',
                 userEmail: user.email || 'user@localyze.app',
                 onSuccess: async (response) => {

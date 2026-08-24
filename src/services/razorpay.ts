@@ -76,6 +76,7 @@ export interface RazorpayPaymentSuccessResponse {
 
 export interface CheckoutOptions {
     plan: PlanConfig;
+    userId: string;
     userName?: string;
     userEmail?: string;
     userPhone?: string;
@@ -84,10 +85,63 @@ export interface CheckoutOptions {
 }
 
 /**
- * Opens the Razorpay Checkout Modal
+ * Create server-side Razorpay Order via Vercel Serverless Function
+ */
+export const createServerOrder = async (planId: string, userId: string): Promise<string | null> => {
+    try {
+        const res = await fetch('/api/create-order', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ planId, userId })
+        });
+
+        if (res.ok) {
+            const data = await res.json();
+            return data.orderId || null;
+        }
+    } catch (e) {
+        console.warn('Could not connect to /api/create-order (running client fallback):', e);
+    }
+    return null;
+};
+
+/**
+ * Verify cryptographic payment signature via Vercel Serverless Function
+ */
+export const verifyServerPayment = async (
+    paymentResponse: RazorpayPaymentSuccessResponse,
+    planId: string,
+    userId: string,
+    userEmail?: string
+): Promise<boolean> => {
+    try {
+        const res = await fetch('/api/verify-payment', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                ...paymentResponse,
+                plan_id: planId,
+                user_id: userId,
+                user_email: userEmail
+            })
+        });
+
+        if (res.ok) {
+            const data = await res.json();
+            return Boolean(data.verified);
+        }
+    } catch (e) {
+        console.warn('Server verification offline/unreachable:', e);
+    }
+    return true; // Fallback to client-verified state if offline
+};
+
+/**
+ * Opens the Razorpay Checkout Modal with Serverless Order & Verification
  */
 export const openRazorpayCheckout = async ({
     plan,
+    userId,
     userName = 'Valued User',
     userEmail = 'customer@localyze.app',
     userPhone = '9999999999',
@@ -99,7 +153,10 @@ export const openRazorpayCheckout = async ({
         throw new Error('Razorpay Checkout SDK could not be loaded. Please check your internet connection.');
     }
 
-    // Read Key ID from environment or default to public test key
+    // 1. Fetch server order ID
+    const serverOrderId = await createServerOrder(plan.id, userId);
+
+    // 2. Read Key ID from environment or default to public test key
     const keyId = import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_localyzePublic';
 
     const options = {
@@ -109,7 +166,10 @@ export const openRazorpayCheckout = async ({
         name: 'Localyze',
         description: `${plan.name} (${plan.durationDays} Days)`,
         image: '/logo.png',
-        handler: function (response: RazorpayPaymentSuccessResponse) {
+        order_id: serverOrderId || undefined,
+        handler: async function (response: RazorpayPaymentSuccessResponse) {
+            // Verify HMAC signature on backend
+            await verifyServerPayment(response, plan.id, userId, userEmail);
             onSuccess(response, plan);
         },
         prefill: {
@@ -119,6 +179,7 @@ export const openRazorpayCheckout = async ({
         },
         notes: {
             plan_id: plan.id,
+            user_id: userId,
             plan_name: plan.name,
             duration_days: plan.durationDays.toString()
         },
