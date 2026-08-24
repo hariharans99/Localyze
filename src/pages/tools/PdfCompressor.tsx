@@ -327,35 +327,39 @@ export const PdfCompressor = () => {
                             marginBottom: '2rem',
                             background: 'rgba(255, 255, 255, 0.03)',
                             border: '1px solid var(--border-subtle)',
-                            padding: '1.5rem',
-                            borderRadius: 'var(--radius-lg)'
+                            padding: 'clamp(0.85rem, 2.5vw, 1.5rem)',
+                            borderRadius: 'var(--radius-lg)',
+                            width: '100%',
+                            maxWidth: '100%',
+                            minWidth: 0,
+                            boxSizing: 'border-box'
                         }}>
-                            <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem' }}>
+                            <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem', fontSize: 'clamp(1rem, 2.5vw, 1.15rem)' }}>
                                 <FaCog /> Compression Configuration
                             </h4>
 
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '100%', minWidth: 0 }}>
                                 {/* Mode Selection */}
-                                <div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                                <div style={{ width: '100%', minWidth: 0 }}>
+                                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', marginBottom: '1rem' }}>
                                         <input
                                             type="checkbox"
                                             id="useTargetSize"
                                             checked={useTargetSize}
                                             onChange={(e) => setUseTargetSize(e.target.checked)}
-                                            style={{ width: '1.2rem', height: '1.2rem', cursor: 'pointer' }}
+                                            style={{ width: '1.2rem', height: '1.2rem', cursor: 'pointer', marginTop: '0.1rem', flexShrink: 0 }}
                                         />
-                                        <label htmlFor="useTargetSize" style={{ cursor: 'pointer', fontWeight: 600 }}>
+                                        <label htmlFor="useTargetSize" style={{ cursor: 'pointer', fontWeight: 600, fontSize: '0.95rem', lineHeight: '1.4' }}>
                                             🎯 Target File Size Mode (Recommended)
                                         </label>
                                     </div>
 
                                     {useTargetSize ? (
-                                        <div style={{ paddingLeft: '1.7rem' }}>
+                                        <div style={{ paddingLeft: 'clamp(0.5rem, 2vw, 1.5rem)', width: '100%', minWidth: 0, boxSizing: 'border-box' }}>
                                             <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.5rem' }}>
                                                 Quick Presets:
                                             </label>
-                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.45rem', marginBottom: '0.75rem', width: '100%', minWidth: 0 }}>
                                                 {presets.map((preset) => (
                                                     <button
                                                         key={preset.label}
@@ -368,11 +372,13 @@ export const PdfCompressor = () => {
                                                             padding: '0.35rem 0.65rem',
                                                             borderRadius: 'var(--radius-full)',
                                                             border: `1px solid ${targetSize === preset.size && unit === preset.unit ? 'var(--color-primary)' : 'var(--border-subtle)'}`,
-                                                            backgroundColor: targetSize === preset.size && unit === preset.unit ? 'rgba(99, 102, 241, 0.15)' : 'var(--bg-surface)',
+                                                            backgroundColor: targetSize === preset.size && unit === preset.unit ? 'rgba(255, 42, 68, 0.15)' : 'var(--bg-surface)',
                                                             color: targetSize === preset.size && unit === preset.unit ? 'var(--color-primary)' : 'var(--text-muted)',
                                                             fontSize: '0.8rem',
                                                             fontWeight: 500,
-                                                            cursor: 'pointer'
+                                                            cursor: 'pointer',
+                                                            whiteSpace: 'nowrap',
+                                                            boxSizing: 'border-box'
                                                         }}
                                                     >
                                                         {preset.label}
@@ -380,42 +386,48 @@ export const PdfCompressor = () => {
                                                 ))}
                                             </div>
 
-                                            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                                            <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', flexWrap: 'wrap', width: '100%', minWidth: 0 }}>
                                                 <input
                                                     type="number"
                                                     min="10"
                                                     value={targetSize}
                                                     onChange={(e) => setTargetSize(parseFloat(e.target.value) || 10)}
+                                                    className="glass-input"
                                                     style={{
                                                         padding: '0.5rem 0.75rem',
-                                                        width: '130px',
+                                                        width: 'min(100%, 140px)',
+                                                        maxWidth: '100%',
+                                                        minWidth: 0,
                                                         borderRadius: 'var(--radius-md)',
                                                         border: '1px solid var(--border-subtle)',
                                                         backgroundColor: 'var(--bg-surface)',
-                                                        fontWeight: 600
+                                                        fontWeight: 600,
+                                                        boxSizing: 'border-box'
                                                     }}
                                                 />
                                                 <select
                                                     value={unit}
                                                     onChange={(e) => setUnit(e.target.value as 'KB' | 'MB')}
+                                                    className="glass-input"
                                                     style={{
                                                         padding: '0.5rem 0.75rem',
                                                         borderRadius: 'var(--radius-md)',
                                                         border: '1px solid var(--border-subtle)',
                                                         backgroundColor: 'var(--bg-surface)',
-                                                        fontWeight: 600
+                                                        fontWeight: 600,
+                                                        boxSizing: 'border-box'
                                                     }}
                                                 >
                                                     <option value="KB">KB</option>
                                                     <option value="MB">MB</option>
                                                 </select>
                                             </div>
-                                            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
+                                            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.5rem', lineHeight: '1.5', wordBreak: 'break-word' }}>
                                                 ✨ Automatically balances DPI resolution and JPEG quantization per page to strictly hit your target size.
                                             </p>
                                         </div>
                                     ) : (
-                                        <div style={{ paddingLeft: '1.7rem', display: 'grid', gap: '1rem' }}>
+                                        <div style={{ paddingLeft: 'clamp(0.5rem, 2vw, 1.5rem)', display: 'grid', gap: '1rem', width: '100%', minWidth: 0, boxSizing: 'border-box' }}>
                                             <div>
                                                 <label style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.9rem' }}>
                                                     <span>Image Quality: {(quality * 100).toFixed(0)}%</span>

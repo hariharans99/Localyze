@@ -21,63 +21,36 @@ interface ProcessedFile {
 
 export const ImageCompressor = () => {
     const toast = useToast();
-
     const [files, setFiles] = useState<ProcessedFile[]>([]);
-    const [isProcessing, setIsProcessing] = useState(false);
-
-    // Compression Settings
-    const [targetSize, setTargetSize] = useState(100);
+    const [targetSize, setTargetSize] = useState<number>(100);
     const [unit, setUnit] = useState<'MB' | 'KB'>('KB');
     const [format, setFormat] = useState<'image/jpeg' | 'image/webp' | 'image/png'>('image/jpeg');
-    const [preserveDimensions, setPreserveDimensions] = useState(false);
+    const [preserveDimensions, setPreserveDimensions] = useState<boolean>(false);
     const [maxWidth, setMaxWidth] = useState<number>(1920);
-    const [compressionMode, setCompressionMode] = useState<'normal' | 'ultra'>('normal');
     const [maxHeight, setMaxHeight] = useState<number>(1080);
+    const [isProcessing, setIsProcessing] = useState(false);
+    const [compressionMode, setCompressionMode] = useState<'normal' | 'ultra'>('normal');
 
+    // Standard preset sizes
     const targetPresets = [
         { label: '20 KB (Gov/Exam)', size: 20, unit: 'KB' as const },
-        { label: '50 KB (Passport/Form)', size: 50, unit: 'KB' as const },
+        { label: '50 KB (Passport/Visa)', size: 50, unit: 'KB' as const },
         { label: '100 KB (Web/Email)', size: 100, unit: 'KB' as const },
         { label: '200 KB', size: 200, unit: 'KB' as const },
         { label: '500 KB', size: 500, unit: 'KB' as const },
         { label: '1 MB', size: 1, unit: 'MB' as const },
-        { label: '2 MB', size: 2, unit: 'MB' as const }
+        { label: '2 MB', size: 2, unit: 'MB' as const },
     ];
 
-    const getFormattedSize = (bytes: number) => {
-        const kb = bytes / 1024;
-        const mb = kb / 1024;
-        return mb >= 1 ? `${mb.toFixed(2)} MB` : `${kb.toFixed(2)} KB`;
-    };
-
-    const handleFileSelect = async (selectedFiles: File | File[]) => {
+    const handleFileSelect = (selectedFiles: File | File[]) => {
         const newFiles = Array.isArray(selectedFiles) ? selectedFiles : [selectedFiles];
-        await processNewFiles(newFiles);
-    };
+        const processedNewFiles: ProcessedFile[] = newFiles.map(file => ({
+            file,
+            preview: URL.createObjectURL(file),
+            status: 'pending'
+        }));
 
-    const processNewFiles = async (newFiles: File[]) => {
-        const processedFiles: ProcessedFile[] = await Promise.all(
-            newFiles.map(async (file) => {
-                const preview = URL.createObjectURL(file);
-                return {
-                    file,
-                    preview,
-                    status: 'pending' as const
-                };
-            })
-        );
-        setFiles(prev => [...prev, ...processedFiles]);
-    };
-
-    const removeFile = (fileName: string) => {
-        setFiles(prev => {
-            const file = prev.find(f => f.file.name === fileName);
-            if (file) {
-                URL.revokeObjectURL(file.preview);
-                if (file.compressedPreview) URL.revokeObjectURL(file.compressedPreview);
-            }
-            return prev.filter(f => f.file.name !== fileName);
-        });
+        setFiles(prev => [...prev, ...processedNewFiles]);
     };
 
     const handleReset = () => {
@@ -86,53 +59,58 @@ export const ImageCompressor = () => {
             if (f.compressedPreview) URL.revokeObjectURL(f.compressedPreview);
         });
         setFiles([]);
-        setIsProcessing(false);
-        setTargetSize(100);
-        setUnit('KB');
-        setFormat('image/jpeg');
-        setPreserveDimensions(false);
-        setMaxWidth(1920);
-        setMaxHeight(1080);
+    };
+
+    const removeFile = (fileName: string) => {
+        setFiles(prev => {
+            const fileToRemove = prev.find(f => f.file.name === fileName);
+            if (fileToRemove) {
+                URL.revokeObjectURL(fileToRemove.preview);
+                if (fileToRemove.compressedPreview) URL.revokeObjectURL(fileToRemove.compressedPreview);
+            }
+            return prev.filter(f => f.file.name !== fileName);
+        });
     };
 
     const resetFileToRecompress = (fileName: string) => {
         setFiles(prev => prev.map(f => {
             if (f.file.name === fileName) {
                 if (f.compressedPreview) URL.revokeObjectURL(f.compressedPreview);
-                return {
-                    ...f,
-                    status: 'pending' as const,
-                    result: undefined,
-                    compressedPreview: undefined,
-                    progress: undefined
-                };
+                return { ...f, status: 'pending', result: undefined, compressedPreview: undefined, progress: undefined };
             }
             return f;
         }));
     };
 
+    const getFormattedSize = (bytes: number): string => {
+        if (bytes >= 1024 * 1024) {
+            return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+        }
+        return `${(bytes / 1024).toFixed(1)} KB`;
+    };
+
     const compressSingleFile = async (processedFile: ProcessedFile) => {
         setFiles(prev => prev.map(f =>
-            f.file.name === processedFile.file.name ? { ...f, status: 'processing' as const } : f
+            f.file.name === processedFile.file.name
+                ? { ...f, status: 'processing' as const, progress: { iteration: 0, currentSize: 0, quality: 0.9 } }
+                : f
         ));
 
         try {
             let result: CompressionResult;
 
             if (compressionMode === 'ultra') {
-                // Ultra mode: High-efficiency WebP/JPEG with max compression & crisp downsampling
-                const ultraOptions: CompressionOptions = {
-                    targetSizeKB: Math.max(10, Math.round(processedFile.file.size / 1024 * 0.1)), // Aim for 90% reduction
-                    format: format === 'image/png' ? 'image/webp' : format,
-                    preserveDimensions: false,
-                    maxWidth: 1280,
-                    maxHeight: 1280,
-                    maxIterations: 14
-                };
-
+                const targetKB = (processedFile.file.size / 1024) * 0.1;
                 result = await compressImage(
                     processedFile.file,
-                    ultraOptions,
+                    {
+                        targetSizeKB: Math.max(1, targetKB),
+                        format: 'image/webp',
+                        preserveDimensions: false,
+                        maxWidth: 1280,
+                        maxHeight: 1280,
+                        maxIterations: 12
+                    },
                     (iteration, currentSize, quality) => {
                         setFiles(prev => prev.map(f =>
                             f.file.name === processedFile.file.name
@@ -142,11 +120,9 @@ export const ImageCompressor = () => {
                     }
                 );
             } else {
-                // Normal mode: High-precision adaptive target size search
-                const targetSizeKB = unit === 'KB' ? targetSize : targetSize * 1024;
-
+                const targetKB = unit === 'MB' ? targetSize * 1024 : targetSize;
                 const compressionOptions: CompressionOptions = {
-                    targetSizeKB,
+                    targetSizeKB: targetKB,
                     format,
                     preserveDimensions,
                     maxWidth: !preserveDimensions && maxWidth > 0 ? maxWidth : undefined,
@@ -167,7 +143,6 @@ export const ImageCompressor = () => {
                 );
             }
 
-            // Create preview of compressed image
             const compressedPreview = URL.createObjectURL(result.blob);
 
             setFiles(prev => prev.map(f =>
@@ -232,12 +207,12 @@ export const ImageCompressor = () => {
     };
 
     return (
-        <div className="container" style={{ maxWidth: '1000px' }}>
+        <div className="container" style={{ maxWidth: '1000px', width: '100%', minWidth: 0, boxSizing: 'border-box' }}>
             <SEO
                 title="Image Compressor - Precise Target Size Control"
                 description="Compress images to exact file sizes (e.g. 50KB, 100KB, 200KB) with adaptive quality search and format choices."
             />
-            <h1 className="text-gradient" style={{ fontSize: '2rem', marginBottom: '2rem', textAlign: 'center' }}>
+            <h1 className="text-gradient" style={{ fontSize: 'clamp(1.75rem, 4vw, 2.25rem)', marginBottom: '1.5rem', textAlign: 'center', wordBreak: 'break-word' }}>
                 Precision Image Compressor
             </h1>
 
@@ -249,18 +224,38 @@ export const ImageCompressor = () => {
                     multiple={true}
                 />
             ) : (
-                <div className="glass-panel" style={{ padding: 'clamp(1.5rem, 4vw, 2.5rem)', borderRadius: 'var(--radius-xl)' }}>
+                <div className="glass-panel" style={{
+                    padding: 'clamp(1rem, 3.5vw, 2.25rem)',
+                    borderRadius: 'var(--radius-xl)',
+                    width: '100%',
+                    maxWidth: '100%',
+                    minWidth: 0,
+                    boxSizing: 'border-box'
+                }}>
                     {/* Header */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
-                        <div>
-                            <h3 style={{ marginBottom: '0.25rem', fontSize: '1.4rem' }}>{files.length} Images Selected</h3>
-                            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Configure precision compression parameters and target file size</p>
+                    <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'flex-start',
+                        marginBottom: '1.75rem',
+                        flexWrap: 'wrap',
+                        gap: '1rem',
+                        width: '100%',
+                        minWidth: 0
+                    }}>
+                        <div style={{ flex: '1 1 200px', minWidth: 0 }}>
+                            <h3 style={{ marginBottom: '0.25rem', fontSize: 'clamp(1.1rem, 3vw, 1.4rem)', wordBreak: 'break-word' }}>
+                                {files.length} Images Selected
+                            </h3>
+                            <p style={{ color: 'var(--text-muted)', fontSize: 'clamp(0.8rem, 2vw, 0.9rem)', lineHeight: '1.5' }}>
+                                Configure precision compression parameters and target file size
+                            </p>
                         </div>
-                        <div style={{ display: 'flex', gap: '1rem' }}>
+                        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
                             <button
                                 onClick={() => document.getElementById('add-more-input')?.click()}
                                 className="glass-btn-secondary"
-                                style={{ padding: '0.45rem 1rem', fontSize: '0.85rem' }}
+                                style={{ padding: '0.45rem 0.9rem', fontSize: '0.85rem', whiteSpace: 'nowrap' }}
                             >
                                 + Add More
                             </button>
@@ -281,12 +276,14 @@ export const ImageCompressor = () => {
                                 style={{
                                     display: 'flex',
                                     alignItems: 'center',
-                                    gap: '0.5rem',
+                                    gap: '0.4rem',
                                     color: 'var(--text-muted)',
                                     fontWeight: 500,
+                                    fontSize: '0.85rem',
                                     background: 'none',
                                     border: 'none',
-                                    cursor: 'pointer'
+                                    cursor: 'pointer',
+                                    padding: '0.45rem 0.6rem'
                                 }}
                             >
                                 <FaRedo /> Reset All
@@ -294,70 +291,96 @@ export const ImageCompressor = () => {
                         </div>
                     </div>
 
-                    {/* Settings */}
+                    {/* Settings Panel */}
                     <div style={{
                         marginBottom: '2rem',
                         background: 'rgba(255, 255, 255, 0.03)',
                         border: '1px solid var(--border-subtle)',
-                        padding: '1.5rem',
-                        borderRadius: 'var(--radius-lg)'
+                        padding: 'clamp(0.85rem, 2.5vw, 1.5rem)',
+                        borderRadius: 'var(--radius-lg)',
+                        width: '100%',
+                        maxWidth: '100%',
+                        minWidth: 0,
+                        boxSizing: 'border-box'
                     }}>
-                        <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem' }}>
+                        <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem', fontSize: 'clamp(1rem, 2.5vw, 1.15rem)' }}>
                             <FaCog /> Compression Settings
                         </h4>
 
-                        <div style={{ display: 'grid', gap: '1.5rem' }}>
-                            {/* Compression Mode */}
-                            <div>
-                                <label style={{ fontWeight: 500, display: 'block', marginBottom: '0.75rem' }}>Compression Mode:</label>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '100%', minWidth: 0 }}>
+                            {/* Compression Mode (2 columns on desktop, 1 column on <= 520px) */}
+                            <div style={{ width: '100%', minWidth: 0 }}>
+                                <label style={{ fontWeight: 500, display: 'block', marginBottom: '0.75rem', fontSize: '0.9rem' }}>
+                                    Compression Mode:
+                                </label>
+                                <div style={{
+                                    display: 'grid',
+                                    gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 250px), 1fr))',
+                                    gap: '0.75rem',
+                                    width: '100%',
+                                    minWidth: 0
+                                }}>
                                     <button
+                                        type="button"
                                         onClick={() => setCompressionMode('normal')}
                                         style={{
-                                            padding: '0.75rem',
+                                            padding: 'clamp(0.75rem, 2vw, 1rem)',
                                             borderRadius: 'var(--radius-md)',
                                             border: `2px solid ${compressionMode === 'normal' ? 'var(--color-primary)' : 'var(--border-subtle)'}`,
-                                            backgroundColor: compressionMode === 'normal' ? 'rgba(99, 102, 241, 0.1)' : 'var(--bg-surface)',
+                                            backgroundColor: compressionMode === 'normal' ? 'rgba(255, 42, 68, 0.12)' : 'var(--bg-surface)',
                                             color: compressionMode === 'normal' ? 'var(--color-primary)' : 'var(--text-main)',
                                             cursor: 'pointer',
-                                            textAlign: 'left'
+                                            textAlign: 'left',
+                                            boxSizing: 'border-box',
+                                            width: '100%',
+                                            minWidth: 0
                                         }}
                                     >
-                                        <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                        <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.95rem' }}>
                                             <FaCog /> Exact Target Size Mode
                                         </div>
-                                        <div style={{ fontSize: '0.75rem', marginTop: '0.25rem', color: 'var(--text-muted)' }}>Hits exact KB/MB size with maximum visual quality</div>
+                                        <div style={{ fontSize: '0.75rem', marginTop: '0.35rem', color: 'var(--text-muted)', lineHeight: '1.4' }}>
+                                            Hits exact KB/MB size with maximum visual quality
+                                        </div>
                                     </button>
                                     <button
+                                        type="button"
                                         onClick={() => {
                                             setCompressionMode('ultra');
                                             setFormat('image/webp');
                                         }}
                                         style={{
-                                            padding: '0.75rem',
+                                            padding: 'clamp(0.75rem, 2vw, 1rem)',
                                             borderRadius: 'var(--radius-md)',
-                                            border: `2px solid ${compressionMode === 'ultra' ? '#ef4444' : 'var(--border-subtle)'}`,
-                                            backgroundColor: compressionMode === 'ultra' ? 'rgba(239, 68, 68, 0.1)' : 'var(--bg-surface)',
-                                            color: compressionMode === 'ultra' ? '#ef4444' : 'var(--text-main)',
+                                            border: `2px solid ${compressionMode === 'ultra' ? 'var(--color-primary)' : 'var(--border-subtle)'}`,
+                                            backgroundColor: compressionMode === 'ultra' ? 'rgba(255, 42, 68, 0.12)' : 'var(--bg-surface)',
+                                            color: compressionMode === 'ultra' ? 'var(--color-primary)' : 'var(--text-main)',
                                             cursor: 'pointer',
-                                            textAlign: 'left'
+                                            textAlign: 'left',
+                                            boxSizing: 'border-box',
+                                            width: '100%',
+                                            minWidth: 0
                                         }}
                                     >
-                                        <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                        <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.95rem' }}>
                                             <FaMagic /> Ultra Maximum Compression
                                         </div>
-                                        <div style={{ fontSize: '0.75rem', marginTop: '0.25rem', color: 'var(--text-muted)' }}>Up to 90-95% reduction with crisp bicubic scaling</div>
+                                        <div style={{ fontSize: '0.75rem', marginTop: '0.35rem', color: 'var(--text-muted)', lineHeight: '1.4' }}>
+                                            Up to 90-95% reduction with crisp bicubic scaling
+                                        </div>
                                     </button>
                                 </div>
                             </div>
 
                             {/* Target Size - Normal mode */}
                             {compressionMode === 'normal' && (
-                                <div>
-                                    <label style={{ fontWeight: 500, display: 'block', marginBottom: '0.5rem' }}>Target File Size:</label>
+                                <div style={{ width: '100%', minWidth: 0 }}>
+                                    <label style={{ fontWeight: 500, display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>
+                                        Target File Size:
+                                    </label>
                                     
-                                    {/* Preset Quick Buttons */}
-                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                                    {/* Preset Quick Buttons that wrap naturally */}
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.45rem', marginBottom: '0.75rem', width: '100%', minWidth: 0 }}>
                                         {targetPresets.map((preset) => (
                                             <button
                                                 key={preset.label}
@@ -370,11 +393,13 @@ export const ImageCompressor = () => {
                                                     padding: '0.35rem 0.65rem',
                                                     borderRadius: 'var(--radius-full)',
                                                     border: `1px solid ${targetSize === preset.size && unit === preset.unit ? 'var(--color-primary)' : 'var(--border-subtle)'}`,
-                                                    backgroundColor: targetSize === preset.size && unit === preset.unit ? 'rgba(99, 102, 241, 0.15)' : 'var(--bg-surface)',
+                                                    backgroundColor: targetSize === preset.size && unit === preset.unit ? 'rgba(255, 42, 68, 0.15)' : 'var(--bg-surface)',
                                                     color: targetSize === preset.size && unit === preset.unit ? 'var(--color-primary)' : 'var(--text-muted)',
                                                     fontSize: '0.8rem',
                                                     fontWeight: 500,
-                                                    cursor: 'pointer'
+                                                    cursor: 'pointer',
+                                                    boxSizing: 'border-box',
+                                                    whiteSpace: 'nowrap'
                                                 }}
                                             >
                                                 {preset.label}
@@ -382,32 +407,38 @@ export const ImageCompressor = () => {
                                         ))}
                                     </div>
 
-                                    <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                                    <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', flexWrap: 'wrap', width: '100%', minWidth: 0 }}>
                                         <input
                                             type="number"
                                             min="1"
                                             value={targetSize}
                                             onChange={(e) => setTargetSize(parseFloat(e.target.value) || 1)}
+                                            className="glass-input"
                                             style={{
                                                 padding: '0.5rem 0.75rem',
-                                                width: '130px',
+                                                width: 'min(100%, 140px)',
+                                                maxWidth: '100%',
+                                                minWidth: 0,
                                                 borderRadius: 'var(--radius-md)',
                                                 border: '1px solid var(--border-subtle)',
                                                 backgroundColor: 'var(--bg-surface)',
                                                 color: 'var(--text-main)',
-                                                fontWeight: 600
+                                                fontWeight: 600,
+                                                boxSizing: 'border-box'
                                             }}
                                         />
                                         <select
                                             value={unit}
                                             onChange={(e) => setUnit(e.target.value as 'MB' | 'KB')}
+                                            className="glass-input"
                                             style={{
                                                 padding: '0.5rem 0.75rem',
                                                 borderRadius: 'var(--radius-md)',
                                                 border: '1px solid var(--border-subtle)',
                                                 backgroundColor: 'var(--bg-surface)',
                                                 color: 'var(--text-main)',
-                                                fontWeight: 600
+                                                fontWeight: 600,
+                                                boxSizing: 'border-box'
                                             }}
                                         >
                                             <option value="KB">KB</option>
@@ -417,10 +448,18 @@ export const ImageCompressor = () => {
                                 </div>
                             )}
 
-                            {/* Format Selection */}
-                            <div>
-                                <label style={{ fontWeight: 500, display: 'block', marginBottom: '0.75rem' }}>Output Format:</label>
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.75rem' }}>
+                            {/* Format Selection (1 column on small screens, multi-col on larger) */}
+                            <div style={{ width: '100%', minWidth: 0 }}>
+                                <label style={{ fontWeight: 500, display: 'block', marginBottom: '0.75rem', fontSize: '0.9rem' }}>
+                                    Output Format:
+                                </label>
+                                <div style={{
+                                    display: 'grid',
+                                    gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))',
+                                    gap: '0.75rem',
+                                    width: '100%',
+                                    minWidth: 0
+                                }}>
                                     {[
                                         { value: 'image/jpeg', label: 'JPEG', desc: 'Universal, best compatibility' },
                                         { value: 'image/webp', label: 'WebP', desc: 'Modern, 25-35% more compact' },
@@ -428,84 +467,81 @@ export const ImageCompressor = () => {
                                     ].map((fmt) => (
                                         <button
                                             key={fmt.value}
+                                            type="button"
                                             onClick={() => setFormat(fmt.value as any)}
                                             style={{
                                                 padding: '0.75rem',
                                                 borderRadius: 'var(--radius-md)',
                                                 border: `2px solid ${format === fmt.value ? 'var(--color-primary)' : 'var(--border-subtle)'}`,
-                                                backgroundColor: format === fmt.value ? 'rgba(99, 102, 241, 0.1)' : 'var(--bg-surface)',
+                                                backgroundColor: format === fmt.value ? 'rgba(255, 42, 68, 0.12)' : 'var(--bg-surface)',
                                                 color: format === fmt.value ? 'var(--color-primary)' : 'var(--text-main)',
                                                 cursor: 'pointer',
-                                                textAlign: 'left'
+                                                textAlign: 'left',
+                                                width: '100%',
+                                                minWidth: 0,
+                                                boxSizing: 'border-box'
                                             }}
                                         >
-                                            <div style={{ fontWeight: 600 }}>{fmt.label}</div>
-                                            <div style={{ fontSize: '0.75rem', marginTop: '0.25rem', color: 'var(--text-muted)' }}>{fmt.desc}</div>
+                                            <div style={{ fontWeight: 600, fontSize: '0.95rem' }}>{fmt.label}</div>
+                                            <div style={{ fontSize: '0.75rem', marginTop: '0.25rem', color: 'var(--text-muted)', lineHeight: '1.4' }}>
+                                                {fmt.desc}
+                                            </div>
                                         </button>
                                     ))}
                                 </div>
                             </div>
 
                             {/* Dimension Options */}
-                            <div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                            <div style={{ width: '100%', minWidth: 0 }}>
+                                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', marginBottom: '0.75rem' }}>
                                     <input
                                         type="checkbox"
                                         id="preserveDimensions"
                                         checked={preserveDimensions}
                                         onChange={(e) => setPreserveDimensions(e.target.checked)}
-                                        style={{ width: '1.2rem', height: '1.2rem', cursor: 'pointer' }}
+                                        style={{ width: '1.2rem', height: '1.2rem', cursor: 'pointer', marginTop: '0.1rem', flexShrink: 0 }}
                                     />
-                                    <label htmlFor="preserveDimensions" style={{ fontSize: '0.9rem', cursor: 'pointer', fontWeight: 500 }}>
+                                    <label htmlFor="preserveDimensions" style={{ fontSize: '0.9rem', cursor: 'pointer', fontWeight: 500, lineHeight: '1.4' }}>
                                         Strictly Preserve Original Resolution
                                     </label>
                                 </div>
-                                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
+                                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.75rem', lineHeight: '1.5', wordBreak: 'break-word' }}>
                                     {preserveDimensions
                                         ? 'Dimensions will never change (quality is compressed up to its technical limit).'
                                         : '✨ Adaptive scaling enabled: If an image resolution is too high to fit in the target size, it will be automatically and crisply scaled down to strictly hit your target size.'}
                                 </p>
                                 {!preserveDimensions && (
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', alignItems: 'center' }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%', minWidth: 0 }}>
+                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', alignItems: 'center', width: '100%', minWidth: 0 }}>
                                             <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginRight: '0.25rem' }}>Max Resolution Cap:</span>
-                                            <button
-                                                type="button"
-                                                onClick={() => { setMaxWidth(3840); setMaxHeight(2160); }}
-                                                className="glass-btn-secondary"
-                                                style={{ padding: '0.25rem 0.55rem', fontSize: '0.75rem' }}
-                                            >
-                                                4K (3840px)
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => { setMaxWidth(1920); setMaxHeight(1080); }}
-                                                className="glass-btn-secondary"
-                                                style={{ padding: '0.25rem 0.55rem', fontSize: '0.75rem' }}
-                                            >
-                                                1080p (1920px)
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => { setMaxWidth(1280); setMaxHeight(720); }}
-                                                className="glass-btn-secondary"
-                                                style={{ padding: '0.25rem 0.55rem', fontSize: '0.75rem' }}
-                                            >
-                                                720p (1280px)
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => { setMaxWidth(800); setMaxHeight(600); }}
-                                                className="glass-btn-secondary"
-                                                style={{ padding: '0.25rem 0.55rem', fontSize: '0.75rem' }}
-                                            >
-                                                Compact (800px)
-                                            </button>
+                                            {[
+                                                { label: '4K (3840px)', w: 3840, h: 2160 },
+                                                { label: '1080p (1920px)', w: 1920, h: 1080 },
+                                                { label: '720p (1280px)', w: 1280, h: 720 },
+                                                { label: 'Compact (800px)', w: 800, h: 600 }
+                                            ].map(r => (
+                                                <button
+                                                    key={r.label}
+                                                    type="button"
+                                                    onClick={() => { setMaxWidth(r.w); setMaxHeight(r.h); }}
+                                                    className="glass-btn-secondary"
+                                                    style={{
+                                                        padding: '0.25rem 0.55rem',
+                                                        fontSize: '0.75rem',
+                                                        whiteSpace: 'nowrap',
+                                                        boxSizing: 'border-box',
+                                                        borderColor: maxWidth === r.w ? 'var(--color-primary)' : 'var(--glass-border)',
+                                                        color: maxWidth === r.w ? 'var(--color-primary)' : 'inherit'
+                                                    }}
+                                                >
+                                                    {r.label}
+                                                </button>
+                                            ))}
                                         </div>
 
-                                        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Max Width:</label>
+                                        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap', width: '100%', minWidth: 0 }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                                <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Max Width:</label>
                                                 <input
                                                     type="number"
                                                     value={maxWidth}
@@ -513,14 +549,15 @@ export const ImageCompressor = () => {
                                                     className="glass-input"
                                                     style={{
                                                         padding: '0.35rem 0.6rem',
-                                                        width: '90px',
-                                                        fontSize: '0.85rem'
+                                                        width: '85px',
+                                                        fontSize: '0.85rem',
+                                                        boxSizing: 'border-box'
                                                     }}
                                                 />
                                                 <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>px</span>
                                             </div>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Max Height:</label>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                                <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Max Height:</label>
                                                 <input
                                                     type="number"
                                                     value={maxHeight}
@@ -528,8 +565,9 @@ export const ImageCompressor = () => {
                                                     className="glass-input"
                                                     style={{
                                                         padding: '0.35rem 0.6rem',
-                                                        width: '90px',
-                                                        fontSize: '0.85rem'
+                                                        width: '85px',
+                                                        fontSize: '0.85rem',
+                                                        boxSizing: 'border-box'
                                                     }}
                                                 />
                                                 <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>px</span>
@@ -541,8 +579,8 @@ export const ImageCompressor = () => {
                         </div>
                     </div>
 
-                    {/* File List with Previews */}
-                    <div style={{ marginBottom: '2rem', maxHeight: '600px', overflowY: 'auto' }}>
+                    {/* File List with Responsive Previews */}
+                    <div style={{ marginBottom: '2rem', maxHeight: '600px', overflowY: 'auto', width: '100%', minWidth: 0 }}>
                         {files.map((processedFile) => (
                             <div
                                 key={processedFile.file.name}
@@ -550,15 +588,21 @@ export const ImageCompressor = () => {
                                 style={{
                                     border: '1px solid var(--glass-border)',
                                     borderRadius: 'var(--radius-lg)',
-                                    padding: '1.25rem',
+                                    padding: 'clamp(0.85rem, 2.5vw, 1.25rem)',
                                     marginBottom: '1rem',
-                                    backgroundColor: 'rgba(255, 255, 255, 0.02)'
+                                    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+                                    width: '100%',
+                                    maxWidth: '100%',
+                                    minWidth: 0,
+                                    boxSizing: 'border-box'
                                 }}
                             >
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-                                    <div style={{ flex: 1 }}>
-                                        <div style={{ fontWeight: 700, fontSize: '1rem', marginBottom: '0.25rem' }}>{processedFile.file.name}</div>
-                                        <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                    <div style={{ flex: '1 1 200px', minWidth: 0 }}>
+                                        <div style={{ fontWeight: 700, fontSize: '0.95rem', marginBottom: '0.25rem', wordBreak: 'break-word' }}>
+                                            {processedFile.file.name}
+                                        </div>
+                                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: '1.4', wordBreak: 'break-word' }}>
                                             Original: {getFormattedSize(processedFile.file.size)}
                                             {processedFile.result && (
                                                 <>
@@ -576,18 +620,24 @@ export const ImageCompressor = () => {
                                     </div>
                                     <button
                                         onClick={() => removeFile(processedFile.file.name)}
-                                        style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', marginLeft: '1rem', padding: '0.5rem' }}
+                                        style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', padding: '0.4rem', flexShrink: 0 }}
                                         title="Remove file"
                                     >
                                         <FaTrash />
                                     </button>
                                 </div>
 
-                                {/* Image Previews */}
-                                <div style={{ display: 'grid', gridTemplateColumns: processedFile.compressedPreview ? '1fr 1fr' : '1fr', gap: '1rem' }}>
+                                {/* Responsive Image Previews Grid */}
+                                <div style={{
+                                    display: 'grid',
+                                    gridTemplateColumns: processedFile.compressedPreview ? 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))' : '1fr',
+                                    gap: '1rem',
+                                    width: '100%',
+                                    minWidth: 0
+                                }}>
                                     {/* Original Preview */}
-                                    <div>
-                                        <div style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.5rem', color: 'var(--text-muted)' }}>
+                                    <div style={{ width: '100%', minWidth: 0 }}>
+                                        <div style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.4rem', color: 'var(--text-muted)' }}>
                                             ORIGINAL
                                         </div>
                                         <img
@@ -595,19 +645,20 @@ export const ImageCompressor = () => {
                                             alt="Original"
                                             style={{
                                                 width: '100%',
-                                                height: '200px',
+                                                height: '180px',
                                                 objectFit: 'contain',
                                                 borderRadius: 'var(--radius-sm)',
                                                 backgroundColor: 'rgba(0, 0, 0, 0.2)',
-                                                border: '1px solid var(--border-subtle)'
+                                                border: '1px solid var(--border-subtle)',
+                                                display: 'block'
                                             }}
                                         />
                                     </div>
 
                                     {/* Compressed Preview */}
                                     {processedFile.compressedPreview && (
-                                        <div>
-                                            <div style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.5rem', color: '#10b981' }}>
+                                        <div style={{ width: '100%', minWidth: 0 }}>
+                                            <div style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.4rem', color: '#10b981' }}>
                                                 COMPRESSED ({processedFile.result ? getFormattedSize(processedFile.result.compressedSize) : ''})
                                             </div>
                                             <img
@@ -615,21 +666,22 @@ export const ImageCompressor = () => {
                                                 alt="Compressed"
                                                 style={{
                                                     width: '100%',
-                                                    height: '200px',
+                                                    height: '180px',
                                                     objectFit: 'contain',
                                                     borderRadius: 'var(--radius-sm)',
                                                     backgroundColor: 'rgba(0, 0, 0, 0.2)',
-                                                    border: '2px solid #10b981'
+                                                    border: '2px solid #10b981',
+                                                    display: 'block'
                                                 }}
                                             />
                                         </div>
                                     )}
                                 </div>
 
-                                {/* Progress */}
+                                {/* Progress Indicator */}
                                 {processedFile.status === 'processing' && processedFile.progress && (
-                                    <div style={{ marginTop: '1rem', padding: '1rem', backgroundColor: 'rgba(0, 210, 255, 0.05)', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(0, 210, 255, 0.2)' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                                    <div style={{ marginTop: '1rem', padding: '0.75rem', backgroundColor: 'rgba(255, 42, 68, 0.08)', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(255, 42, 68, 0.25)', width: '100%', boxSizing: 'border-box' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem', flexWrap: 'wrap', gap: '0.4rem' }}>
                                             <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-primary)' }}>
                                                 🔄 Optimizing quality... Pass {processedFile.progress.iteration}
                                             </span>
@@ -644,11 +696,11 @@ export const ImageCompressor = () => {
                                 )}
 
                                 {/* Status & Actions */}
-                                <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', width: '100%', minWidth: 0 }}>
                                     <div>
                                         {processedFile.status === 'done' && (
                                             <span className="neon-badge neon-badge-success">
-                                                ✓ Compressed Successfully
+                                                ✓ Compressed
                                             </span>
                                         )}
                                         {processedFile.status === 'pending' && (
@@ -662,20 +714,26 @@ export const ImageCompressor = () => {
                                             </span>
                                         )}
                                     </div>
-                                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                                         {processedFile.status === 'done' && (
                                             <>
                                                 <button
                                                     onClick={() => resetFileToRecompress(processedFile.file.name)}
                                                     className="glass-btn-secondary"
-                                                    style={{ padding: '0.45rem 0.9rem', fontSize: '0.85rem' }}
+                                                    style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem', whiteSpace: 'nowrap' }}
                                                 >
                                                     <FaRedo /> Re-compress
                                                 </button>
                                                 <button
                                                     onClick={() => downloadSingle(processedFile)}
                                                     className="glass-btn-primary"
-                                                    style={{ padding: '0.45rem 1.1rem', fontSize: '0.85rem', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', boxShadow: '0 0 15px -3px rgba(16, 185, 129, 0.4)' }}
+                                                    style={{
+                                                        padding: '0.4rem 1rem',
+                                                        fontSize: '0.85rem',
+                                                        background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                                                        boxShadow: '0 0 15px -3px rgba(16, 185, 129, 0.4)',
+                                                        whiteSpace: 'nowrap'
+                                                    }}
                                                 >
                                                     <FaDownload /> Download
                                                 </button>
@@ -688,20 +746,21 @@ export const ImageCompressor = () => {
                     </div>
 
                     {/* Action Buttons */}
-                    <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', width: '100%', minWidth: 0 }}>
                         <button
                             onClick={handleCompressAll}
                             disabled={isProcessing || files.every(f => f.status !== 'pending')}
                             className="glass-btn-primary"
                             style={{
-                                flex: 1,
-                                padding: '1rem',
+                                flex: '1 1 200px',
+                                padding: '0.9rem',
                                 fontSize: '1rem',
-                                opacity: (isProcessing || files.every(f => f.status !== 'pending')) ? 0.6 : 1
+                                opacity: (isProcessing || files.every(f => f.status !== 'pending')) ? 0.6 : 1,
+                                boxSizing: 'border-box'
                             }}
                         >
                             <FaImage />
-                            {isProcessing ? 'Compressing with Precision Search...' : 'Compress All Images'}
+                            {isProcessing ? 'Compressing...' : 'Compress All Images'}
                         </button>
 
                         {files.some(f => f.status === 'done') && (
@@ -709,10 +768,12 @@ export const ImageCompressor = () => {
                                 onClick={handleDownloadAll}
                                 className="glass-btn-primary"
                                 style={{
-                                    padding: '1rem 1.5rem',
+                                    flex: '1 1 180px',
+                                    padding: '0.9rem 1.25rem',
                                     fontSize: '1rem',
                                     background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                                    boxShadow: '0 0 20px -3px rgba(16, 185, 129, 0.5)'
+                                    boxShadow: '0 0 20px -3px rgba(16, 185, 129, 0.5)',
+                                    boxSizing: 'border-box'
                                 }}
                             >
                                 <FaFileArchive /> Download All (ZIP)
@@ -722,10 +783,22 @@ export const ImageCompressor = () => {
                 </div>
             )}
 
-            {/* How it Works */}
-            <div style={{ marginTop: '3rem', backgroundColor: 'var(--bg-surface)', padding: '2rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-subtle)' }}>
-                <h3 style={{ marginBottom: '1rem', color: 'var(--text-main)' }}>Adaptive Compression Technology</h3>
-                <ol style={{ paddingLeft: '1.5rem', color: 'var(--text-muted)', lineHeight: '1.8' }}>
+            {/* How it Works Information Block */}
+            <div style={{
+                marginTop: '3rem',
+                backgroundColor: 'var(--bg-surface)',
+                padding: 'clamp(1rem, 3vw, 2rem)',
+                borderRadius: 'var(--radius-lg)',
+                border: '1px solid var(--border-subtle)',
+                width: '100%',
+                maxWidth: '100%',
+                minWidth: 0,
+                boxSizing: 'border-box'
+            }}>
+                <h3 style={{ marginBottom: '1rem', color: 'var(--text-main)', fontSize: 'clamp(1.1rem, 2.5vw, 1.3rem)', wordBreak: 'break-word' }}>
+                    Adaptive Compression Technology
+                </h3>
+                <ol style={{ paddingLeft: '1.25rem', color: 'var(--text-muted)', lineHeight: '1.8', fontSize: 'clamp(0.85rem, 2vw, 0.95rem)', wordBreak: 'break-word' }}>
                     <li><strong>Exact Size Matching</strong>: Our 2-tier bisection algorithm iteratively tests quantization tables until your target size is reached within &le; 1% margin.</li>
                     <li><strong>Bicubic Anti-Aliasing</strong>: Images downscaled by large ratios pass through stepped downsampling to eliminate moiré and edge artifacts.</li>
                     <li><strong>Adaptive Resolution</strong>: If a high-megapixel image cannot reach extreme targets (e.g., 20KB or 50KB) through quality alone, it adaptively downscales resolution cleanly.</li>

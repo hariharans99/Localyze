@@ -48,6 +48,18 @@ h1, h2, h3, h4, .font-display {
   }
 }
 
+@media (max-width: 480px) {
+  .container {
+    padding: 0 0.75rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .container {
+    padding: 0 0.5rem;
+  }
+}
+
 .flex-center {
   display: flex;
   align-items: center;
