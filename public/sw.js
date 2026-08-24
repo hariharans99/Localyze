@@ -1,7 +1,7 @@
-// Localyze Cache-First Service Worker for Offline Processing
-const CACHE_NAME = 'localyze-v1';
+// Localyze Cache-First Service Worker for Static Assets & Offline Support
+const CACHE_NAME = 'localyze-v2';
 
-self.addEventListener('install', (event) => {
+self.addEventListener('install', () => {
   self.skipWaiting();
 });
 
@@ -19,11 +19,27 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Only cache same-origin GET requests
-  if (event.request.method !== 'GET' || !event.request.url.startsWith(self.location.origin)) {
+  // Never intercept API routes or non-GET requests
+  if (
+    event.request.method !== 'GET' ||
+    !event.request.url.startsWith(self.location.origin) ||
+    event.request.url.includes('/api/')
+  ) {
     return;
   }
 
+  // Navigation requests (HTML pages)
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request).catch(async () => {
+        const cached = await caches.match('/');
+        return cached || new Response('Offline', { status: 503, headers: { 'Content-Type': 'text/plain' } });
+      })
+    );
+    return;
+  }
+
+  // Asset caching (images, scripts, styles)
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       if (cachedResponse) {
@@ -42,10 +58,7 @@ self.addEventListener('fetch', (event) => {
 
         return response;
       }).catch(() => {
-        // Return offline fallback if navigating
-        if (event.request.mode === 'navigate') {
-          return caches.match('/');
-        }
+        return new Response('', { status: 408, statusText: 'Request Timeout' });
       });
     })
   );
