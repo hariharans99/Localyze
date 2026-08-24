@@ -8,10 +8,7 @@ import {
     FaLayerGroup, 
     FaFileImage, 
     FaMinusCircle,
-    FaBolt,
-    FaShieldAlt,
-    FaArrowRight,
-    FaSlidersH
+    FaArrowRight
 } from 'react-icons/fa';
 import { SEO } from '../components/SEO';
 
@@ -130,185 +127,115 @@ export const Home = () => {
     ];
 
     return (
-        <div className="container" style={{ margin: '0.5rem auto 3rem' }}>
+        <div className="container" style={{ margin: '1rem auto 3rem', width: '100%', minWidth: 0, boxSizing: 'border-box' }}>
             <SEO
                 title="Localyze - Free, Private & High-Precision Image & PDF Tools"
                 description="Modern in-browser image compressor, resizer, format converter and PDF toolkit. 100% private with no server uploads."
             />
 
-            {/* Tools Grid */}
-            <div style={{ marginBottom: '2rem', marginTop: '0.5rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
-                    <div>
-                        <h2 style={{ fontSize: '1.75rem', fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-main)' }}>
-                            All Precision Tools
-                        </h2>
-                        <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-                            Select any tool below for instant, zero-latency local processing
-                        </p>
-                    </div>
-                </div>
-
-                <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 340px), 1fr))',
-                    gap: '1.5rem',
-                    alignItems: 'stretch'
-                }}>
-                    {tools.map(tool => (
-                        <Link
-                            to={tool.path}
-                            key={tool.id}
-                            className="glass-card"
-                            style={{
-                                display: 'flex',
-                                flexDirection: 'column',
-                                textDecoration: 'none',
-                                justifyContent: 'space-between',
-                                minHeight: '220px',
-                                border: '1px solid var(--glass-border)'
-                            }}
-                            onMouseEnter={(e) => {
-                                e.currentTarget.style.borderColor = tool.color;
-                                e.currentTarget.style.boxShadow = `0 12px 32px -8px rgba(0,0,0,0.5), 0 0 25px -5px ${tool.glowColor}`;
-                            }}
-                            onMouseLeave={(e) => {
-                                e.currentTarget.style.borderColor = 'var(--glass-border)';
-                                e.currentTarget.style.boxShadow = 'var(--glass-highlight), var(--shadow-md)';
-                            }}
-                        >
-                            <div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
-                                    <div style={{
-                                        width: '54px',
-                                        height: '54px',
-                                        borderRadius: 'var(--radius-md)',
-                                        background: `radial-gradient(circle, ${tool.color}25 0%, ${tool.color}10 100%)`,
-                                        border: `1px solid ${tool.color}40`,
-                                        boxShadow: `0 0 16px -2px ${tool.glowColor}`,
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        fontSize: '1.6rem',
-                                        color: tool.color
-                                    }}>
-                                        {tool.icon}
-                                    </div>
-                                    <span style={{
-                                        fontSize: '0.75rem',
-                                        fontWeight: 600,
-                                        padding: '0.25rem 0.65rem',
-                                        borderRadius: 'var(--radius-full)',
-                                        background: 'rgba(255, 255, 255, 0.05)',
-                                        border: '1px solid var(--border-subtle)',
-                                        color: 'var(--text-dim)'
-                                    }}>
-                                        {tool.badge}
-                                    </span>
-                                </div>
-
-                                <h3 style={{
-                                    fontSize: '1.25rem',
-                                    fontWeight: 700,
-                                    marginBottom: '0.5rem',
-                                    color: 'var(--text-main)',
-                                    letterSpacing: '-0.01em'
-                                }}>
-                                    {tool.name}
-                                </h3>
-
-                                <p style={{
-                                    color: 'var(--text-muted)',
-                                    lineHeight: 1.55,
-                                    fontSize: '0.9rem',
-                                    marginBottom: '1rem'
-                                }}>
-                                    {tool.desc}
-                                </p>
-                            </div>
-
-                            <div style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.4rem',
-                                fontSize: '0.85rem',
-                                fontWeight: 600,
-                                color: tool.color,
-                                marginTop: 'auto'
-                            }}>
-                                Open Tool <FaArrowRight style={{ fontSize: '0.75rem', transition: 'transform 0.2s' }} />
-                            </div>
-                        </Link>
-                    ))}
-                </div>
-            </div>
-
-            {/* Why Choose Localyze - Frosted Glass Feature Cards */}
+            {/* Minimalist Glassmorphic Tools Grid */}
             <div style={{
-                marginTop: '4rem',
-                padding: 'clamp(2rem, 4vw, 3rem)',
-                borderRadius: 'var(--radius-xl)',
-                background: 'var(--glass-bg)',
-                backdropFilter: 'var(--glass-blur)',
-                WebkitBackdropFilter: 'var(--glass-blur)',
-                border: '1px solid var(--glass-border)',
-                boxShadow: 'var(--glass-highlight), var(--shadow-lg)'
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 330px), 1fr))',
+                gap: '1.25rem',
+                alignItems: 'stretch',
+                width: '100%',
+                minWidth: 0
             }}>
-                <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
-                    <h3 style={{ fontSize: '1.8rem', fontWeight: 700, marginBottom: '0.5rem', color: 'var(--text-main)' }}>
-                        Engineered for Privacy & Accuracy
-                    </h3>
-                    <p style={{ color: 'var(--text-muted)' }}>
-                        All heavy computational tasks execute purely inside your browser's WebAssembly & WebGL sandbox
-                    </p>
-                </div>
+                {tools.map(tool => (
+                    <Link
+                        to={tool.path}
+                        key={tool.id}
+                        className="glass-card"
+                        style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            textDecoration: 'none',
+                            justifyContent: 'space-between',
+                            minHeight: '200px',
+                            padding: '1.5rem',
+                            borderRadius: 'var(--radius-xl)',
+                            border: '1px solid var(--glass-border)',
+                            transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+                            width: '100%',
+                            minWidth: 0,
+                            boxSizing: 'border-box'
+                        }}
+                        onMouseEnter={(e) => {
+                            e.currentTarget.style.borderColor = 'rgba(255, 42, 68, 0.5)';
+                            e.currentTarget.style.transform = 'translateY(-4px)';
+                            e.currentTarget.style.boxShadow = `0 12px 32px -8px rgba(0,0,0,0.5), 0 0 25px -5px ${tool.glowColor}`;
+                        }}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.style.borderColor = 'var(--glass-border)';
+                            e.currentTarget.style.transform = 'none';
+                            e.currentTarget.style.boxShadow = 'var(--glass-highlight), var(--shadow-md)';
+                        }}
+                    >
+                        <div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                                <div style={{
+                                    width: '50px',
+                                    height: '50px',
+                                    borderRadius: 'var(--radius-lg)',
+                                    background: `radial-gradient(circle, ${tool.color}25 0%, ${tool.color}10 100%)`,
+                                    border: `1px solid ${tool.color}40`,
+                                    boxShadow: `0 0 16px -2px ${tool.glowColor}`,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontSize: '1.5rem',
+                                    color: tool.color
+                                }}>
+                                    {tool.icon}
+                                </div>
+                                <span style={{
+                                    fontSize: '0.75rem',
+                                    fontWeight: 600,
+                                    padding: '0.25rem 0.65rem',
+                                    borderRadius: 'var(--radius-full)',
+                                    background: 'rgba(255, 255, 255, 0.05)',
+                                    border: '1px solid var(--border-subtle)',
+                                    color: 'var(--text-dim)',
+                                    letterSpacing: '0.02em'
+                                }}>
+                                    {tool.badge}
+                                </span>
+                            </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1.5rem' }}>
-                    <div style={{
-                        padding: '1.5rem',
-                        borderRadius: 'var(--radius-lg)',
-                        background: 'rgba(255, 255, 255, 0.03)',
-                        border: '1px solid var(--border-subtle)'
-                    }}>
-                        <div style={{ color: 'var(--color-primary)', fontSize: '1.75rem', marginBottom: '0.75rem' }}>
-                            <FaShieldAlt />
-                        </div>
-                        <h4 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '0.4rem' }}>Zero Server Uploads</h4>
-                        <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', lineHeight: 1.6 }}>
-                            Your sensitive passports, financial reports, and personal photos never touch any remote server or cloud bucket.
-                        </p>
-                    </div>
+                            <h3 style={{
+                                fontSize: '1.2rem',
+                                fontWeight: 700,
+                                marginBottom: '0.45rem',
+                                color: 'var(--text-main)',
+                                letterSpacing: '-0.01em'
+                            }}>
+                                {tool.name}
+                            </h3>
 
-                    <div style={{
-                        padding: '1.5rem',
-                        borderRadius: 'var(--radius-lg)',
-                        background: 'rgba(255, 255, 255, 0.03)',
-                        border: '1px solid var(--border-subtle)'
-                    }}>
-                        <div style={{ color: 'var(--color-secondary)', fontSize: '1.75rem', marginBottom: '0.75rem' }}>
-                            <FaSlidersH />
+                            <p style={{
+                                color: 'var(--text-muted)',
+                                lineHeight: 1.5,
+                                fontSize: '0.875rem',
+                                marginBottom: '1rem'
+                            }}>
+                                {tool.desc}
+                            </p>
                         </div>
-                        <h4 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '0.4rem' }}>Exact Target Sizing</h4>
-                        <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', lineHeight: 1.6 }}>
-                            2-tier adaptive binary search hits your desired KB/MB constraint with &le;1% margin, ensuring rejection-free government submissions.
-                        </p>
-                    </div>
 
-                    <div style={{
-                        padding: '1.5rem',
-                        borderRadius: 'var(--radius-lg)',
-                        background: 'rgba(255, 255, 255, 0.03)',
-                        border: '1px solid var(--border-subtle)'
-                    }}>
-                        <div style={{ color: 'var(--color-success)', fontSize: '1.75rem', marginBottom: '0.75rem' }}>
-                            <FaBolt />
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.4rem',
+                            fontSize: '0.85rem',
+                            fontWeight: 600,
+                            color: tool.color,
+                            marginTop: 'auto'
+                        }}>
+                            Open Tool <FaArrowRight style={{ fontSize: '0.75rem', transition: 'transform 0.2s' }} />
                         </div>
-                        <h4 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '0.4rem' }}>Instant Native Speed</h4>
-                        <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', lineHeight: 1.6 }}>
-                            No waiting for server uploads or download queues. Local multi-core execution processes gigabytes instantly.
-                        </p>
-                    </div>
-                </div>
+                    </Link>
+                ))}
             </div>
         </div>
     );
