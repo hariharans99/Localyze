@@ -11,8 +11,7 @@ import {
     FaBolt,
     FaShieldAlt,
     FaArrowRight,
-    FaSlidersH,
-    FaCheckCircle
+    FaSlidersH
 } from 'react-icons/fa';
 import { SEO } from '../components/SEO';
 
@@ -131,72 +130,14 @@ export const Home = () => {
     ];
 
     return (
-        <div className="container" style={{ margin: '1rem auto 3rem' }}>
+        <div className="container" style={{ margin: '0.5rem auto 3rem' }}>
             <SEO
                 title="Localyze - Free, Private & High-Precision Image & PDF Tools"
                 description="Modern in-browser image compressor, resizer, format converter and PDF toolkit. 100% private with no server uploads."
             />
 
-            {/* Hero Section */}
-            <div style={{
-                textAlign: 'center',
-                padding: 'clamp(2rem, 5vw, 4rem) 1rem',
-                position: 'relative'
-            }}>
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem' }}>
-                    <span className="neon-badge">
-                        <FaBolt /> Luminous Atmospheric Glassmorphic Engine
-                    </span>
-                    <span className="neon-badge neon-badge-success">
-                        <FaCheckCircle /> 100% Local & Free
-                    </span>
-                </div>
-
-                <h1 style={{
-                    fontSize: 'clamp(2.4rem, 6vw, 4.2rem)',
-                    fontWeight: 800,
-                    lineHeight: 1.1,
-                    marginBottom: '1.25rem',
-                    letterSpacing: '-0.03em',
-                    fontFamily: 'var(--font-display)'
-                }}>
-                    Next-Gen <span className="text-gradient">Image & PDF</span> Suite
-                </h1>
-
-                <p style={{
-                    fontSize: 'clamp(1.05rem, 2.5vw, 1.35rem)',
-                    color: 'var(--text-muted)',
-                    marginBottom: '2.5rem',
-                    lineHeight: 1.6,
-                    maxWidth: '750px',
-                    marginRight: 'auto',
-                    marginLeft: 'auto'
-                }}>
-                    High-precision target compression, crisp anti-aliased resizing, and instant conversions entirely in your browser without ever exposing your files.
-                </p>
-
-                {/* Hero Quick Action Cards */}
-                <div style={{
-                    display: 'flex',
-                    flexWrap: 'wrap',
-                    justifyContent: 'center',
-                    gap: '1rem',
-                    marginBottom: '3rem'
-                }}>
-                    <Link to="/tools/compress" className="glass-btn-primary" style={{ padding: '0.85rem 1.75rem', fontSize: '1rem' }}>
-                        <FaImage /> Image Compressor <FaArrowRight style={{ fontSize: '0.85rem' }} />
-                    </Link>
-                    <Link to="/tools/pdf-studio" className="glass-btn-secondary" style={{ padding: '0.85rem 1.75rem', fontSize: '1rem', borderColor: 'rgba(255, 42, 68, 0.4)', color: 'var(--color-primary)' }}>
-                        <FaLayerGroup /> All-in-One PDF Studio
-                    </Link>
-                    <Link to="/tools/compress-pdf" className="glass-btn-secondary" style={{ padding: '0.85rem 1.75rem', fontSize: '1rem' }}>
-                        <FaFilePdf style={{ color: '#ef4444' }} /> Compress PDF
-                    </Link>
-                </div>
-            </div>
-
             {/* Tools Grid */}
-            <div style={{ marginBottom: '2rem' }}>
+            <div style={{ marginBottom: '2rem', marginTop: '0.5rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
                     <div>
                         <h2 style={{ fontSize: '1.75rem', fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-main)' }}>
