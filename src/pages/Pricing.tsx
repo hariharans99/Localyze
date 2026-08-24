@@ -14,8 +14,8 @@ export const Pricing = () => {
 
     const handleSubscribe = async (plan: PlanConfig) => {
         if (!user) {
-            info('Please sign in or create an account to secure your pass.');
-            openAuthModal('signup');
+            info('Please sign in with Google to secure your pass.');
+            openAuthModal();
             return;
         }
 

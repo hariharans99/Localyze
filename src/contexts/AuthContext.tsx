@@ -7,11 +7,8 @@ interface AuthContextType {
     session: Session | null;
     isLoading: boolean;
     isAuthModalOpen: boolean;
-    authModalTab: 'login' | 'signup';
-    openAuthModal: (tab?: 'login' | 'signup') => void;
+    openAuthModal: () => void;
     closeAuthModal: () => void;
-    signInWithEmail: (email: string, password: string) => Promise<{ error: AuthError | null }>;
-    signUpWithEmail: (email: string, password: string) => Promise<{ error: AuthError | null; user: User | null }>;
     signInWithGoogle: () => Promise<{ error: AuthError | null }>;
     signOut: () => Promise<void>;
 }
@@ -23,7 +20,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [session, setSession] = useState<Session | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
-    const [authModalTab, setAuthModalTab] = useState<'login' | 'signup'>('login');
 
     useEffect(() => {
         if (!isSupabaseConfigured) {
@@ -41,7 +37,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setIsLoading(false);
         });
 
-        // 2. Listen for auth changes
+        // 2. Listen for auth state changes
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
             setSession(session);
             setUser(session?.user ?? null);
@@ -53,68 +49,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         };
     }, []);
 
-    const openAuthModal = (tab: 'login' | 'signup' = 'login') => {
-        setAuthModalTab(tab);
+    const openAuthModal = () => {
         setIsAuthModalOpen(true);
     };
 
     const closeAuthModal = () => {
         setIsAuthModalOpen(false);
-    };
-
-    const signInWithEmail = async (email: string, password: string) => {
-        if (!isSupabaseConfigured) {
-            // Mock local user session if Supabase keys are pending
-            const mockUser = {
-                id: `mock-user-${Date.now()}`,
-                email,
-                app_metadata: {},
-                user_metadata: { name: email.split('@')[0] },
-                aud: 'authenticated',
-                created_at: new Date().toISOString()
-            } as User;
-            setUser(mockUser);
-            setIsAuthModalOpen(false);
-            return { error: null };
-        }
-
-        const result = await supabase.auth.signInWithPassword({
-            email,
-            password
-        });
-
-        if (!result.error) {
-            setIsAuthModalOpen(false);
-        }
-
-        return { error: result.error };
-    };
-
-    const signUpWithEmail = async (email: string, password: string) => {
-        if (!isSupabaseConfigured) {
-            const mockUser = {
-                id: `mock-user-${Date.now()}`,
-                email,
-                app_metadata: {},
-                user_metadata: { name: email.split('@')[0] },
-                aud: 'authenticated',
-                created_at: new Date().toISOString()
-            } as User;
-            setUser(mockUser);
-            setIsAuthModalOpen(false);
-            return { error: null, user: mockUser };
-        }
-
-        const result = await supabase.auth.signUp({
-            email,
-            password
-        });
-
-        if (!result.error && result.data.user) {
-            setIsAuthModalOpen(false);
-        }
-
-        return { error: result.error, user: result.data.user };
     };
 
     const signInWithGoogle = async () => {
@@ -156,11 +96,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             session,
             isLoading,
             isAuthModalOpen,
-            authModalTab,
             openAuthModal,
             closeAuthModal,
-            signInWithEmail,
-            signUpWithEmail,
             signInWithGoogle,
             signOut
         }}>

@@ -1,62 +1,16 @@
 import { useState } from 'react';
-import { FaTimes, FaLock, FaEnvelope, FaShieldAlt, FaUserCheck, FaUserPlus, FaGoogle } from 'react-icons/fa';
+import { FaTimes, FaShieldAlt, FaGoogle } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 
 export const AuthModal = () => {
-    const { isAuthModalOpen, closeAuthModal, authModalTab, openAuthModal, signInWithEmail, signUpWithEmail, signInWithGoogle } = useAuth();
-    const { success, error } = useToast();
+    const { isAuthModalOpen, closeAuthModal, signInWithGoogle } = useAuth();
+    const { error } = useToast();
 
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [authError, setAuthError] = useState<string | null>(null);
 
     if (!isAuthModalOpen) return null;
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setAuthError(null);
-
-        if (!email.trim() || !password.trim()) {
-            setAuthError('Please enter both email and password.');
-            return;
-        }
-
-        if (password.length < 6) {
-            setAuthError('Password must be at least 6 characters long.');
-            return;
-        }
-
-        setIsLoading(true);
-
-        try {
-            if (authModalTab === 'login') {
-                const { error: signInErr } = await signInWithEmail(email, password);
-                if (signInErr) {
-                    setAuthError(signInErr.message);
-                    error(signInErr.message);
-                } else {
-                    success('Signed in successfully!');
-                    closeAuthModal();
-                }
-            } else {
-                const { error: signUpErr } = await signUpWithEmail(email, password);
-                if (signUpErr) {
-                    setAuthError(signUpErr.message);
-                    error(signUpErr.message);
-                } else {
-                    success('Account created successfully! Your pass will now be secured.');
-                    closeAuthModal();
-                }
-            }
-        } catch (err: any) {
-            setAuthError(err.message || 'An unexpected error occurred.');
-            error(err.message || 'Authentication error.');
-        } finally {
-            setIsLoading(false);
-        }
-    };
 
     const handleGoogleSignIn = async () => {
         setAuthError(null);
@@ -92,12 +46,13 @@ export const AuthModal = () => {
                 className="glass-panel"
                 style={{
                     width: '100%',
-                    maxWidth: '420px',
+                    maxWidth: '400px',
                     borderRadius: 'var(--radius-2xl)',
-                    padding: '2rem',
+                    padding: '2.25rem 2rem',
                     boxShadow: '0 20px 50px rgba(0, 0, 0, 0.6), 0 0 30px -10px rgba(255, 42, 68, 0.4)',
                     border: '1px solid var(--glass-border)',
-                    position: 'relative'
+                    position: 'relative',
+                    textAlign: 'center'
                 }}
             >
                 {/* Close Button */}
@@ -121,130 +76,34 @@ export const AuthModal = () => {
                     }}
                     onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-main)'; e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)'; }}
                     onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.backgroundColor = 'transparent'; }}
+                    aria-label="Close modal"
                 >
                     <FaTimes />
                 </button>
 
-                {/* Header */}
-                <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-                    <div style={{
-                        width: '50px',
-                        height: '50px',
-                        borderRadius: 'var(--radius-lg)',
-                        background: 'radial-gradient(circle, rgba(255, 42, 68, 0.25) 0%, rgba(255, 42, 68, 0.05) 100%)',
-                        border: '1px solid rgba(255, 42, 68, 0.4)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: 'var(--color-primary)',
-                        fontSize: '1.35rem',
-                        margin: '0 auto 0.75rem auto'
-                    }}>
-                        <FaShieldAlt />
-                    </div>
-                    <h2 style={{ fontSize: '1.35rem', fontWeight: 700, marginBottom: '0.35rem', color: 'var(--text-main)' }}>
-                        {authModalTab === 'login' ? 'Sign In to Localyze' : 'Create Secure Account'}
-                    </h2>
-                    <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0 }}>
-                        Safely verify and synchronize your passes across all devices.
-                    </p>
-                </div>
-
-                {/* 1-Click Google Sign In */}
-                <button
-                    type="button"
-                    onClick={handleGoogleSignIn}
-                    disabled={isLoading}
-                    style={{
-                        width: '100%',
-                        padding: '0.75rem',
-                        borderRadius: 'var(--radius-md)',
-                        border: '1px solid var(--border-subtle)',
-                        backgroundColor: 'rgba(255, 255, 255, 0.06)',
-                        color: 'var(--text-main)',
-                        fontSize: '0.9rem',
-                        fontWeight: 600,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '0.65rem',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s',
-                        marginBottom: '1.25rem'
-                    }}
-                    onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.12)';
-                        e.currentTarget.style.borderColor = 'var(--glass-border)';
-                    }}
-                    onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.06)';
-                        e.currentTarget.style.borderColor = 'var(--border-subtle)';
-                    }}
-                >
-                    <FaGoogle style={{ color: '#ea4335', fontSize: '1.05rem' }} />
-                    <span>Continue with Google</span>
-                </button>
-
-                {/* Divider */}
+                {/* Header Badge */}
                 <div style={{
+                    width: '56px',
+                    height: '56px',
+                    borderRadius: 'var(--radius-xl)',
+                    background: 'radial-gradient(circle, rgba(255, 42, 68, 0.25) 0%, rgba(255, 42, 68, 0.05) 100%)',
+                    border: '1px solid rgba(255, 42, 68, 0.4)',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '0.75rem',
-                    marginBottom: '1.25rem',
-                    color: 'var(--text-dim)',
-                    fontSize: '0.78rem'
+                    justifyContent: 'center',
+                    color: 'var(--color-primary)',
+                    fontSize: '1.5rem',
+                    margin: '0 auto 1.25rem auto'
                 }}>
-                    <div style={{ flex: 1, height: '1px', backgroundColor: 'var(--border-subtle)' }} />
-                    <span>OR EMAIL</span>
-                    <div style={{ flex: 1, height: '1px', backgroundColor: 'var(--border-subtle)' }} />
+                    <FaShieldAlt />
                 </div>
 
-                {/* Tab Switcher */}
-                <div style={{
-                    display: 'flex',
-                    backgroundColor: 'rgba(255, 255, 255, 0.04)',
-                    borderRadius: 'var(--radius-full)',
-                    padding: '0.25rem',
-                    marginBottom: '1.25rem',
-                    border: '1px solid var(--border-subtle)'
-                }}>
-                    <button
-                        type="button"
-                        onClick={() => { setAuthError(null); openAuthModal('login'); }}
-                        style={{
-                            flex: 1,
-                            padding: '0.45rem',
-                            borderRadius: 'var(--radius-full)',
-                            border: 'none',
-                            backgroundColor: authModalTab === 'login' ? 'var(--color-primary)' : 'transparent',
-                            color: authModalTab === 'login' ? '#ffffff' : 'var(--text-muted)',
-                            fontWeight: 600,
-                            fontSize: '0.82rem',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s'
-                        }}
-                    >
-                        Sign In
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => { setAuthError(null); openAuthModal('signup'); }}
-                        style={{
-                            flex: 1,
-                            padding: '0.45rem',
-                            borderRadius: 'var(--radius-full)',
-                            border: 'none',
-                            backgroundColor: authModalTab === 'signup' ? 'var(--color-primary)' : 'transparent',
-                            color: authModalTab === 'signup' ? '#ffffff' : 'var(--text-muted)',
-                            fontWeight: 600,
-                            fontSize: '0.82rem',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s'
-                        }}
-                    >
-                        Create Account
-                    </button>
-                </div>
+                <h2 style={{ fontSize: '1.4rem', fontWeight: 800, marginBottom: '0.5rem', color: 'var(--text-main)' }}>
+                    Sign in to Localyze
+                </h2>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.75rem', lineHeight: '1.45' }}>
+                    1-Click sign in with your Google account to secure your passes and sync across devices.
+                </p>
 
                 {/* Error Banner */}
                 {authError && (
@@ -255,80 +114,56 @@ export const AuthModal = () => {
                         borderRadius: 'var(--radius-md)',
                         color: '#f87171',
                         fontSize: '0.82rem',
-                        marginBottom: '1rem',
-                        lineHeight: '1.4'
+                        marginBottom: '1.25rem',
+                        lineHeight: '1.4',
+                        textAlign: 'left'
                     }}>
                         {authError}
                     </div>
                 )}
 
-                {/* Form */}
-                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    <div>
-                        <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, marginBottom: '0.35rem', color: 'var(--text-main)' }}>
-                            Email Address
-                        </label>
-                        <div style={{ position: 'relative' }}>
-                            <FaEnvelope style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)', fontSize: '0.85rem' }} />
-                            <input
-                                type="email"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                placeholder="name@example.com"
-                                required
-                                className="glass-input"
-                                style={{ width: '100%', paddingLeft: '2.5rem', boxSizing: 'border-box' }}
-                            />
-                        </div>
-                    </div>
+                {/* 1-Click Google Sign In */}
+                <button
+                    type="button"
+                    onClick={handleGoogleSignIn}
+                    disabled={isLoading}
+                    style={{
+                        width: '100%',
+                        padding: '0.9rem 1.25rem',
+                        borderRadius: 'var(--radius-full)',
+                        border: '1px solid var(--glass-border)',
+                        backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                        color: '#ffffff',
+                        fontSize: '0.95rem',
+                        fontWeight: 600,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.75rem',
+                        cursor: 'pointer',
+                        transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+                        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)',
+                        opacity: isLoading ? 0.7 : 1
+                    }}
+                    onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.15)';
+                        e.currentTarget.style.borderColor = 'var(--color-primary)';
+                        e.currentTarget.style.transform = 'translateY(-2px)';
+                        e.currentTarget.style.boxShadow = '0 8px 25px rgba(255, 42, 68, 0.25)';
+                    }}
+                    onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.08)';
+                        e.currentTarget.style.borderColor = 'var(--glass-border)';
+                        e.currentTarget.style.transform = 'none';
+                        e.currentTarget.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.3)';
+                    }}
+                >
+                    <FaGoogle style={{ color: '#ea4335', fontSize: '1.15rem' }} />
+                    <span>{isLoading ? 'Connecting to Google...' : 'Continue with Google'}</span>
+                </button>
 
-                    <div>
-                        <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, marginBottom: '0.35rem', color: 'var(--text-main)' }}>
-                            Password
-                        </label>
-                        <div style={{ position: 'relative' }}>
-                            <FaLock style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)', fontSize: '0.85rem' }} />
-                            <input
-                                type="password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                placeholder="••••••••"
-                                required
-                                minLength={6}
-                                className="glass-input"
-                                style={{ width: '100%', paddingLeft: '2.5rem', boxSizing: 'border-box' }}
-                            />
-                        </div>
-                    </div>
-
-                    <button
-                        type="submit"
-                        disabled={isLoading}
-                        className="glass-btn-primary"
-                        style={{
-                            width: '100%',
-                            padding: '0.85rem',
-                            fontSize: '0.95rem',
-                            marginTop: '0.25rem',
-                            opacity: isLoading ? 0.7 : 1
-                        }}
-                    >
-                        {isLoading ? (
-                            'Authenticating...'
-                        ) : authModalTab === 'login' ? (
-                            <>
-                                <FaUserCheck /> Sign In
-                            </>
-                        ) : (
-                            <>
-                                <FaUserPlus /> Create Account
-                            </>
-                        )}
-                    </button>
-                </form>
-
-                <div style={{ textAlign: 'center', marginTop: '1.25rem', fontSize: '0.78rem', color: 'var(--text-dim)' }}>
-                    Protected by Supabase Row-Level Security & 256-bit encryption.
+                <div style={{ marginTop: '1.5rem', fontSize: '0.75rem', color: 'var(--text-dim)', lineHeight: '1.4' }}>
+                    🔒 Secured by Supabase Authentication & Row-Level Security. Zero passwords to remember.
                 </div>
             </div>
         </div>

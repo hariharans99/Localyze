@@ -238,7 +238,7 @@ export const Navbar = () => {
                         </div>
                     ) : (
                         <button
-                            onClick={() => openAuthModal('login')}
+                            onClick={() => openAuthModal()}
                             className="nav-action-btn"
                             style={{
                                 display: 'flex',
