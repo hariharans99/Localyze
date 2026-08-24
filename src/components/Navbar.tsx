@@ -1,10 +1,9 @@
-import { Link, useLocation } from 'react-router-dom';
-import { FaSun, FaMoon, FaShieldAlt } from 'react-icons/fa';
+import { Link } from 'react-router-dom';
+import { FaSun, FaMoon } from 'react-icons/fa';
 import { useTheme } from '../contexts/ThemeContext';
 
 export const Navbar = () => {
     const { theme, toggleTheme } = useTheme();
-    const location = useLocation();
 
     return (
         <header style={{
@@ -63,40 +62,6 @@ export const Navbar = () => {
                 </Link>
 
                 <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-                    <Link
-                        to="/"
-                        style={{
-                            padding: '0.5rem 1rem',
-                            borderRadius: 'var(--radius-full)',
-                            fontSize: '0.9rem',
-                            fontWeight: 600,
-                            color: location.pathname === '/' ? 'var(--color-primary)' : 'var(--text-muted)',
-                            backgroundColor: location.pathname === '/' ? 'rgba(255, 42, 68, 0.12)' : 'transparent',
-                            border: `1px solid ${location.pathname === '/' ? 'rgba(255, 42, 68, 0.35)' : 'transparent'}`,
-                            transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.4rem'
-                        }}
-                    >
-                        Tools
-                    </Link>
-
-                    <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.4rem',
-                        padding: '0.35rem 0.75rem',
-                        borderRadius: 'var(--radius-full)',
-                        background: 'rgba(16, 185, 129, 0.1)',
-                        border: '1px solid rgba(16, 185, 129, 0.25)',
-                        fontSize: '0.75rem',
-                        color: '#10b981',
-                        fontWeight: 600
-                    }}>
-                        <FaShieldAlt style={{ fontSize: '0.7rem' }} /> Local Only
-                    </div>
-
                     <button
                         onClick={toggleTheme}
                         style={{
