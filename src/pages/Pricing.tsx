@@ -3,24 +3,32 @@ import { FaCheck, FaBolt, FaCrown, FaRocket, FaShieldAlt, FaQuestionCircle, FaLo
 import { SEO } from '../components/SEO';
 import { PLANS, openRazorpayCheckout, type PlanConfig } from '../services/razorpay';
 import { usePlan } from '../contexts/PlanContext';
+import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 
 export const Pricing = () => {
     const { activePass, isPro, activatePass, getRemainingTimeFormatted } = usePlan();
+    const { user, openAuthModal } = useAuth();
     const { success, error, info } = useToast();
     const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
 
     const handleSubscribe = async (plan: PlanConfig) => {
+        if (!user) {
+            info('Please sign in or create an account to secure your pass.');
+            openAuthModal('signup');
+            return;
+        }
+
         setLoadingPlan(plan.id);
 
         try {
             await openRazorpayCheckout({
                 plan,
-                userName: 'Localyze Member',
-                userEmail: 'user@localyze.app',
-                onSuccess: (response) => {
-                    activatePass(plan, response.razorpay_payment_id);
-                    success(`🎉 Success! Your ${plan.name} has been activated!`);
+                userName: user.user_metadata?.name || user.email?.split('@')[0] || 'Localyze Member',
+                userEmail: user.email || 'user@localyze.app',
+                onSuccess: async (response) => {
+                    await activatePass(plan, response.razorpay_payment_id);
+                    success(`🎉 Success! Your ${plan.name} has been verified and activated!`);
                     setLoadingPlan(null);
                 },
                 onDismiss: () => {

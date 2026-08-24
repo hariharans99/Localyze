@@ -5,7 +5,9 @@ import { Home } from './pages/Home';
 import { NotFound } from './pages/NotFound';
 import { Terms } from './pages/Terms';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { AuthProvider } from './contexts/AuthContext';
 import { PlanProvider } from './contexts/PlanContext';
+import { AuthModal } from './components/AuthModal';
 
 // Lazy load core tool components and pages
 const ImageCompressor = lazy(() => import('./pages/tools/ImageCompressor').then(module => ({ default: module.ImageCompressor })));
@@ -70,67 +72,70 @@ const LoadingSpinner = () => (
 function App() {
   return (
     <BrowserRouter>
-      <PlanProvider>
-        <ErrorBoundary>
-          <Routes>
-            <Route path="/" element={<Layout />}>
-              <Route index element={<Home />} />
-              <Route path="pricing" element={
-                <Suspense fallback={<LoadingSpinner />}>
-                  <Pricing />
-                </Suspense>
-              } />
-              <Route path="login" element={<Navigate to="/" replace />} />
-              <Route path="profile" element={<Navigate to="/" replace />} />
-              <Route path="tools">
-                <Route index element={<Navigate to="/" replace />} />
-                <Route path="compress" element={
+      <AuthProvider>
+        <PlanProvider>
+          <ErrorBoundary>
+            <AuthModal />
+            <Routes>
+              <Route path="/" element={<Layout />}>
+                <Route index element={<Home />} />
+                <Route path="pricing" element={
                   <Suspense fallback={<LoadingSpinner />}>
-                    <ImageCompressor />
+                    <Pricing />
                   </Suspense>
                 } />
-                <Route path="resize" element={
-                  <Suspense fallback={<LoadingSpinner />}>
-                    <ImageResizer />
-                  </Suspense>
-                } />
-                <Route path="convert" element={
-                  <Suspense fallback={<LoadingSpinner />}>
-                    <ImageConverter />
-                  </Suspense>
-                } />
-                <Route path="pdf" element={
-                  <Suspense fallback={<LoadingSpinner />}>
-                    <ImageToPdf />
-                  </Suspense>
-                } />
-                <Route path="compress-pdf" element={
-                  <Suspense fallback={<LoadingSpinner />}>
-                    <PdfCompressor />
-                  </Suspense>
-                } />
-                <Route path="pdf-to-jpg" element={
-                  <Suspense fallback={<LoadingSpinner />}>
-                    <PdfToJpg />
-                  </Suspense>
-                } />
-                <Route path="pdf-studio" element={
-                  <Suspense fallback={<LoadingSpinner />}>
-                    <PdfStudio />
-                  </Suspense>
-                } />
-                {/* Backward compatibility redirects to unified All-in-One PDF Studio */}
-                <Route path="merge-pdf" element={<Navigate to="/tools/pdf-studio" replace />} />
-                <Route path="split-pdf" element={<Navigate to="/tools/pdf-studio" replace />} />
-                <Route path="remove-pages" element={<Navigate to="/tools/pdf-studio" replace />} />
-                <Route path="organize-pdf" element={<Navigate to="/tools/pdf-studio" replace />} />
+                <Route path="login" element={<Navigate to="/pricing" replace />} />
+                <Route path="profile" element={<Navigate to="/pricing" replace />} />
+                <Route path="tools">
+                  <Route index element={<Navigate to="/" replace />} />
+                  <Route path="compress" element={
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <ImageCompressor />
+                    </Suspense>
+                  } />
+                  <Route path="resize" element={
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <ImageResizer />
+                    </Suspense>
+                  } />
+                  <Route path="convert" element={
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <ImageConverter />
+                    </Suspense>
+                  } />
+                  <Route path="pdf" element={
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <ImageToPdf />
+                    </Suspense>
+                  } />
+                  <Route path="compress-pdf" element={
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <PdfCompressor />
+                    </Suspense>
+                  } />
+                  <Route path="pdf-to-jpg" element={
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <PdfToJpg />
+                    </Suspense>
+                  } />
+                  <Route path="pdf-studio" element={
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <PdfStudio />
+                    </Suspense>
+                  } />
+                  {/* Backward compatibility redirects to unified All-in-One PDF Studio */}
+                  <Route path="merge-pdf" element={<Navigate to="/tools/pdf-studio" replace />} />
+                  <Route path="split-pdf" element={<Navigate to="/tools/pdf-studio" replace />} />
+                  <Route path="remove-pages" element={<Navigate to="/tools/pdf-studio" replace />} />
+                  <Route path="organize-pdf" element={<Navigate to="/tools/pdf-studio" replace />} />
+                </Route>
               </Route>
-            </Route>
-            <Route path="terms" element={<Terms />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </ErrorBoundary>
-      </PlanProvider>
+              <Route path="terms" element={<Terms />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </ErrorBoundary>
+        </PlanProvider>
+      </AuthProvider>
     </BrowserRouter >
   );
 }

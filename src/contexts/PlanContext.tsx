@@ -1,5 +1,7 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { type PlanConfig } from '../services/razorpay';
+import { fetchUserActiveSubscription, recordVerifiedSubscription } from '../services/supabase';
+import { useAuth } from './AuthContext';
 
 export interface UserPass {
     planId: 'day' | 'week' | 'month';
@@ -12,7 +14,7 @@ export interface UserPass {
 interface PlanContextType {
     activePass: UserPass | null;
     isPro: boolean;
-    activatePass: (plan: PlanConfig, paymentId: string) => void;
+    activatePass: (plan: PlanConfig, paymentId: string) => Promise<void>;
     clearPass: () => void;
     getRemainingTimeFormatted: () => string | null;
 }
@@ -22,6 +24,7 @@ const PlanContext = createContext<PlanContextType | undefined>(undefined);
 const STORAGE_KEY = 'localyze_user_pass';
 
 export const PlanProvider = ({ children }: { children: ReactNode }) => {
+    const { user } = useAuth();
     const [activePass, setActivePass] = useState<UserPass | null>(() => {
         try {
             const saved = localStorage.getItem(STORAGE_KEY);
@@ -39,6 +42,38 @@ export const PlanProvider = ({ children }: { children: ReactNode }) => {
         return null;
     });
 
+    // Synchronize with Supabase whenever user logs in or switches accounts
+    useEffect(() => {
+        if (!user) return;
+
+        let isMounted = true;
+
+        const syncSubscription = async () => {
+            try {
+                const verified = await fetchUserActiveSubscription(user.id);
+                if (verified && isMounted) {
+                    const pass: UserPass = {
+                        planId: verified.plan_id as any,
+                        planName: verified.plan_name,
+                        activatedAt: new Date(verified.activated_at).getTime(),
+                        expiresAt: new Date(verified.expires_at).getTime(),
+                        paymentId: verified.payment_id
+                    };
+                    setActivePass(pass);
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(pass));
+                }
+            } catch (err) {
+                console.error('Error syncing Supabase subscription:', err);
+            }
+        };
+
+        syncSubscription();
+
+        return () => {
+            isMounted = false;
+        };
+    }, [user]);
+
     useEffect(() => {
         // Check for expiration periodically (every 30 seconds)
         const interval = setInterval(() => {
@@ -51,14 +86,16 @@ export const PlanProvider = ({ children }: { children: ReactNode }) => {
         return () => clearInterval(interval);
     }, [activePass]);
 
-    const activatePass = (plan: PlanConfig, paymentId: string) => {
+    const activatePass = async (plan: PlanConfig, paymentId: string) => {
         const now = Date.now();
         const durationMs = plan.durationDays * 24 * 60 * 60 * 1000;
+        const expiresAt = now + durationMs;
+
         const newPass: UserPass = {
             planId: plan.id,
             planName: plan.name,
             activatedAt: now,
-            expiresAt: now + durationMs,
+            expiresAt,
             paymentId
         };
 
@@ -67,6 +104,15 @@ export const PlanProvider = ({ children }: { children: ReactNode }) => {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(newPass));
         } catch (e) {
             console.error('Failed to save user pass', e);
+        }
+
+        // If user is authenticated, record verified subscription to Supabase database
+        if (user) {
+            try {
+                await recordVerifiedSubscription(user, plan, paymentId);
+            } catch (e) {
+                console.error('Failed to record subscription to Supabase', e);
+            }
         }
     };
 
