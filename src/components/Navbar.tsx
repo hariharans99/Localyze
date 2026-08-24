@@ -7,7 +7,7 @@ import { useAuth } from '../contexts/AuthContext';
 
 export const Navbar = () => {
     const { theme, toggleTheme } = useTheme();
-    const { isPro, activePass, getRemainingTimeFormatted } = usePlan();
+    const { isPro, activePass, getRemainingTimeFormatted, usageCount, freeLimit, isFreeLimitReached } = usePlan();
     const { user, openAuthModal, signOut } = useAuth();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
@@ -96,7 +96,7 @@ export const Navbar = () => {
 
                 {/* Right Action Items */}
                 <div style={{ display: 'flex', gap: 'clamp(0.35rem, 1.5vw, 0.6rem)', alignItems: 'center', flexShrink: 0 }}>
-                    {/* Pricing / VIP Badge */}
+                    {/* Pricing / VIP / Usage Badge */}
                     <Link
                         to="/pricing"
                         className="nav-action-btn"
@@ -116,6 +116,10 @@ export const Navbar = () => {
                                 border: '1px solid var(--color-primary)',
                                 color: '#ffffff',
                                 boxShadow: '0 0 14px -2px rgba(255, 42, 68, 0.45)'
+                            } : isFreeLimitReached ? {
+                                background: 'rgba(239, 68, 68, 0.15)',
+                                border: '1px solid #ef4444',
+                                color: '#fca5a5'
                             } : {
                                 background: 'rgba(255, 255, 255, 0.05)',
                                 border: '1px solid var(--glass-border)',
@@ -127,15 +131,27 @@ export const Navbar = () => {
                             e.currentTarget.style.transform = 'translateY(-1px)';
                         }}
                         onMouseLeave={(e) => {
-                            e.currentTarget.style.borderColor = isPro ? 'var(--color-primary)' : 'var(--glass-border)';
+                            e.currentTarget.style.borderColor = isPro ? 'var(--color-primary)' : isFreeLimitReached ? '#ef4444' : 'var(--glass-border)';
                             e.currentTarget.style.transform = 'none';
                         }}
-                        title={isPro ? `${activePass?.planName} (${getRemainingTimeFormatted()})` : 'View Pricing Plans'}
+                        title={isPro ? `${activePass?.planName} (${getRemainingTimeFormatted()})` : isFreeLimitReached ? 'Free limit reached. Upgrade for unlimited.' : 'Free Trial Active: 1 Free Operation'}
                     >
                         {isPro ? (
                             <>
                                 <FaCrown style={{ color: '#fbbf24', fontSize: '0.85rem' }} />
                                 <span>VIP</span>
+                            </>
+                        ) : isFreeLimitReached ? (
+                            <>
+                                <FaBolt style={{ color: '#ef4444', fontSize: '0.8rem' }} />
+                                <span className="nav-btn-text-full">Limit Reached (₹9)</span>
+                                <span className="nav-btn-text-short">Upgrade</span>
+                            </>
+                        ) : user ? (
+                            <>
+                                <FaBolt style={{ color: 'var(--color-primary)', fontSize: '0.8rem' }} />
+                                <span className="nav-btn-text-full">Free ({usageCount}/{freeLimit})</span>
+                                <span className="nav-btn-text-short">{usageCount}/{freeLimit}</span>
                             </>
                         ) : (
                             <>

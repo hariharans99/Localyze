@@ -27,9 +27,9 @@ export const Terms = () => {
                 </section>
 
                 <section style={{ marginBottom: '2rem' }}>
-                    <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem', color: 'var(--text-main)' }}>3. Unlimited & Free Access</h2>
+                    <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem', color: 'var(--text-main)' }}>3. Free Trial & Affordable Passes</h2>
                     <p style={{ color: 'var(--text-muted)', lineHeight: '1.7' }}>
-                        All tools are free to use with no account creation, login, or subscription required. There are no daily usage limits or artificial paywalls.
+                        Every registered user who signs in with Google receives 1 free high-precision operation across all tools. Unlimited operations and batch processing are available via ultra-affordable prepaid passes (1-Day, 1-Week, and 1-Month) with no automatic recurring renewals.
                     </p>
                 </section>
 

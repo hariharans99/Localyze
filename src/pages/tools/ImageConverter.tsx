@@ -5,6 +5,8 @@ import { useToast } from '../../contexts/ToastContext';
 import { FaDownload, FaRandom, FaFileArchive, FaRedo } from 'react-icons/fa';
 import { ProgressBar } from '../../components/ProgressBar';
 import { SEO } from '../../components/SEO';
+import { usePlan } from '../../contexts/PlanContext';
+import { ToolUsageBanner } from '../../components/ToolUsageBanner';
 
 interface ConvertedFileItem {
     file: File;
@@ -16,6 +18,7 @@ interface ConvertedFileItem {
 
 export const ImageConverter = () => {
     const { error, success } = useToast();
+    const { checkCanProcess, incrementUsage } = usePlan();
     const [files, setFiles] = useState<ConvertedFileItem[]>([]);
     const [format, setFormat] = useState<'image/jpeg' | 'image/png' | 'image/webp' | 'image/avif' | 'image/bmp' | 'image/x-icon'>('image/jpeg');
     const [quality, setQuality] = useState(0.92);
@@ -125,6 +128,7 @@ export const ImageConverter = () => {
 
     const handleConvert = async () => {
         if (files.length === 0) return;
+        if (!checkCanProcess()) return;
 
         setIsProcessing(true);
         setProgress(0);
@@ -181,6 +185,7 @@ export const ImageConverter = () => {
             }
 
             setFiles(updated);
+            await incrementUsage();
             const extLabel = getExtension(format).toUpperCase();
             success(`Converted ${files.length} file${files.length > 1 ? 's' : ''} to ${extLabel}!`);
         } catch (e) {
@@ -261,9 +266,12 @@ export const ImageConverter = () => {
             <h1 className="text-gradient" style={{ fontSize: 'clamp(1.75rem, 4vw, 2.25rem)', marginBottom: '0.5rem', textAlign: 'center', wordBreak: 'break-word' }}>
                 Universal Format Converter
             </h1>
-            <p style={{ textAlign: 'center', color: 'var(--text-muted)', marginBottom: '2rem', fontSize: 'clamp(0.85rem, 2vw, 0.95rem)' }}>
+            <p style={{ textAlign: 'center', color: 'var(--text-muted)', marginBottom: '1.5rem', fontSize: 'clamp(0.85rem, 2vw, 0.95rem)' }}>
                 Batch convert images across PNG, JPG, WebP, AVIF, HEIC, TIFF, BMP, SVG & ICO locally.
             </p>
+
+            <ToolUsageBanner />
+
 
             <div style={{ marginBottom: '2rem' }}>
                 {files.length === 0 ? (

@@ -19,6 +19,8 @@ import {
     FaLayerGroup
 } from 'react-icons/fa';
 import { SEO } from '../../components/SEO';
+import { usePlan } from '../../contexts/PlanContext';
+import { ToolUsageBanner } from '../../components/ToolUsageBanner';
 
 // Set up pdf.js worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
@@ -41,6 +43,7 @@ interface SourceFile {
 
 export const PdfStudio = () => {
     const toast = useToast();
+    const { checkCanProcess, incrementUsage } = usePlan();
     const [sourceFiles, setSourceFiles] = useState<SourceFile[]>([]);
     const [pages, setPages] = useState<PageItem[]>([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -180,6 +183,8 @@ export const PdfStudio = () => {
             return;
         }
 
+        if (!checkCanProcess()) return;
+
         setIsExporting(true);
         setExportResultUrl(null);
         setZipResultUrl(null);
@@ -215,6 +220,7 @@ export const PdfStudio = () => {
             const pdfBytes = await masterPdf.save({ useObjectStreams: false, addDefaultPage: false });
             const blob = new Blob([pdfBytes as any], { type: 'application/pdf' });
             setExportResultUrl(URL.createObjectURL(blob));
+            await incrementUsage();
             toast.success(`Successfully generated Master PDF (${pagesToExport.length} pages)!`);
         } catch (error) {
             console.error('PDF export error:', error);
@@ -231,6 +237,8 @@ export const PdfStudio = () => {
             toast.error('No pages selected to export');
             return;
         }
+
+        if (!checkCanProcess()) return;
 
         setIsExporting(true);
         setZipResultUrl(null);
@@ -266,6 +274,7 @@ export const PdfStudio = () => {
 
             const zipBlob = await zip.generateAsync({ type: 'blob' });
             setZipResultUrl(URL.createObjectURL(zipBlob));
+            await incrementUsage();
             toast.success(`Created ZIP with ${pagesToExport.length} standalone page PDFs!`);
         } catch (e) {
             console.error('ZIP export error:', e);
@@ -285,9 +294,12 @@ export const PdfStudio = () => {
             <h1 className="text-gradient" style={{ fontSize: '2.25rem', marginBottom: '0.5rem', textAlign: 'center' }}>
                 All-in-One PDF Studio
             </h1>
-            <p style={{ textAlign: 'center', color: 'var(--text-muted)', marginBottom: '2.5rem' }}>
+            <p style={{ textAlign: 'center', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
                 Merge, rearrange, rotate, delete, and split multiple PDF documents visually in a single unified workspace.
             </p>
+
+            <ToolUsageBanner />
+
 
             {isLoading ? (
                 <div className="glass-panel" style={{ padding: '3.5rem 2rem', textAlign: 'center', borderRadius: 'var(--radius-xl)' }}>

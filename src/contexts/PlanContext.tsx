@@ -1,7 +1,8 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { type PlanConfig } from '../services/razorpay';
-import { fetchUserActiveSubscription, recordVerifiedSubscription } from '../services/supabase';
+import { fetchUserActiveSubscription, recordVerifiedSubscription, fetchUserUsage, recordUserUsageIncrement } from '../services/supabase';
 import { useAuth } from './AuthContext';
+import { useToast } from './ToastContext';
 
 export interface UserPass {
     planId: 'day' | 'week' | 'month';
@@ -14,6 +15,14 @@ export interface UserPass {
 interface PlanContextType {
     activePass: UserPass | null;
     isPro: boolean;
+    usageCount: number;
+    freeLimit: number;
+    isFreeLimitReached: boolean;
+    isUpgradeModalOpen: boolean;
+    openUpgradeModal: () => void;
+    closeUpgradeModal: () => void;
+    checkCanProcess: () => boolean;
+    incrementUsage: () => Promise<void>;
     activatePass: (plan: PlanConfig, paymentId: string) => Promise<void>;
     clearPass: () => void;
     getRemainingTimeFormatted: () => string | null;
@@ -21,19 +30,22 @@ interface PlanContextType {
 
 const PlanContext = createContext<PlanContextType | undefined>(undefined);
 
-const STORAGE_KEY = 'localyze_user_pass';
+const PASS_STORAGE_KEY = 'localyze_user_pass';
+const FREE_LIMIT = 1;
 
 export const PlanProvider = ({ children }: { children: ReactNode }) => {
-    const { user } = useAuth();
+    const { user, openAuthModal } = useAuth();
+    const { info } = useToast();
+
     const [activePass, setActivePass] = useState<UserPass | null>(() => {
         try {
-            const saved = localStorage.getItem(STORAGE_KEY);
+            const saved = localStorage.getItem(PASS_STORAGE_KEY);
             if (saved) {
                 const parsed: UserPass = JSON.parse(saved);
                 if (parsed.expiresAt > Date.now()) {
                     return parsed;
                 } else {
-                    localStorage.removeItem(STORAGE_KEY);
+                    localStorage.removeItem(PASS_STORAGE_KEY);
                 }
             }
         } catch (e) {
@@ -42,14 +54,34 @@ export const PlanProvider = ({ children }: { children: ReactNode }) => {
         return null;
     });
 
+    const [usageCount, setUsageCount] = useState<number>(() => {
+        try {
+            if (user?.id) {
+                const savedUsage = localStorage.getItem(`localyze_user_usage_${user.id}`);
+                if (savedUsage !== null) {
+                    return parseInt(savedUsage, 10) || 0;
+                }
+            }
+        } catch (e) {
+            console.error('Failed to read initial usage from storage', e);
+        }
+        return 0;
+    });
+
+    const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState<boolean>(false);
+
     // Synchronize with Supabase whenever user logs in or switches accounts
     useEffect(() => {
-        if (!user) return;
+        if (!user) {
+            setUsageCount(0);
+            return;
+        }
 
         let isMounted = true;
 
-        const syncSubscription = async () => {
+        const syncUserData = async () => {
             try {
+                // 1. Sync Subscription
                 const verified = await fetchUserActiveSubscription(user.id);
                 if (verified && isMounted) {
                     const pass: UserPass = {
@@ -60,14 +92,25 @@ export const PlanProvider = ({ children }: { children: ReactNode }) => {
                         paymentId: verified.payment_id
                     };
                     setActivePass(pass);
-                    localStorage.setItem(STORAGE_KEY, JSON.stringify(pass));
+                    localStorage.setItem(PASS_STORAGE_KEY, JSON.stringify(pass));
+                }
+
+                // 2. Sync Usage Count from Supabase
+                const dbUsage = await fetchUserUsage(user.id);
+                if (isMounted) {
+                    // Take the highest count between local storage and DB
+                    const localUsageRaw = localStorage.getItem(`localyze_user_usage_${user.id}`);
+                    const localUsage = localUsageRaw ? parseInt(localUsageRaw, 10) : 0;
+                    const finalUsage = Math.max(dbUsage, localUsage);
+                    setUsageCount(finalUsage);
+                    localStorage.setItem(`localyze_user_usage_${user.id}`, finalUsage.toString());
                 }
             } catch (err) {
-                console.error('Error syncing Supabase subscription:', err);
+                console.error('Error syncing Supabase user data:', err);
             }
         };
 
-        syncSubscription();
+        syncUserData();
 
         return () => {
             isMounted = false;
@@ -79,12 +122,60 @@ export const PlanProvider = ({ children }: { children: ReactNode }) => {
         const interval = setInterval(() => {
             if (activePass && activePass.expiresAt <= Date.now()) {
                 setActivePass(null);
-                localStorage.removeItem(STORAGE_KEY);
+                localStorage.removeItem(PASS_STORAGE_KEY);
             }
         }, 30000);
 
         return () => clearInterval(interval);
     }, [activePass]);
+
+    const isPro = activePass !== null && activePass.expiresAt > Date.now();
+    const isFreeLimitReached = !isPro && usageCount >= FREE_LIMIT;
+
+    const openUpgradeModal = () => setIsUpgradeModalOpen(true);
+    const closeUpgradeModal = () => setIsUpgradeModalOpen(false);
+
+    /**
+     * Centralized guard: Checks if user is authenticated and has available operations.
+     * Returns true if allowed to proceed, false if blocked (and triggers appropriate modal).
+     */
+    const checkCanProcess = (): boolean => {
+        if (!user) {
+            info('Please sign in with Google to use Localyze tools (1 Free operation included).');
+            openAuthModal();
+            return false;
+        }
+
+        if (!isPro && usageCount >= FREE_LIMIT) {
+            info('Free trial operation used (1/1). Upgrade to an ultra-affordable pass for unlimited processing.');
+            openUpgradeModal();
+            return false;
+        }
+
+        return true;
+    };
+
+    /**
+     * Increment usage count for the authenticated user
+     */
+    const incrementUsage = async () => {
+        if (!user) return;
+
+        const nextCount = usageCount + 1;
+        setUsageCount(nextCount);
+        try {
+            localStorage.setItem(`localyze_user_usage_${user.id}`, nextCount.toString());
+        } catch (e) {
+            console.error('Failed to store usage locally', e);
+        }
+
+        // Persist increment in Supabase
+        try {
+            await recordUserUsageIncrement(user.id, user.email || undefined);
+        } catch (err) {
+            console.error('Failed to persist usage in Supabase', err);
+        }
+    };
 
     const activatePass = async (plan: PlanConfig, paymentId: string) => {
         const now = Date.now();
@@ -102,8 +193,10 @@ export const PlanProvider = ({ children }: { children: ReactNode }) => {
         };
 
         setActivePass(newPass);
+        setIsUpgradeModalOpen(false); // Auto-close upgrade modal on successful purchase
+
         try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(newPass));
+            localStorage.setItem(PASS_STORAGE_KEY, JSON.stringify(newPass));
         } catch (e) {
             console.error('Failed to save user pass', e);
         }
@@ -120,7 +213,7 @@ export const PlanProvider = ({ children }: { children: ReactNode }) => {
 
     const clearPass = () => {
         setActivePass(null);
-        localStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem(PASS_STORAGE_KEY);
     };
 
     const getRemainingTimeFormatted = (): string | null => {
@@ -138,12 +231,18 @@ export const PlanProvider = ({ children }: { children: ReactNode }) => {
         return `${diffHours}h ${diffMins}m remaining`;
     };
 
-    const isPro = activePass !== null && activePass.expiresAt > Date.now();
-
     return (
         <PlanContext.Provider value={{
             activePass,
             isPro,
+            usageCount,
+            freeLimit: FREE_LIMIT,
+            isFreeLimitReached,
+            isUpgradeModalOpen,
+            openUpgradeModal,
+            closeUpgradeModal,
+            checkCanProcess,
+            incrementUsage,
             activatePass,
             clearPass,
             getRemainingTimeFormatted
@@ -160,3 +259,4 @@ export const usePlan = () => {
     }
     return context;
 };
+

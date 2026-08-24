@@ -136,7 +136,8 @@ export const Pricing = () => {
                 alignItems: 'stretch',
                 marginBottom: '4rem',
                 width: '100%',
-                minWidth: 0
+                minWidth: 0,
+                paddingTop: '1.25rem'
             }}>
                 {/* Free Plan */}
                 <div className="glass-card" style={{
@@ -154,22 +155,26 @@ export const Pricing = () => {
                             STARTER
                         </div>
                         <h3 style={{ fontSize: '1.4rem', fontWeight: 700, marginBottom: '0.75rem' }}>
-                            Free Forever
+                            Free Starter
                         </h3>
-                        <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.25rem', marginBottom: '1rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.25rem', marginBottom: '0.35rem' }}>
                             <span style={{ fontSize: '2.25rem', fontWeight: 800 }}>₹0</span>
                             <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>/ forever</span>
                         </div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginBottom: '1rem', fontWeight: 500 }}>
+                            1 Free Operation Total
+                        </div>
                         <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.5rem', lineHeight: '1.5' }}>
-                            Standard in-browser compression and tool access with no fees.
+                            Try Localyze with 1 free operation across any tool upon Google sign-in.
                         </p>
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', marginBottom: '1.5rem' }}>
                             {[
+                                '1 Free Operation Total (Any 1 Tool)',
+                                'Single File Operations',
+                                'Google Sign-in Required',
                                 '100% In-Browser Privacy',
-                                'All 7 Core Tools Included',
-                                'Standard Processing Speed',
-                                'Single File Operations'
+                                'Standard Processing Speed'
                             ].map((feat, idx) => (
                                 <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.82rem', color: 'var(--text-dim)' }}>
                                     <FaCheck style={{ color: '#10b981', flexShrink: 0 }} />
@@ -202,7 +207,7 @@ export const Pricing = () => {
                     <div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                             <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-primary)' }}>
-                                URGENT TASKS
+                                24-HOUR PASS
                             </span>
                             <span style={{ fontSize: '0.7rem', padding: '0.2rem 0.5rem', borderRadius: 'var(--radius-full)', background: 'rgba(255, 42, 68, 0.15)', color: 'var(--color-primary)', fontWeight: 600 }}>
                                 24 Hours
@@ -211,21 +216,25 @@ export const Pricing = () => {
                         <h3 style={{ fontSize: '1.4rem', fontWeight: 700, marginBottom: '0.75rem' }}>
                             1-Day Pass
                         </h3>
-                        <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.25rem', marginBottom: '1rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.25rem', marginBottom: '0.35rem' }}>
                             <span style={{ fontSize: '2.25rem', fontWeight: 800, color: 'var(--color-primary)' }}>₹9</span>
                             <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>/ 1 day</span>
                         </div>
+                        <div style={{ fontSize: '0.75rem', color: '#f87171', marginBottom: '1rem', fontWeight: 600 }}>
+                            • Strictly No Refund
+                        </div>
                         <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.5rem', lineHeight: '1.5' }}>
-                            Ideal for one-time government exams, passport submissions, and urgent conversions.
+                            Full unlimited access to all 7 tools for 24 hours. Ideal for one-time tasks and urgent exams.
                         </p>
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', marginBottom: '1.5rem' }}>
                             {[
-                                'Everything in Free',
+                                'Full 24-Hour Unlimited Access',
+                                'All 7 Tools Completely Unlocked',
                                 'Bulk Multi-File Batch Mode',
                                 '1-Click ZIP Archive Downloads',
-                                '24-Hour Instant Access',
-                                'Zero Ads Guarantee'
+                                'High-Res 300 DPI PDF Extractor',
+                                'Maximum Priority & Zero Ads'
                             ].map((feat, idx) => (
                                 <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.82rem', color: 'var(--text-dim)' }}>
                                     <FaCheck style={{ color: 'var(--color-primary)', flexShrink: 0 }} />
@@ -260,25 +269,26 @@ export const Pricing = () => {
                 }}>
                     <div style={{
                         position: 'absolute',
-                        top: '-12px',
+                        top: '-13px',
                         left: '50%',
                         transform: 'translateX(-50%)',
                         background: 'linear-gradient(135deg, #ff2a44 0%, #ff6b6b 100%)',
                         color: '#ffffff',
                         fontSize: '0.72rem',
                         fontWeight: 700,
-                        padding: '0.2rem 0.75rem',
+                        padding: '0.25rem 0.85rem',
                         borderRadius: 'var(--radius-full)',
-                        boxShadow: '0 0 12px rgba(255, 42, 68, 0.6)',
-                        whiteSpace: 'nowrap'
+                        boxShadow: '0 4px 15px rgba(255, 42, 68, 0.7)',
+                        whiteSpace: 'nowrap',
+                        zIndex: 10
                     }}>
                         ⭐ MOST POPULAR
                     </div>
 
                     <div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', marginTop: '0.25rem' }}>
                             <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-primary)' }}>
-                                SPRINT
+                                7-DAY SPRINT
                             </span>
                             <span style={{ fontSize: '0.7rem', padding: '0.2rem 0.5rem', borderRadius: 'var(--radius-full)', background: 'rgba(255, 42, 68, 0.15)', color: 'var(--color-primary)', fontWeight: 600 }}>
                                 7 Days
@@ -287,21 +297,25 @@ export const Pricing = () => {
                         <h3 style={{ fontSize: '1.4rem', fontWeight: 700, marginBottom: '0.75rem' }}>
                             1-Week Pass
                         </h3>
-                        <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.25rem', marginBottom: '1rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.25rem', marginBottom: '0.35rem' }}>
                             <span style={{ fontSize: '2.25rem', fontWeight: 800, color: 'var(--color-primary)' }}>₹29</span>
                             <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>/ 7 days</span>
                         </div>
+                        <div style={{ fontSize: '0.75rem', color: '#f87171', marginBottom: '1rem', fontWeight: 600 }}>
+                            • Strictly No Refund
+                        </div>
                         <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.5rem', lineHeight: '1.5' }}>
-                            Perfect for project sprints, visa filing paperwork, and multi-day workloads.
+                            Full unlimited access to all 7 tools for 7 full days. Perfect for project sprints and visa paperwork.
                         </p>
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', marginBottom: '1.5rem' }}>
                             {[
-                                'Everything in 1-Day Pass',
                                 'Full 7-Day Unlimited Access',
-                                'Unlimited Batch Processing',
+                                'All 7 Tools Completely Unlocked',
+                                'Bulk Multi-File Batch Mode',
+                                '1-Click ZIP Archive Downloads',
                                 'High-Res 300 DPI PDF Extractor',
-                                'Priority Feature Updates'
+                                'Maximum Priority & Zero Ads'
                             ].map((feat, idx) => (
                                 <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.82rem', color: 'var(--text-dim)' }}>
                                     <FaCheck style={{ color: 'var(--color-primary)', flexShrink: 0 }} />
@@ -341,7 +355,7 @@ export const Pricing = () => {
                     <div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                             <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#f59e0b' }}>
-                                PRO VALUE
+                                30-DAY PRO
                             </span>
                             <span style={{ fontSize: '0.7rem', padding: '0.2rem 0.5rem', borderRadius: 'var(--radius-full)', background: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b', fontWeight: 600 }}>
                                 30 Days
@@ -350,21 +364,25 @@ export const Pricing = () => {
                         <h3 style={{ fontSize: '1.4rem', fontWeight: 700, marginBottom: '0.75rem' }}>
                             1-Month Pro
                         </h3>
-                        <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.25rem', marginBottom: '1rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.25rem', marginBottom: '0.35rem' }}>
                             <span style={{ fontSize: '2.25rem', fontWeight: 800, color: '#f59e0b' }}>₹69</span>
                             <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>/ month</span>
                         </div>
+                        <div style={{ fontSize: '0.75rem', color: '#f87171', marginBottom: '1rem', fontWeight: 600 }}>
+                            • Strictly No Refund
+                        </div>
                         <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.5rem', lineHeight: '1.5' }}>
-                            Complete 30-day professional pass for power users, students, and businesses.
+                            Full unlimited access to all 7 tools for 30 full days. Maximum value for power users and students.
                         </p>
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', marginBottom: '1.5rem' }}>
                             {[
-                                'Everything in 1-Week Pass',
-                                'Full 30 Days Pro Access',
-                                'Maximum Processing Priority',
-                                'VIP Supporter Badge',
-                                'Early Access to Future Tools'
+                                'Full 30-Day Unlimited Access',
+                                'All 7 Tools Completely Unlocked',
+                                'Bulk Multi-File Batch Mode',
+                                '1-Click ZIP Archive Downloads',
+                                'High-Res 300 DPI PDF Extractor',
+                                'VIP Supporter Priority & Zero Ads'
                             ].map((feat, idx) => (
                                 <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.82rem', color: 'var(--text-dim)' }}>
                                     <FaCheck style={{ color: '#f59e0b', flexShrink: 0 }} />
@@ -405,7 +423,7 @@ export const Pricing = () => {
                     <FaLock style={{ color: '#10b981' }} /> Razorpay Bank-Grade Encryption
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <FaShieldAlt style={{ color: 'var(--color-primary)' }} /> 100% Prepaid • No Auto-Debits
+                    <FaShieldAlt style={{ color: 'var(--color-primary)' }} /> 100% Prepaid • Strictly No Refunds • No Auto-Debits
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <FaBolt style={{ color: '#f59e0b' }} /> Instant Pass Activation
@@ -426,7 +444,13 @@ export const Pricing = () => {
                 </h3>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 400px), 1fr))', gap: '1.5rem' }}>
-                    {faqs.map((faq, idx) => (
+                    {[
+                        ...faqs,
+                        {
+                            q: 'Can I get a refund for my pass?',
+                            a: 'No. All pass purchases are strictly non-refundable. Because passes unlock instant and unlimited computational power across all tools immediately upon payment, all transactions are final.'
+                        }
+                    ].map((faq, idx) => (
                         <div key={idx}>
                             <h4 style={{ fontSize: '0.95rem', fontWeight: 600, marginBottom: '0.4rem', color: 'var(--text-main)' }}>
                                 {faq.q}
@@ -441,3 +465,4 @@ export const Pricing = () => {
         </div>
     );
 };
+

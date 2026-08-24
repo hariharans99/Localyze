@@ -8,6 +8,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { AuthProvider } from './contexts/AuthContext';
 import { PlanProvider } from './contexts/PlanContext';
 import { AuthModal } from './components/AuthModal';
+import { UpgradeModal } from './components/UpgradeModal';
 
 // Lazy load core tool components and pages
 const ImageCompressor = lazy(() => import('./pages/tools/ImageCompressor').then(module => ({ default: module.ImageCompressor })));
@@ -76,6 +77,7 @@ function App() {
         <PlanProvider>
           <ErrorBoundary>
             <AuthModal />
+            <UpgradeModal />
             <Routes>
               <Route path="/" element={<Layout />}>
                 <Route index element={<Home />} />

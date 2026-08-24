@@ -15,6 +15,8 @@ import {
 } from 'react-icons/fa';
 import { ProgressBar } from '../../components/ProgressBar';
 import { SEO } from '../../components/SEO';
+import { usePlan } from '../../contexts/PlanContext';
+import { ToolUsageBanner } from '../../components/ToolUsageBanner';
 
 interface MarginSettings {
     top: number;
@@ -34,6 +36,7 @@ interface PdfSettings {
 
 export const ImageToPdf = () => {
     const { error, success } = useToast();
+    const { checkCanProcess, incrementUsage } = usePlan();
     const [files, setFiles] = useState<File[]>([]);
     const [imagePreviews, setImagePreviews] = useState<string[]>([]);
     const [rotations, setRotations] = useState<number[]>([]); // rotation degrees (0, 90, 180, 270)
@@ -158,6 +161,7 @@ export const ImageToPdf = () => {
 
     const handleConvert = async () => {
         if (files.length === 0) return;
+        if (!checkCanProcess()) return;
         setIsProcessing(true);
         setEstimatedTime(undefined);
         startTimeRef.current = Date.now();
@@ -232,24 +236,18 @@ export const ImageToPdf = () => {
                         'FAST'
                     );
                 } else {
-                    // Fixed Page format (A4, Letter, A3, A5)
-                    let pageOrientation: 'p' | 'l' = 'p';
-                    if (settings.orientation === 'auto') {
-                        pageOrientation = imgWidthMm > imgHeightMm ? 'l' : 'p';
-                    } else {
-                        pageOrientation = settings.orientation;
-                    }
-
-                    doc.addPage(settings.pageSize, pageOrientation);
+                    // Standard formats (A4, Letter, etc.)
+                    const isLandscape = settings.orientation === 'l' || (settings.orientation === 'auto' && imgWidthMm > imgHeightMm);
+                    doc.addPage(settings.pageSize, isLandscape ? 'l' : 'p');
 
                     const pageWidth = doc.internal.pageSize.getWidth();
                     const pageHeight = doc.internal.pageSize.getHeight();
 
                     const { top, bottom, left, right } = settings.margins;
-                    const printableWidth = Math.max(10, pageWidth - left - right);
-                    const printableHeight = Math.max(10, pageHeight - top - bottom);
+                    const printableWidth = Math.max(1, pageWidth - left - right);
+                    const printableHeight = Math.max(1, pageHeight - top - bottom);
 
-                    const imgRatio = canvasWidth / canvasHeight;
+                    const imgRatio = imgWidthMm / imgHeightMm;
                     const printableRatio = printableWidth / printableHeight;
 
                     let finalWidth = printableWidth;
@@ -316,6 +314,7 @@ export const ImageToPdf = () => {
 
             const pdfBlob = doc.output('blob');
             setPdfUrl(URL.createObjectURL(pdfBlob));
+            await incrementUsage();
             success('PDF generated successfully with custom margins!');
         } catch (e) {
             console.error('PDF creation error:', e);
@@ -335,9 +334,11 @@ export const ImageToPdf = () => {
             <h1 className="text-gradient" style={{ fontSize: '2.25rem', marginBottom: '0.5rem', textAlign: 'center' }}>
                 Image to PDF Studio
             </h1>
-            <p style={{ textAlign: 'center', color: 'var(--text-muted)', marginBottom: '2.5rem' }}>
+            <p style={{ textAlign: 'center', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
                 Combine and customize images into high-resolution PDF documents with full margin and rotation control.
             </p>
+
+            <ToolUsageBanner />
 
             {files.length === 0 ? (
                 <FileUploader

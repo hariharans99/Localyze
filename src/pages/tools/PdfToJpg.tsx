@@ -7,6 +7,8 @@ import { useToast } from '../../contexts/ToastContext';
 import { FaDownload, FaCog, FaRedo, FaImage, FaFileArchive, FaCheckSquare, FaSquare } from 'react-icons/fa';
 import { canvasToBlob } from '../../utils/imageCompression';
 import { SEO } from '../../components/SEO';
+import { usePlan } from '../../contexts/PlanContext';
+import { ToolUsageBanner } from '../../components/ToolUsageBanner';
 
 // Worker setup
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
@@ -20,6 +22,7 @@ interface PagePreview {
 
 export const PdfToJpg = () => {
     const toast = useToast();
+    const { checkCanProcess, incrementUsage } = usePlan();
     const [file, setFile] = useState<File | null>(null);
     const [pages, setPages] = useState<PagePreview[]>([]);
     const [selectedPages, setSelectedPages] = useState<Set<number>>(new Set());
@@ -149,6 +152,8 @@ export const PdfToJpg = () => {
 
     const handleConvert = async () => {
         if (!file || pages.length === 0) return;
+        if (!checkCanProcess()) return;
+
         const targetPages = pages.filter(p => selectedPages.has(p.pageNum));
         if (targetPages.length === 0) {
             toast.error("Please select at least one page to convert");
@@ -205,6 +210,7 @@ export const PdfToJpg = () => {
             }
 
             setPages(updatedPages);
+            await incrementUsage();
             const ext = format === 'image/jpeg' ? 'JPG' : format === 'image/webp' ? 'WebP' : 'PNG';
             toast.success(`Converted ${targetPages.length} page${targetPages.length > 1 ? 's' : ''} to ${ext}!`);
 
@@ -269,9 +275,12 @@ export const PdfToJpg = () => {
             <h1 className="text-gradient" style={{ fontSize: 'clamp(1.75rem, 4vw, 2.25rem)', marginBottom: '0.5rem', textAlign: 'center', wordBreak: 'break-word' }}>
                 PDF to Image Converter
             </h1>
-            <p style={{ textAlign: 'center', color: 'var(--text-muted)', marginBottom: '2rem', fontSize: 'clamp(0.85rem, 2vw, 0.95rem)' }}>
+            <p style={{ textAlign: 'center', color: 'var(--text-muted)', marginBottom: '1.5rem', fontSize: 'clamp(0.85rem, 2vw, 0.95rem)' }}>
                 Convert document pages to high-resolution standalone images with selectable DPI and format options.
             </p>
+
+            <ToolUsageBanner />
+
 
             <div style={{ marginBottom: '2rem' }}>
                 {!file ? (

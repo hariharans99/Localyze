@@ -5,6 +5,8 @@ import { FileUploader } from '../../components/FileUploader';
 import { useToast } from '../../contexts/ToastContext';
 import { FaDownload, FaCog, FaRedo, FaFilePdf } from 'react-icons/fa';
 import { SEO } from '../../components/SEO';
+import { usePlan } from '../../contexts/PlanContext';
+import { ToolUsageBanner } from '../../components/ToolUsageBanner';
 
 import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
@@ -13,6 +15,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
 
 export const PdfCompressor = () => {
     const toast = useToast();
+    const { checkCanProcess, incrementUsage } = usePlan();
     const [file, setFile] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [pageCount, setPageCount] = useState<number>(1);
@@ -177,6 +180,7 @@ export const PdfCompressor = () => {
 
     const handleCompress = async () => {
         if (!file) return;
+        if (!checkCanProcess()) return;
 
         setIsProcessing(true);
         setProgress(5);
@@ -263,6 +267,7 @@ export const PdfCompressor = () => {
 
             const outputBlob = newPdf.output('blob');
             setCompressedPdf(outputBlob);
+            await incrementUsage();
 
             const resultKB = outputBlob.size / 1024;
             const formattedResult = resultKB >= 1024 ? `${(resultKB / 1024).toFixed(2)} MB` : `${resultKB.toFixed(0)} KB`;
@@ -285,9 +290,12 @@ export const PdfCompressor = () => {
             <h1 className="text-gradient" style={{ fontSize: 'clamp(1.75rem, 4vw, 2.25rem)', marginBottom: '0.5rem', textAlign: 'center', wordBreak: 'break-word' }}>
                 Precision PDF Compressor
             </h1>
-            <p style={{ textAlign: 'center', color: 'var(--text-muted)', marginBottom: '2rem', fontSize: 'clamp(0.85rem, 2vw, 0.95rem)' }}>
+            <p style={{ textAlign: 'center', color: 'var(--text-muted)', marginBottom: '1.5rem', fontSize: 'clamp(0.85rem, 2vw, 0.95rem)' }}>
                 Target specific file sizes for government portals, job applications, and email limits locally.
             </p>
+
+            <ToolUsageBanner />
+
 
             <div style={{ marginBottom: '2rem' }}>
                 {!file ? (

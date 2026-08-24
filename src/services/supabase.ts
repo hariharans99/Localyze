@@ -117,3 +117,74 @@ export const recordVerifiedSubscription = async (
         return record;
     }
 };
+
+/**
+ * Fetch the usage count for a user from Supabase user_usage table
+ */
+export const fetchUserUsage = async (userId: string): Promise<number> => {
+    if (!isSupabaseConfigured || !userId) return 0;
+
+    try {
+        const { data, error } = await supabase
+            .from('user_usage')
+            .select('usage_count')
+            .eq('user_id', userId)
+            .maybeSingle();
+
+        if (error) {
+            console.warn('Supabase usage query error:', error.message);
+            return 0;
+        }
+
+        return data?.usage_count || 0;
+    } catch (err) {
+        console.error('Failed to fetch user usage from Supabase:', err);
+        return 0;
+    }
+};
+
+/**
+ * Increment the usage count for a user in Supabase
+ */
+export const recordUserUsageIncrement = async (userId: string, userEmail?: string): Promise<number> => {
+    if (!userId) return 1;
+
+    if (!isSupabaseConfigured) {
+        return 1;
+    }
+
+    try {
+        // Try calling atomic RPC function first
+        const { data, error } = await supabase.rpc('increment_user_usage', {
+            p_user_id: userId,
+            p_user_email: userEmail || null
+        });
+
+        if (!error && typeof data === 'number') {
+            return data;
+        }
+
+        // Fallback: direct upsert if RPC is unavailable
+        const currentCount = await fetchUserUsage(userId);
+        const newCount = currentCount + 1;
+
+        const { error: upsertError } = await supabase
+            .from('user_usage')
+            .upsert({
+                user_id: userId,
+                user_email: userEmail || null,
+                usage_count: newCount,
+                last_used_at: new Date().toISOString()
+            });
+
+        if (upsertError) {
+            console.error('Failed to update user usage in Supabase:', upsertError.message);
+        }
+
+        return newCount;
+    } catch (err) {
+        console.error('Error incrementing user usage in Supabase:', err);
+        return 1;
+    }
+};
+

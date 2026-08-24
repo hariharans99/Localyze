@@ -12,9 +12,12 @@ import {
 } from 'react-icons/fa';
 import { ProgressBar } from '../../components/ProgressBar';
 import { SEO } from '../../components/SEO';
+import { usePlan } from '../../contexts/PlanContext';
+import { ToolUsageBanner } from '../../components/ToolUsageBanner';
 
 export const ImageResizer = () => {
     const toast = useToast();
+    const { checkCanProcess, incrementUsage } = usePlan();
     const [file, setFile] = useState<File | null>(null);
     const [originalPreview, setOriginalPreview] = useState<string | null>(null);
     const [resizedImage, setResizedImage] = useState<string | null>(null);
@@ -109,6 +112,7 @@ export const ImageResizer = () => {
 
     const handleResize = async () => {
         if (!file) return;
+        if (!checkCanProcess()) return;
 
         setIsProcessing(true);
         setProgress(20);
@@ -159,6 +163,7 @@ export const ImageResizer = () => {
             transformCanvas.height = 0;
 
             setResizedImage(dataUrl);
+            await incrementUsage();
             toast.success('Image resized with high quality anti-aliasing!');
             setIsProcessing(false);
             setProgress(0);
@@ -178,14 +183,16 @@ export const ImageResizer = () => {
         <div className="container" style={{ maxWidth: '850px', width: '100%', minWidth: 0, boxSizing: 'border-box' }}>
             <SEO
                 title="Precision Image Resizer - Dimensions, Percentage & Aspect Ratios"
-                description="Resize images accurately with aspect ratio presets, pixel or percentage scaling, 90° rotation, and anti-aliased stepped downsampling."
+                description="Resize pixel dimensions, crop aspect ratios, or scale percentages with stepped bicubic anti-aliasing."
             />
             <h1 className="text-gradient" style={{ fontSize: 'clamp(1.75rem, 4vw, 2.25rem)', marginBottom: '0.5rem', textAlign: 'center', wordBreak: 'break-word' }}>
                 Precision Image Resizer
             </h1>
-            <p style={{ textAlign: 'center', color: 'var(--text-muted)', marginBottom: '2rem', fontSize: 'clamp(0.85rem, 2vw, 0.95rem)' }}>
-                Resize, crop-align, flip, and transform images locally with zero quality loss.
+            <p style={{ textAlign: 'center', color: 'var(--text-muted)', marginBottom: '1.5rem', fontSize: 'clamp(0.85rem, 2vw, 0.95rem)' }}>
+                Scale by exact pixels, percentage, or aspect presets with smooth anti-aliased resampling.
             </p>
+
+            <ToolUsageBanner />
 
             <div style={{ marginBottom: '2rem' }}>
                 {!file ? (

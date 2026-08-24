@@ -5,6 +5,8 @@ import { FaDownload, FaCog, FaRedo, FaTrash, FaFileArchive, FaImage, FaMagic } f
 import JSZip from 'jszip';
 import { SEO } from '../../components/SEO';
 import { compressImage, type CompressionOptions, type CompressionResult } from '../../utils/imageCompression';
+import { usePlan } from '../../contexts/PlanContext';
+import { ToolUsageBanner } from '../../components/ToolUsageBanner';
 
 interface ProcessedFile {
     file: File;
@@ -21,6 +23,7 @@ interface ProcessedFile {
 
 export const ImageCompressor = () => {
     const toast = useToast();
+    const { checkCanProcess, incrementUsage } = usePlan();
     const [files, setFiles] = useState<ProcessedFile[]>([]);
     const [targetSize, setTargetSize] = useState<number>(100);
     const [unit, setUnit] = useState<'MB' | 'KB'>('KB');
@@ -162,7 +165,11 @@ export const ImageCompressor = () => {
     };
 
     const handleCompressAll = async () => {
+        if (!checkCanProcess()) return;
+
         const pendingFiles = files.filter(f => f.status === 'pending');
+        if (pendingFiles.length === 0) return;
+
         setIsProcessing(true);
 
         for (const file of pendingFiles) {
@@ -170,6 +177,7 @@ export const ImageCompressor = () => {
         }
 
         setIsProcessing(false);
+        await incrementUsage();
         toast.success(`Compression complete!`);
     };
 
@@ -215,9 +223,12 @@ export const ImageCompressor = () => {
             <h1 className="text-gradient" style={{ fontSize: 'clamp(1.75rem, 4vw, 2.25rem)', marginBottom: '0.5rem', textAlign: 'center', wordBreak: 'break-word' }}>
                 Precision Image Compressor
             </h1>
-            <p style={{ textAlign: 'center', color: 'var(--text-muted)', marginBottom: '2rem', fontSize: 'clamp(0.85rem, 2vw, 0.95rem)' }}>
+            <p style={{ textAlign: 'center', color: 'var(--text-muted)', marginBottom: '1.5rem', fontSize: 'clamp(0.85rem, 2vw, 0.95rem)' }}>
                 Target exact file size budgets with adaptive stepped bicubic scaling and multi-tier binary search.
             </p>
+
+            <ToolUsageBanner />
+
 
             {files.length === 0 ? (
                 <FileUploader

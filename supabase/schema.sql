@@ -44,11 +44,67 @@ on public.user_subscriptions for update
 to authenticated
 using (auth.uid() = user_id);
 
--- 7. Fix Security Definer (if any legacy trigger existed)
-do $$
+-- 7. Create the user_usage table (to track free tier operations)
+create table if not exists public.user_usage (
+    user_id uuid references auth.users(id) on delete cascade primary key,
+    user_email text,
+    usage_count integer default 0 not null,
+    last_used_at timestamptz default now() not null,
+    created_at timestamptz default now() not null
+);
+
+-- 8. Create index on user_usage
+create index if not exists idx_user_usage_user_id on public.user_usage(user_id);
+
+-- 9. Enable RLS on user_usage
+alter table public.user_usage enable row level security;
+
+-- 10. Policies for user_usage
+drop policy if exists "Users can view own usage" on public.user_usage;
+create policy "Users can view own usage"
+on public.user_usage for select
+to authenticated
+using (auth.uid() = user_id);
+
+drop policy if exists "Users can insert own usage" on public.user_usage;
+create policy "Users can insert own usage"
+on public.user_usage for insert
+to authenticated
+with check (auth.uid() = user_id);
+
+drop policy if exists "Users can update own usage" on public.user_usage;
+create policy "Users can update own usage"
+on public.user_usage for update
+to authenticated
+using (auth.uid() = user_id);
+
+-- 11. Stored procedure for atomic usage increments (Secure Invoker with Search Path & RLS)
+create or replace function public.increment_user_usage(p_user_id uuid, p_user_email text default null)
+returns integer
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+declare
+    v_count integer;
 begin
-    if exists (select 1 from pg_proc where proname = 'rls_auto_enable') then
-        execute 'revoke execute on function public.rls_auto_enable() from public, anon, authenticated;';
-        execute 'alter function public.rls_auto_enable() security invoker;';
+    if auth.uid() is null or auth.uid() != p_user_id then
+        raise exception 'Unauthorized';
     end if;
-end $$;
+
+    insert into public.user_usage (user_id, user_email, usage_count, last_used_at)
+    values (p_user_id, p_user_email, 1, now())
+    on conflict (user_id)
+    do update set
+        usage_count = public.user_usage.usage_count + 1,
+        last_used_at = now(),
+        user_email = coalesce(excluded.user_email, public.user_usage.user_email)
+    returning usage_count into v_count;
+    
+    return v_count;
+end;
+$$;
+
+revoke all on function public.increment_user_usage(uuid, text) from public, anon;
+grant execute on function public.increment_user_usage(uuid, text) to authenticated;
+
