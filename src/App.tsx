@@ -5,8 +5,9 @@ import { Home } from './pages/Home';
 import { NotFound } from './pages/NotFound';
 import { Terms } from './pages/Terms';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { PlanProvider } from './contexts/PlanContext';
 
-// Lazy load core tool components
+// Lazy load core tool components and pages
 const ImageCompressor = lazy(() => import('./pages/tools/ImageCompressor').then(module => ({ default: module.ImageCompressor })));
 const ImageResizer = lazy(() => import('./pages/tools/ImageResizer').then(module => ({ default: module.ImageResizer })));
 const ImageConverter = lazy(() => import('./pages/tools/ImageConverter').then(module => ({ default: module.ImageConverter })));
@@ -14,6 +15,7 @@ const ImageToPdf = lazy(() => import('./pages/tools/ImageToPdf').then(module => 
 const PdfCompressor = lazy(() => import('./pages/tools/PdfCompressor').then(module => ({ default: module.PdfCompressor })));
 const PdfToJpg = lazy(() => import('./pages/tools/PdfToJpg').then(module => ({ default: module.PdfToJpg })));
 const PdfStudio = lazy(() => import('./pages/tools/PdfStudio').then(module => ({ default: module.PdfStudio })));
+const Pricing = lazy(() => import('./pages/Pricing').then(module => ({ default: module.Pricing })));
 
 // Frosted Glass Glowing Loading Component
 const LoadingSpinner = () => (
@@ -55,7 +57,7 @@ const LoadingSpinner = () => (
       color: 'var(--text-muted)',
       letterSpacing: '0.05em'
     }}>
-      Loading Tool...
+      Loading...
     </span>
     <style>{`
       @keyframes spin {
@@ -68,61 +70,67 @@ const LoadingSpinner = () => (
 function App() {
   return (
     <BrowserRouter>
-      <ErrorBoundary>
-        <Routes>
-          <Route path="/" element={<Layout />}>
-            <Route index element={<Home />} />
-            <Route path="login" element={<Navigate to="/" replace />} />
-            <Route path="pricing" element={<Navigate to="/" replace />} />
-            <Route path="profile" element={<Navigate to="/" replace />} />
-            <Route path="tools">
-              <Route index element={<Navigate to="/" replace />} />
-              <Route path="compress" element={
+      <PlanProvider>
+        <ErrorBoundary>
+          <Routes>
+            <Route path="/" element={<Layout />}>
+              <Route index element={<Home />} />
+              <Route path="pricing" element={
                 <Suspense fallback={<LoadingSpinner />}>
-                  <ImageCompressor />
+                  <Pricing />
                 </Suspense>
               } />
-              <Route path="resize" element={
-                <Suspense fallback={<LoadingSpinner />}>
-                  <ImageResizer />
-                </Suspense>
-              } />
-              <Route path="convert" element={
-                <Suspense fallback={<LoadingSpinner />}>
-                  <ImageConverter />
-                </Suspense>
-              } />
-              <Route path="pdf" element={
-                <Suspense fallback={<LoadingSpinner />}>
-                  <ImageToPdf />
-                </Suspense>
-              } />
-              <Route path="compress-pdf" element={
-                <Suspense fallback={<LoadingSpinner />}>
-                  <PdfCompressor />
-                </Suspense>
-              } />
-              <Route path="pdf-to-jpg" element={
-                <Suspense fallback={<LoadingSpinner />}>
-                  <PdfToJpg />
-                </Suspense>
-              } />
-              <Route path="pdf-studio" element={
-                <Suspense fallback={<LoadingSpinner />}>
-                  <PdfStudio />
-                </Suspense>
-              } />
-              {/* Backward compatibility redirects to unified All-in-One PDF Studio */}
-              <Route path="merge-pdf" element={<Navigate to="/tools/pdf-studio" replace />} />
-              <Route path="split-pdf" element={<Navigate to="/tools/pdf-studio" replace />} />
-              <Route path="remove-pages" element={<Navigate to="/tools/pdf-studio" replace />} />
-              <Route path="organize-pdf" element={<Navigate to="/tools/pdf-studio" replace />} />
+              <Route path="login" element={<Navigate to="/" replace />} />
+              <Route path="profile" element={<Navigate to="/" replace />} />
+              <Route path="tools">
+                <Route index element={<Navigate to="/" replace />} />
+                <Route path="compress" element={
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <ImageCompressor />
+                  </Suspense>
+                } />
+                <Route path="resize" element={
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <ImageResizer />
+                  </Suspense>
+                } />
+                <Route path="convert" element={
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <ImageConverter />
+                  </Suspense>
+                } />
+                <Route path="pdf" element={
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <ImageToPdf />
+                  </Suspense>
+                } />
+                <Route path="compress-pdf" element={
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <PdfCompressor />
+                  </Suspense>
+                } />
+                <Route path="pdf-to-jpg" element={
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <PdfToJpg />
+                  </Suspense>
+                } />
+                <Route path="pdf-studio" element={
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <PdfStudio />
+                  </Suspense>
+                } />
+                {/* Backward compatibility redirects to unified All-in-One PDF Studio */}
+                <Route path="merge-pdf" element={<Navigate to="/tools/pdf-studio" replace />} />
+                <Route path="split-pdf" element={<Navigate to="/tools/pdf-studio" replace />} />
+                <Route path="remove-pages" element={<Navigate to="/tools/pdf-studio" replace />} />
+                <Route path="organize-pdf" element={<Navigate to="/tools/pdf-studio" replace />} />
+              </Route>
             </Route>
-          </Route>
-          <Route path="terms" element={<Terms />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </ErrorBoundary>
+            <Route path="terms" element={<Terms />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </ErrorBoundary>
+      </PlanProvider>
     </BrowserRouter >
   );
 }

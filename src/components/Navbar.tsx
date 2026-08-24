@@ -1,9 +1,11 @@
 import { Link } from 'react-router-dom';
-import { FaSun, FaMoon } from 'react-icons/fa';
+import { FaSun, FaMoon, FaCrown, FaBolt } from 'react-icons/fa';
 import { useTheme } from '../contexts/ThemeContext';
+import { usePlan } from '../contexts/PlanContext';
 
 export const Navbar = () => {
     const { theme, toggleTheme } = useTheme();
+    const { isPro, activePass, getRemainingTimeFormatted } = usePlan();
 
     return (
         <header style={{
@@ -26,7 +28,7 @@ export const Navbar = () => {
                 WebkitBackdropFilter: 'var(--glass-blur-lg)',
                 boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.25), var(--glass-highlight)'
             }}>
-                <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', textDecoration: 'none' }}>
                     <div style={{
                         width: '42px',
                         height: '42px',
@@ -62,11 +64,59 @@ export const Navbar = () => {
                 </Link>
 
                 <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                    {/* Pricing / VIP Badge */}
+                    <Link
+                        to="/pricing"
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.4rem',
+                            padding: '0.45rem 1rem',
+                            borderRadius: 'var(--radius-full)',
+                            fontSize: '0.85rem',
+                            fontWeight: 600,
+                            textDecoration: 'none',
+                            transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                            ...(isPro ? {
+                                background: 'linear-gradient(135deg, rgba(255, 42, 68, 0.2) 0%, rgba(255, 107, 107, 0.2) 100%)',
+                                border: '1px solid var(--color-primary)',
+                                color: '#ffffff',
+                                boxShadow: '0 0 16px -2px rgba(255, 42, 68, 0.5)'
+                            } : {
+                                background: 'rgba(255, 255, 255, 0.05)',
+                                border: '1px solid var(--glass-border)',
+                                color: 'var(--text-main)'
+                            })
+                        }}
+                        onMouseEnter={(e) => {
+                            e.currentTarget.style.borderColor = 'var(--color-primary)';
+                            e.currentTarget.style.transform = 'translateY(-1px)';
+                        }}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.style.borderColor = isPro ? 'var(--color-primary)' : 'var(--glass-border)';
+                            e.currentTarget.style.transform = 'none';
+                        }}
+                        title={isPro ? `${activePass?.planName} (${getRemainingTimeFormatted()})` : 'View Pricing Plans'}
+                    >
+                        {isPro ? (
+                            <>
+                                <FaCrown style={{ color: '#fbbf24', fontSize: '0.9rem' }} />
+                                <span style={{ display: 'inline-block' }}>VIP Pass</span>
+                            </>
+                        ) : (
+                            <>
+                                <FaBolt style={{ color: 'var(--color-primary)', fontSize: '0.85rem' }} />
+                                <span>Plans from ₹9</span>
+                            </>
+                        )}
+                    </Link>
+
+                    {/* Theme Toggle */}
                     <button
                         onClick={toggleTheme}
                         style={{
-                            width: '42px',
-                            height: '42px',
+                            width: '40px',
+                            height: '40px',
                             borderRadius: 'var(--radius-full)',
                             display: 'flex',
                             alignItems: 'center',
@@ -76,7 +126,7 @@ export const Navbar = () => {
                             border: '1px solid var(--glass-border)',
                             cursor: 'pointer',
                             transition: 'all 0.25s ease',
-                            fontSize: '1rem'
+                            fontSize: '0.95rem'
                         }}
                         onMouseEnter={(e) => {
                             e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';
