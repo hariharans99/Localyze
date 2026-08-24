@@ -75,10 +75,13 @@ export const fetchUserActiveSubscription = async (userId: string): Promise<Subsc
 export const recordVerifiedSubscription = async (
     user: User,
     plan: PlanConfig,
-    paymentId: string
+    paymentId: string,
+    expiresAtTimestamp?: number
 ): Promise<SubscriptionRecord | null> => {
     const now = new Date();
-    const expiresAt = new Date(now.getTime() + plan.durationDays * 24 * 60 * 60 * 1000);
+    const expiresAt = expiresAtTimestamp
+        ? new Date(expiresAtTimestamp)
+        : new Date(now.getTime() + plan.durationDays * 24 * 60 * 60 * 1000);
 
     const record: SubscriptionRecord = {
         user_id: user.id,

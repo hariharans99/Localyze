@@ -88,8 +88,10 @@ export const PlanProvider = ({ children }: { children: ReactNode }) => {
 
     const activatePass = async (plan: PlanConfig, paymentId: string) => {
         const now = Date.now();
+        // If user already has an active unexpired pass, extend from the remaining expiry time
+        const baseTime = (activePass && activePass.expiresAt > now) ? activePass.expiresAt : now;
         const durationMs = plan.durationDays * 24 * 60 * 60 * 1000;
-        const expiresAt = now + durationMs;
+        const expiresAt = baseTime + durationMs;
 
         const newPass: UserPass = {
             planId: plan.id,
@@ -109,7 +111,7 @@ export const PlanProvider = ({ children }: { children: ReactNode }) => {
         // If user is authenticated, record verified subscription to Supabase database
         if (user) {
             try {
-                await recordVerifiedSubscription(user, plan, paymentId);
+                await recordVerifiedSubscription(user, plan, paymentId, expiresAt);
             } catch (e) {
                 console.error('Failed to record subscription to Supabase', e);
             }
