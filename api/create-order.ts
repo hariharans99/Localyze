@@ -28,10 +28,10 @@ export default async function handler(req: Request) {
             });
         }
 
-        const keyId = process.env.RAZORPAY_KEY_ID || process.env.VITE_RAZORPAY_KEY_ID;
-        const keySecret = process.env.RAZORPAY_KEY_SECRET;
+        const keyId = (process.env.RAZORPAY_KEY_ID || process.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_TTVaAFshs31QBq').trim();
+        const keySecret = (process.env.RAZORPAY_KEY_SECRET || 'VpeJSw6n0YKh4x5Tu8l8IVW4').trim();
 
-        // If Razorpay secret key is not set, generate sandbox order ID for immediate testing
+        // If credentials are completely empty, generate sandbox order ID for testing
         if (!keyId || !keySecret) {
             const mockOrderId = `order_test_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
             return new Response(JSON.stringify({

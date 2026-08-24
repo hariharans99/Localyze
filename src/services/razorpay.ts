@@ -156,8 +156,8 @@ export const openRazorpayCheckout = async ({
     // 1. Fetch server order ID
     const serverOrderId = await createServerOrder(plan.id, userId);
 
-    // 2. Read Key ID from environment or default to public test key
-    const keyId = import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_localyzePublic';
+    // 2. Read Key ID from environment or default to user test key
+    const keyId = import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_TTVaAFshs31QBq';
 
     const options = {
         key: keyId,

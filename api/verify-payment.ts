@@ -63,7 +63,7 @@ export default async function handler(req: Request) {
             });
         }
 
-        const keySecret = process.env.RAZORPAY_KEY_SECRET;
+        const keySecret = (process.env.RAZORPAY_KEY_SECRET || 'VpeJSw6n0YKh4x5Tu8l8IVW4').trim();
 
         // 1. If Razorpay Secret is configured and signature is provided, verify HMAC SHA-256
         if (keySecret && razorpay_order_id && razorpay_signature) {
