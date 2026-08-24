@@ -12,6 +12,7 @@ interface AuthContextType {
     closeAuthModal: () => void;
     signInWithEmail: (email: string, password: string) => Promise<{ error: AuthError | null }>;
     signUpWithEmail: (email: string, password: string) => Promise<{ error: AuthError | null; user: User | null }>;
+    signInWithGoogle: () => Promise<{ error: AuthError | null }>;
     signOut: () => Promise<void>;
 }
 
@@ -116,6 +117,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return { error: result.error, user: result.data.user };
     };
 
+    const signInWithGoogle = async () => {
+        if (!isSupabaseConfigured) {
+            const mockUser = {
+                id: `google-user-${Date.now()}`,
+                email: 'user@gmail.com',
+                app_metadata: { provider: 'google' },
+                user_metadata: { name: 'Google User', avatar_url: '' },
+                aud: 'authenticated',
+                created_at: new Date().toISOString()
+            } as User;
+            setUser(mockUser);
+            setIsAuthModalOpen(false);
+            return { error: null };
+        }
+
+        const result = await supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+                redirectTo: window.location.origin
+            }
+        });
+
+        return { error: result.error };
+    };
+
     const signOut = async () => {
         if (isSupabaseConfigured) {
             await supabase.auth.signOut();
@@ -135,6 +161,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             closeAuthModal,
             signInWithEmail,
             signUpWithEmail,
+            signInWithGoogle,
             signOut
         }}>
             {children}

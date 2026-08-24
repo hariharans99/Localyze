@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { FaTimes, FaLock, FaEnvelope, FaShieldAlt, FaUserCheck, FaUserPlus } from 'react-icons/fa';
+import { FaTimes, FaLock, FaEnvelope, FaShieldAlt, FaUserCheck, FaUserPlus, FaGoogle } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 
 export const AuthModal = () => {
-    const { isAuthModalOpen, closeAuthModal, authModalTab, openAuthModal, signInWithEmail, signUpWithEmail } = useAuth();
+    const { isAuthModalOpen, closeAuthModal, authModalTab, openAuthModal, signInWithEmail, signUpWithEmail, signInWithGoogle } = useAuth();
     const { success, error } = useToast();
 
     const [email, setEmail] = useState('');
@@ -53,6 +53,23 @@ export const AuthModal = () => {
         } catch (err: any) {
             setAuthError(err.message || 'An unexpected error occurred.');
             error(err.message || 'Authentication error.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleGoogleSignIn = async () => {
+        setAuthError(null);
+        setIsLoading(true);
+        try {
+            const { error: googleErr } = await signInWithGoogle();
+            if (googleErr) {
+                setAuthError(googleErr.message);
+                error(googleErr.message);
+            }
+        } catch (err: any) {
+            setAuthError(err.message || 'Google authentication error');
+            error(err.message || 'Google authentication error');
         } finally {
             setIsLoading(false);
         }
@@ -133,13 +150,62 @@ export const AuthModal = () => {
                     </p>
                 </div>
 
+                {/* 1-Click Google Sign In */}
+                <button
+                    type="button"
+                    onClick={handleGoogleSignIn}
+                    disabled={isLoading}
+                    style={{
+                        width: '100%',
+                        padding: '0.75rem',
+                        borderRadius: 'var(--radius-md)',
+                        border: '1px solid var(--border-subtle)',
+                        backgroundColor: 'rgba(255, 255, 255, 0.06)',
+                        color: 'var(--text-main)',
+                        fontSize: '0.9rem',
+                        fontWeight: 600,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.65rem',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        marginBottom: '1.25rem'
+                    }}
+                    onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.12)';
+                        e.currentTarget.style.borderColor = 'var(--glass-border)';
+                    }}
+                    onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.06)';
+                        e.currentTarget.style.borderColor = 'var(--border-subtle)';
+                    }}
+                >
+                    <FaGoogle style={{ color: '#ea4335', fontSize: '1.05rem' }} />
+                    <span>Continue with Google</span>
+                </button>
+
+                {/* Divider */}
+                <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.75rem',
+                    marginBottom: '1.25rem',
+                    color: 'var(--text-dim)',
+                    fontSize: '0.78rem'
+                }}>
+                    <div style={{ flex: 1, height: '1px', backgroundColor: 'var(--border-subtle)' }} />
+                    <span>OR EMAIL</span>
+                    <div style={{ flex: 1, height: '1px', backgroundColor: 'var(--border-subtle)' }} />
+                </div>
+
                 {/* Tab Switcher */}
                 <div style={{
                     display: 'flex',
                     backgroundColor: 'rgba(255, 255, 255, 0.04)',
                     borderRadius: 'var(--radius-full)',
                     padding: '0.25rem',
-                    marginBottom: '1.5rem',
+                    marginBottom: '1.25rem',
                     border: '1px solid var(--border-subtle)'
                 }}>
                     <button
@@ -147,13 +213,13 @@ export const AuthModal = () => {
                         onClick={() => { setAuthError(null); openAuthModal('login'); }}
                         style={{
                             flex: 1,
-                            padding: '0.5rem',
+                            padding: '0.45rem',
                             borderRadius: 'var(--radius-full)',
                             border: 'none',
                             backgroundColor: authModalTab === 'login' ? 'var(--color-primary)' : 'transparent',
                             color: authModalTab === 'login' ? '#ffffff' : 'var(--text-muted)',
                             fontWeight: 600,
-                            fontSize: '0.85rem',
+                            fontSize: '0.82rem',
                             cursor: 'pointer',
                             transition: 'all 0.2s'
                         }}
@@ -165,13 +231,13 @@ export const AuthModal = () => {
                         onClick={() => { setAuthError(null); openAuthModal('signup'); }}
                         style={{
                             flex: 1,
-                            padding: '0.5rem',
+                            padding: '0.45rem',
                             borderRadius: 'var(--radius-full)',
                             border: 'none',
                             backgroundColor: authModalTab === 'signup' ? 'var(--color-primary)' : 'transparent',
                             color: authModalTab === 'signup' ? '#ffffff' : 'var(--text-muted)',
                             fontWeight: 600,
-                            fontSize: '0.85rem',
+                            fontSize: '0.82rem',
                             cursor: 'pointer',
                             transition: 'all 0.2s'
                         }}
@@ -243,7 +309,7 @@ export const AuthModal = () => {
                             width: '100%',
                             padding: '0.85rem',
                             fontSize: '0.95rem',
-                            marginTop: '0.5rem',
+                            marginTop: '0.25rem',
                             opacity: isLoading ? 0.7 : 1
                         }}
                     >
