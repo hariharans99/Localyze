@@ -7,13 +7,17 @@ const PLANS: Record<string, { durationDays: number; amountInr: number; name: str
 };
 
 const getRazorpayCredentials = () => {
-    let keyId = (process.env.RAZORPAY_KEY_ID || process.env.VITE_RAZORPAY_KEY_ID || '').trim();
-    let keySecret = (process.env.RAZORPAY_KEY_SECRET || '').trim();
+    let rawKeyId = (process.env.RAZORPAY_KEY_ID || process.env.VITE_RAZORPAY_KEY_ID || '').trim();
+    let rawKeySecret = (process.env.RAZORPAY_KEY_SECRET || '').trim();
+
+    const matchKey = rawKeyId.match(/(rzp_(?:test|live)_[a-zA-Z0-9]+)/);
+    let keyId = matchKey ? matchKey[1] : (rawKeyId || 'rzp_test_TTVaAFshs31QBq');
 
     if (!keyId || keyId === 'rzp_test_localyzePublic') {
         keyId = 'rzp_test_TTVaAFshs31QBq';
     }
 
+    let keySecret = rawKeySecret.replace(/^(?:Key\s*Secret\s*:?|Secret\s*:?)\s*/i, '').trim();
     if (!keySecret || keySecret === 'rzp_test_secret') {
         keySecret = 'VpeJSw6n0YKh4x5Tu8l8IVW4';
     }
