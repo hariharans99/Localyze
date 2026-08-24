@@ -310,3 +310,81 @@ h1, h2, h3, h4, .font-display {
 .drag-over-pulse {
   animation: pulseGlow 1.5s infinite ease-in-out;
 }
+
+/* Responsive Settings Grid Utilities */
+.responsive-mode-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+@media (max-width: 520px) {
+  .responsive-mode-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.responsive-format-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.65rem;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+@media (max-width: 640px) {
+  .responsive-format-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.responsive-resolution-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+@media (max-width: 480px) {
+  .responsive-resolution-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.responsive-chips-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.responsive-input-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.responsive-input-group input {
+  flex: 1 1 120px;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.responsive-input-group select {
+  flex: 0 1 100px;
+  min-width: 0;
+  box-sizing: border-box;
+}

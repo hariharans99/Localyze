@@ -480,23 +480,23 @@ export const PdfCompressor = () => {
 
                             {useTargetSize ? (
                                 <div style={{ marginBottom: '1.25rem', width: '100%', minWidth: 0 }}>
-                                    <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', fontWeight: 600 }}>
-                                        Target Maximum File Size:
+                                    <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.88rem', fontWeight: 600 }}>
+                                        Target Maximum File Size
                                     </label>
-                                    <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', width: '100%', minWidth: 0 }}>
+                                    <div className="responsive-input-group" style={{ marginBottom: '0.75rem' }}>
                                         <input
                                             type="number"
                                             value={targetSize}
                                             onChange={(e) => setTargetSize(Math.max(1, parseInt(e.target.value) || 1))}
                                             className="glass-input"
-                                            style={{ flex: '1 1 120px', maxWidth: '200px', padding: '0.65rem', boxSizing: 'border-box' }}
+                                            style={{ padding: '0.6rem 0.75rem' }}
                                             min="1"
                                         />
                                         <select
                                             value={unit}
                                             onChange={(e) => setUnit(e.target.value as any)}
                                             className="glass-input"
-                                            style={{ width: '85px', padding: '0.65rem', boxSizing: 'border-box' }}
+                                            style={{ padding: '0.6rem 0.75rem' }}
                                         >
                                             <option value="KB">KB</option>
                                             <option value="MB">MB</option>
@@ -504,7 +504,7 @@ export const PdfCompressor = () => {
                                     </div>
 
                                     {/* Preset Chips */}
-                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.45rem', width: '100%', minWidth: 0 }}>
+                                    <div className="responsive-chips-wrap">
                                         {presets.map((preset) => {
                                             const isSelected = targetSize === preset.size && unit === preset.unit;
                                             return (

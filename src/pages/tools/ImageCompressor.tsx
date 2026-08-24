@@ -450,16 +450,10 @@ export const ImageCompressor = () => {
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '100%', minWidth: 0 }}>
                             {/* Compression Mode */}
                             <div style={{ width: '100%', minWidth: 0 }}>
-                                <label style={{ fontWeight: 500, display: 'block', marginBottom: '0.75rem', fontSize: '0.9rem' }}>
-                                    Compression Mode:
+                                <label style={{ fontWeight: 600, display: 'block', marginBottom: '0.65rem', fontSize: '0.88rem' }}>
+                                    Compression Mode
                                 </label>
-                                <div style={{
-                                    display: 'grid',
-                                    gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 250px), 1fr))',
-                                    gap: '0.75rem',
-                                    width: '100%',
-                                    minWidth: 0
-                                }}>
+                                <div className="responsive-mode-grid">
                                     <button
                                         type="button"
                                         onClick={() => setCompressionMode('normal')}
@@ -476,11 +470,11 @@ export const ImageCompressor = () => {
                                             boxSizing: 'border-box'
                                         }}
                                     >
-                                        <div style={{ fontWeight: 700, marginBottom: '0.25rem', color: compressionMode === 'normal' ? 'var(--color-primary)' : 'var(--text-main)', fontSize: '0.95rem' }}>
+                                        <div style={{ fontWeight: 700, marginBottom: '0.2rem', color: compressionMode === 'normal' ? 'var(--color-primary)' : 'var(--text-main)', fontSize: '0.92rem' }}>
                                             Custom Target Size
                                         </div>
-                                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: '1.4' }}>
-                                            Specify exact target KB/MB for official government or portal uploads.
+                                        <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', lineHeight: '1.35' }}>
+                                            Specify exact KB/MB for official portals.
                                         </div>
                                     </button>
 
@@ -500,11 +494,11 @@ export const ImageCompressor = () => {
                                             boxSizing: 'border-box'
                                         }}
                                     >
-                                        <div style={{ fontWeight: 700, marginBottom: '0.25rem', color: compressionMode === 'ultra' ? 'var(--color-primary)' : 'var(--text-main)', fontSize: '0.95rem' }}>
-                                            <FaMagic /> Maximum Auto-Compression
+                                        <div style={{ fontWeight: 700, marginBottom: '0.2rem', color: compressionMode === 'ultra' ? 'var(--color-primary)' : 'var(--text-main)', fontSize: '0.92rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                                            <FaMagic /> Auto Maximum
                                         </div>
-                                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: '1.4' }}>
-                                            Shrinks file by ~90% while maintaining perceptual clarity.
+                                        <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', lineHeight: '1.35' }}>
+                                            Shrinks file size by ~90% cleanly.
                                         </div>
                                     </button>
                                 </div>
@@ -513,23 +507,23 @@ export const ImageCompressor = () => {
                             {/* Target Size Inputs & Presets (if Custom Mode) */}
                             {compressionMode === 'normal' && (
                                 <div style={{ width: '100%', minWidth: 0 }}>
-                                    <label style={{ fontWeight: 500, display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>
-                                        Target File Size:
+                                    <label style={{ fontWeight: 600, display: 'block', marginBottom: '0.5rem', fontSize: '0.88rem' }}>
+                                        Target File Size
                                     </label>
-                                    <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', width: '100%', minWidth: 0 }}>
+                                    <div className="responsive-input-group" style={{ marginBottom: '0.75rem' }}>
                                         <input
                                             type="number"
                                             value={targetSize}
                                             onChange={(e) => setTargetSize(Math.max(1, parseInt(e.target.value) || 1))}
                                             className="glass-input"
-                                            style={{ flex: '1 1 120px', maxWidth: '200px', padding: '0.65rem', boxSizing: 'border-box' }}
+                                            style={{ padding: '0.6rem 0.75rem' }}
                                             min="1"
                                         />
                                         <select
                                             value={unit}
                                             onChange={(e) => setUnit(e.target.value as any)}
                                             className="glass-input"
-                                            style={{ width: '85px', padding: '0.65rem', boxSizing: 'border-box' }}
+                                            style={{ padding: '0.6rem 0.75rem' }}
                                         >
                                             <option value="KB">KB</option>
                                             <option value="MB">MB</option>
@@ -537,7 +531,7 @@ export const ImageCompressor = () => {
                                     </div>
 
                                     {/* Presets Chips */}
-                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.45rem', width: '100%', minWidth: 0 }}>
+                                    <div className="responsive-chips-wrap">
                                         {targetPresets.map((preset) => {
                                             const isSelected = targetSize === preset.size && unit === preset.unit;
                                             return (
@@ -569,19 +563,13 @@ export const ImageCompressor = () => {
 
                             {/* Output Format */}
                             <div style={{ width: '100%', minWidth: 0 }}>
-                                <label style={{ fontWeight: 500, display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>
-                                    Output Format:
+                                <label style={{ fontWeight: 600, display: 'block', marginBottom: '0.5rem', fontSize: '0.88rem' }}>
+                                    Output Format
                                 </label>
-                                <div style={{
-                                    display: 'grid',
-                                    gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))',
-                                    gap: '0.6rem',
-                                    width: '100%',
-                                    minWidth: 0
-                                }}>
+                                <div className="responsive-format-grid">
                                     {[
                                         { mime: 'image/jpeg', label: 'JPEG (.jpg)', desc: 'Standard & Gov portals' },
-                                        { mime: 'image/webp', label: 'WebP (.webp)', desc: 'Modern & most compact' },
+                                        { mime: 'image/webp', label: 'WebP (.webp)', desc: 'Modern & compact' },
                                         { mime: 'image/png', label: 'PNG (.png)', desc: 'Lossless quality' },
                                     ].map(fmt => {
                                         const isSelected = format === fmt.mime;
@@ -617,20 +605,20 @@ export const ImageCompressor = () => {
 
                             {/* Resolution Limits */}
                             <div style={{ width: '100%', minWidth: 0 }}>
-                                <label style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', cursor: 'pointer', marginBottom: '0.75rem', fontSize: '0.9rem', fontWeight: 500 }}>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', cursor: 'pointer', marginBottom: '0.75rem', fontSize: '0.88rem', fontWeight: 500 }}>
                                     <input
                                         type="checkbox"
                                         checked={preserveDimensions}
                                         onChange={(e) => setPreserveDimensions(e.target.checked)}
                                         style={{ accentColor: 'var(--color-primary)', width: '16px', height: '16px' }}
                                     />
-                                    Strictly Preserve Original Pixel Dimensions
+                                    Preserve Original Dimensions
                                 </label>
 
                                 {!preserveDimensions && (
-                                    <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', width: '100%', minWidth: 0 }}>
-                                        <div style={{ flex: '1 1 120px', minWidth: 0 }}>
-                                            <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.35rem' }}>Max Width (px)</label>
+                                    <div className="responsive-resolution-grid">
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '0.3rem' }}>Max Width (px)</label>
                                             <input
                                                 type="number"
                                                 value={maxWidth}
@@ -639,8 +627,8 @@ export const ImageCompressor = () => {
                                                 style={{ width: '100%', padding: '0.55rem', boxSizing: 'border-box' }}
                                             />
                                         </div>
-                                        <div style={{ flex: '1 1 120px', minWidth: 0 }}>
-                                            <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.35rem' }}>Max Height (px)</label>
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '0.3rem' }}>Max Height (px)</label>
                                             <input
                                                 type="number"
                                                 value={maxHeight}
