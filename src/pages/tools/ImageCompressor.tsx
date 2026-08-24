@@ -212,9 +212,12 @@ export const ImageCompressor = () => {
                 title="Image Compressor - Precise Target Size Control"
                 description="Compress images to exact file sizes (e.g. 50KB, 100KB, 200KB) with adaptive quality search and format choices."
             />
-            <h1 className="text-gradient" style={{ fontSize: 'clamp(1.75rem, 4vw, 2.25rem)', marginBottom: '1.5rem', textAlign: 'center', wordBreak: 'break-word' }}>
+            <h1 className="text-gradient" style={{ fontSize: 'clamp(1.75rem, 4vw, 2.25rem)', marginBottom: '0.5rem', textAlign: 'center', wordBreak: 'break-word' }}>
                 Precision Image Compressor
             </h1>
+            <p style={{ textAlign: 'center', color: 'var(--text-muted)', marginBottom: '2rem', fontSize: 'clamp(0.85rem, 2vw, 0.95rem)' }}>
+                Target exact file size budgets with adaptive stepped bicubic scaling and multi-tier binary search.
+            </p>
 
             {files.length === 0 ? (
                 <FileUploader
@@ -245,13 +248,13 @@ export const ImageCompressor = () => {
                     }}>
                         <div style={{ flex: '1 1 200px', minWidth: 0 }}>
                             <h3 style={{ marginBottom: '0.25rem', fontSize: 'clamp(1.1rem, 3vw, 1.4rem)', wordBreak: 'break-word' }}>
-                                {files.length} Images Selected
+                                {files.length} Image{files.length > 1 ? 's' : ''} Selected
                             </h3>
                             <p style={{ color: 'var(--text-muted)', fontSize: 'clamp(0.8rem, 2vw, 0.9rem)', lineHeight: '1.5' }}>
-                                Configure precision compression parameters and target file size
+                                Total size: {getFormattedSize(files.reduce((acc, f) => acc + f.file.size, 0))}
                             </p>
                         </div>
-                        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap', alignItems: 'center' }}>
                             <button
                                 onClick={() => document.getElementById('add-more-input')?.click()}
                                 className="glass-btn-secondary"
@@ -276,7 +279,7 @@ export const ImageCompressor = () => {
                                 style={{
                                     display: 'flex',
                                     alignItems: 'center',
-                                    gap: '0.4rem',
+                                    gap: '0.35rem',
                                     color: 'var(--text-muted)',
                                     fontWeight: 500,
                                     fontSize: '0.85rem',
@@ -291,11 +294,148 @@ export const ImageCompressor = () => {
                         </div>
                     </div>
 
+                    {/* UPLOADED FILES & LIVE PREVIEWS GALLERY (Prominently Placed at the Top) */}
+                    <div style={{ marginBottom: '2rem', width: '100%', minWidth: 0 }}>
+                        <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 300px), 1fr))',
+                            gap: '1rem',
+                            width: '100%',
+                            minWidth: 0
+                        }}>
+                            {files.map((processedFile) => (
+                                <div
+                                    key={processedFile.file.name}
+                                    style={{
+                                        border: processedFile.status === 'done' ? '2px solid #10b981' : '1px solid var(--glass-border)',
+                                        borderRadius: 'var(--radius-lg)',
+                                        padding: '1rem',
+                                        backgroundColor: 'rgba(255, 255, 255, 0.02)',
+                                        width: '100%',
+                                        boxSizing: 'border-box',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        justifyContent: 'space-between'
+                                    }}
+                                >
+                                    <div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem', gap: '0.5rem' }}>
+                                            <div style={{ minWidth: 0, overflow: 'hidden' }}>
+                                                <div style={{ fontWeight: 700, fontSize: '0.9rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                    {processedFile.file.name}
+                                                </div>
+                                                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                                                    Original: {getFormattedSize(processedFile.file.size)}
+                                                    {processedFile.result && (
+                                                        <>
+                                                            {' → '}
+                                                            <span style={{ color: '#10b981', fontWeight: 700 }}>
+                                                                {getFormattedSize(processedFile.result.compressedSize)}
+                                                            </span>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <button
+                                                onClick={() => removeFile(processedFile.file.name)}
+                                                style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem', flexShrink: 0 }}
+                                                title="Remove file"
+                                            >
+                                                <FaTrash />
+                                            </button>
+                                        </div>
+
+                                        {/* Preview Thumbnail with Fallback */}
+                                        <div style={{
+                                            width: '100%',
+                                            height: '140px',
+                                            backgroundColor: 'rgba(0, 0, 0, 0.25)',
+                                            borderRadius: 'var(--radius-md)',
+                                            border: '1px solid var(--border-subtle)',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            overflow: 'hidden',
+                                            marginBottom: '0.75rem',
+                                            position: 'relative'
+                                        }}>
+                                            {processedFile.compressedPreview ? (
+                                                <img
+                                                    src={processedFile.compressedPreview}
+                                                    alt="Compressed"
+                                                    style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                                                />
+                                            ) : processedFile.preview ? (
+                                                <img
+                                                    src={processedFile.preview}
+                                                    alt="Original"
+                                                    style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                                                    onError={(e) => {
+                                                        e.currentTarget.style.display = 'none';
+                                                    }}
+                                                />
+                                            ) : (
+                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', color: 'var(--text-dim)' }}>
+                                                    <FaImage style={{ fontSize: '2rem', marginBottom: '0.4rem' }} />
+                                                    <span style={{ fontSize: '0.75rem' }}>Image Preview</span>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Progress Probe Indicator */}
+                                        {processedFile.status === 'processing' && processedFile.progress && (
+                                            <div style={{ padding: '0.5rem', backgroundColor: 'rgba(255, 42, 68, 0.08)', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(255, 42, 68, 0.25)', marginBottom: '0.75rem' }}>
+                                                <div style={{ fontSize: '0.75rem', color: 'var(--color-primary)', fontWeight: 600 }}>
+                                                    🔄 Optimizing... Pass {processedFile.progress.iteration} ({(processedFile.progress.quality * 100).toFixed(0)}%)
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Action Bar */}
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                        {processedFile.status === 'done' ? (
+                                            <>
+                                                <span className="neon-badge neon-badge-success" style={{ fontSize: '0.7rem' }}>
+                                                    ✓ {processedFile.result ? `${((1 - (processedFile.result.compressedSize / processedFile.file.size)) * 100).toFixed(0)}% reduced` : 'Done'}
+                                                </span>
+                                                <div style={{ display: 'flex', gap: '0.35rem' }}>
+                                                    <button
+                                                        onClick={() => resetFileToRecompress(processedFile.file.name)}
+                                                        className="glass-btn-secondary"
+                                                        style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem' }}
+                                                    >
+                                                        <FaRedo />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => downloadSingle(processedFile)}
+                                                        className="glass-btn-primary"
+                                                        style={{ padding: '0.3rem 0.75rem', fontSize: '0.75rem', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)' }}
+                                                    >
+                                                        <FaDownload /> Download
+                                                    </button>
+                                                </div>
+                                            </>
+                                        ) : processedFile.status === 'error' ? (
+                                            <span className="neon-badge" style={{ color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.3)', background: 'rgba(239, 68, 68, 0.1)', fontSize: '0.7rem' }}>
+                                                ✗ Error
+                                            </span>
+                                        ) : (
+                                            <span className="neon-badge" style={{ color: '#f59e0b', borderColor: 'rgba(245, 158, 11, 0.3)', background: 'rgba(245, 158, 11, 0.1)', fontSize: '0.7rem' }}>
+                                                ⏱ Ready
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
                     {/* Settings Panel */}
                     <div style={{
                         marginBottom: '2rem',
-                        background: 'rgba(255, 255, 255, 0.03)',
-                        border: '1px solid var(--border-subtle)',
+                        background: 'rgba(255, 255, 255, 0.02)',
+                        border: '1px solid var(--glass-border)',
                         padding: 'clamp(0.85rem, 2.5vw, 1.5rem)',
                         borderRadius: 'var(--radius-lg)',
                         width: '100%',
@@ -304,11 +444,11 @@ export const ImageCompressor = () => {
                         boxSizing: 'border-box'
                     }}>
                         <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem', fontSize: 'clamp(1rem, 2.5vw, 1.15rem)' }}>
-                            <FaCog /> Compression Settings
+                            <FaCog /> Compression Settings & Target Size
                         </h4>
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '100%', minWidth: 0 }}>
-                            {/* Compression Mode (2 columns on desktop, 1 column on <= 520px) */}
+                            {/* Compression Mode */}
                             <div style={{ width: '100%', minWidth: 0 }}>
                                 <label style={{ fontWeight: 500, display: 'block', marginBottom: '0.75rem', fontSize: '0.9rem' }}>
                                     Compression Mode:
@@ -328,250 +468,186 @@ export const ImageCompressor = () => {
                                             borderRadius: 'var(--radius-md)',
                                             border: `2px solid ${compressionMode === 'normal' ? 'var(--color-primary)' : 'var(--border-subtle)'}`,
                                             backgroundColor: compressionMode === 'normal' ? 'rgba(255, 42, 68, 0.12)' : 'var(--bg-surface)',
-                                            color: compressionMode === 'normal' ? 'var(--color-primary)' : 'var(--text-main)',
+                                            color: 'var(--text-main)',
                                             cursor: 'pointer',
                                             textAlign: 'left',
-                                            boxSizing: 'border-box',
                                             width: '100%',
-                                            minWidth: 0
+                                            minWidth: 0,
+                                            boxSizing: 'border-box'
                                         }}
                                     >
-                                        <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.95rem' }}>
-                                            <FaCog /> Exact Target Size Mode
+                                        <div style={{ fontWeight: 700, marginBottom: '0.25rem', color: compressionMode === 'normal' ? 'var(--color-primary)' : 'var(--text-main)', fontSize: '0.95rem' }}>
+                                            Custom Target Size
                                         </div>
-                                        <div style={{ fontSize: '0.75rem', marginTop: '0.35rem', color: 'var(--text-muted)', lineHeight: '1.4' }}>
-                                            Hits exact KB/MB size with maximum visual quality
+                                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: '1.4' }}>
+                                            Specify exact target KB/MB for official government or portal uploads.
                                         </div>
                                     </button>
+
                                     <button
                                         type="button"
-                                        onClick={() => {
-                                            setCompressionMode('ultra');
-                                            setFormat('image/webp');
-                                        }}
+                                        onClick={() => setCompressionMode('ultra')}
                                         style={{
                                             padding: 'clamp(0.75rem, 2vw, 1rem)',
                                             borderRadius: 'var(--radius-md)',
                                             border: `2px solid ${compressionMode === 'ultra' ? 'var(--color-primary)' : 'var(--border-subtle)'}`,
                                             backgroundColor: compressionMode === 'ultra' ? 'rgba(255, 42, 68, 0.12)' : 'var(--bg-surface)',
-                                            color: compressionMode === 'ultra' ? 'var(--color-primary)' : 'var(--text-main)',
+                                            color: 'var(--text-main)',
                                             cursor: 'pointer',
                                             textAlign: 'left',
-                                            boxSizing: 'border-box',
                                             width: '100%',
-                                            minWidth: 0
+                                            minWidth: 0,
+                                            boxSizing: 'border-box'
                                         }}
                                     >
-                                        <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.95rem' }}>
-                                            <FaMagic /> Ultra Maximum Compression
+                                        <div style={{ fontWeight: 700, marginBottom: '0.25rem', color: compressionMode === 'ultra' ? 'var(--color-primary)' : 'var(--text-main)', fontSize: '0.95rem' }}>
+                                            <FaMagic /> Maximum Auto-Compression
                                         </div>
-                                        <div style={{ fontSize: '0.75rem', marginTop: '0.35rem', color: 'var(--text-muted)', lineHeight: '1.4' }}>
-                                            Up to 90-95% reduction with crisp bicubic scaling
+                                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: '1.4' }}>
+                                            Shrinks file by ~90% while maintaining perceptual clarity.
                                         </div>
                                     </button>
                                 </div>
                             </div>
 
-                            {/* Target Size - Normal mode */}
+                            {/* Target Size Inputs & Presets (if Custom Mode) */}
                             {compressionMode === 'normal' && (
                                 <div style={{ width: '100%', minWidth: 0 }}>
                                     <label style={{ fontWeight: 500, display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>
                                         Target File Size:
                                     </label>
-                                    
-                                    {/* Preset Quick Buttons that wrap naturally */}
-                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.45rem', marginBottom: '0.75rem', width: '100%', minWidth: 0 }}>
-                                        {targetPresets.map((preset) => (
-                                            <button
-                                                key={preset.label}
-                                                type="button"
-                                                onClick={() => {
-                                                    setTargetSize(preset.size);
-                                                    setUnit(preset.unit);
-                                                }}
-                                                style={{
-                                                    padding: '0.35rem 0.65rem',
-                                                    borderRadius: 'var(--radius-full)',
-                                                    border: `1px solid ${targetSize === preset.size && unit === preset.unit ? 'var(--color-primary)' : 'var(--border-subtle)'}`,
-                                                    backgroundColor: targetSize === preset.size && unit === preset.unit ? 'rgba(255, 42, 68, 0.15)' : 'var(--bg-surface)',
-                                                    color: targetSize === preset.size && unit === preset.unit ? 'var(--color-primary)' : 'var(--text-muted)',
-                                                    fontSize: '0.8rem',
-                                                    fontWeight: 500,
-                                                    cursor: 'pointer',
-                                                    boxSizing: 'border-box',
-                                                    whiteSpace: 'nowrap'
-                                                }}
-                                            >
-                                                {preset.label}
-                                            </button>
-                                        ))}
-                                    </div>
-
-                                    <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', flexWrap: 'wrap', width: '100%', minWidth: 0 }}>
+                                    <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', width: '100%', minWidth: 0 }}>
                                         <input
                                             type="number"
-                                            min="1"
                                             value={targetSize}
-                                            onChange={(e) => setTargetSize(parseFloat(e.target.value) || 1)}
+                                            onChange={(e) => setTargetSize(Math.max(1, parseInt(e.target.value) || 1))}
                                             className="glass-input"
-                                            style={{
-                                                padding: '0.5rem 0.75rem',
-                                                width: 'min(100%, 140px)',
-                                                maxWidth: '100%',
-                                                minWidth: 0,
-                                                borderRadius: 'var(--radius-md)',
-                                                border: '1px solid var(--border-subtle)',
-                                                backgroundColor: 'var(--bg-surface)',
-                                                color: 'var(--text-main)',
-                                                fontWeight: 600,
-                                                boxSizing: 'border-box'
-                                            }}
+                                            style={{ flex: '1 1 120px', maxWidth: '200px', padding: '0.65rem', boxSizing: 'border-box' }}
+                                            min="1"
                                         />
                                         <select
                                             value={unit}
-                                            onChange={(e) => setUnit(e.target.value as 'MB' | 'KB')}
+                                            onChange={(e) => setUnit(e.target.value as any)}
                                             className="glass-input"
-                                            style={{
-                                                padding: '0.5rem 0.75rem',
-                                                borderRadius: 'var(--radius-md)',
-                                                border: '1px solid var(--border-subtle)',
-                                                backgroundColor: 'var(--bg-surface)',
-                                                color: 'var(--text-main)',
-                                                fontWeight: 600,
-                                                boxSizing: 'border-box'
-                                            }}
+                                            style={{ width: '85px', padding: '0.65rem', boxSizing: 'border-box' }}
                                         >
                                             <option value="KB">KB</option>
                                             <option value="MB">MB</option>
                                         </select>
                                     </div>
+
+                                    {/* Presets Chips */}
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.45rem', width: '100%', minWidth: 0 }}>
+                                        {targetPresets.map((preset) => {
+                                            const isSelected = targetSize === preset.size && unit === preset.unit;
+                                            return (
+                                                <button
+                                                    key={preset.label}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setTargetSize(preset.size);
+                                                        setUnit(preset.unit);
+                                                    }}
+                                                    className="glass-btn-secondary"
+                                                    style={{
+                                                        padding: '0.35rem 0.75rem',
+                                                        fontSize: '0.78rem',
+                                                        whiteSpace: 'nowrap',
+                                                        borderColor: isSelected ? 'var(--color-primary)' : 'var(--glass-border)',
+                                                        backgroundColor: isSelected ? 'rgba(255, 42, 68, 0.15)' : 'rgba(255, 255, 255, 0.03)',
+                                                        color: isSelected ? 'var(--color-primary)' : 'var(--text-main)',
+                                                        boxSizing: 'border-box'
+                                                    }}
+                                                >
+                                                    {preset.label}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
                                 </div>
                             )}
 
-                            {/* Format Selection (1 column on small screens, multi-col on larger) */}
+                            {/* Output Format */}
                             <div style={{ width: '100%', minWidth: 0 }}>
-                                <label style={{ fontWeight: 500, display: 'block', marginBottom: '0.75rem', fontSize: '0.9rem' }}>
+                                <label style={{ fontWeight: 500, display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>
                                     Output Format:
                                 </label>
                                 <div style={{
                                     display: 'grid',
                                     gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))',
-                                    gap: '0.75rem',
+                                    gap: '0.6rem',
                                     width: '100%',
                                     minWidth: 0
                                 }}>
                                     {[
-                                        { value: 'image/jpeg', label: 'JPEG', desc: 'Universal, best compatibility' },
-                                        { value: 'image/webp', label: 'WebP', desc: 'Modern, 25-35% more compact' },
-                                        { value: 'image/png', label: 'PNG', desc: 'Lossless graphic format' }
-                                    ].map((fmt) => (
-                                        <button
-                                            key={fmt.value}
-                                            type="button"
-                                            onClick={() => setFormat(fmt.value as any)}
-                                            style={{
-                                                padding: '0.75rem',
-                                                borderRadius: 'var(--radius-md)',
-                                                border: `2px solid ${format === fmt.value ? 'var(--color-primary)' : 'var(--border-subtle)'}`,
-                                                backgroundColor: format === fmt.value ? 'rgba(255, 42, 68, 0.12)' : 'var(--bg-surface)',
-                                                color: format === fmt.value ? 'var(--color-primary)' : 'var(--text-main)',
-                                                cursor: 'pointer',
-                                                textAlign: 'left',
-                                                width: '100%',
-                                                minWidth: 0,
-                                                boxSizing: 'border-box'
-                                            }}
-                                        >
-                                            <div style={{ fontWeight: 600, fontSize: '0.95rem' }}>{fmt.label}</div>
-                                            <div style={{ fontSize: '0.75rem', marginTop: '0.25rem', color: 'var(--text-muted)', lineHeight: '1.4' }}>
-                                                {fmt.desc}
-                                            </div>
-                                        </button>
-                                    ))}
+                                        { mime: 'image/jpeg', label: 'JPEG (.jpg)', desc: 'Standard & Gov portals' },
+                                        { mime: 'image/webp', label: 'WebP (.webp)', desc: 'Modern & most compact' },
+                                        { mime: 'image/png', label: 'PNG (.png)', desc: 'Lossless quality' },
+                                    ].map(fmt => {
+                                        const isSelected = format === fmt.mime;
+                                        return (
+                                            <button
+                                                key={fmt.mime}
+                                                type="button"
+                                                onClick={() => setFormat(fmt.mime as any)}
+                                                style={{
+                                                    padding: '0.65rem 0.85rem',
+                                                    borderRadius: 'var(--radius-md)',
+                                                    border: `2px solid ${isSelected ? 'var(--color-primary)' : 'var(--border-subtle)'}`,
+                                                    backgroundColor: isSelected ? 'rgba(255, 42, 68, 0.12)' : 'var(--bg-surface)',
+                                                    color: 'var(--text-main)',
+                                                    cursor: 'pointer',
+                                                    textAlign: 'left',
+                                                    width: '100%',
+                                                    minWidth: 0,
+                                                    boxSizing: 'border-box'
+                                                }}
+                                            >
+                                                <div style={{ fontWeight: 700, fontSize: '0.85rem', color: isSelected ? 'var(--color-primary)' : 'inherit' }}>
+                                                    {fmt.label}
+                                                </div>
+                                                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                                                    {fmt.desc}
+                                                </div>
+                                            </button>
+                                        );
+                                    })}
                                 </div>
                             </div>
 
-                            {/* Dimension Options */}
+                            {/* Resolution Limits */}
                             <div style={{ width: '100%', minWidth: 0 }}>
-                                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', cursor: 'pointer', marginBottom: '0.75rem', fontSize: '0.9rem', fontWeight: 500 }}>
                                     <input
                                         type="checkbox"
-                                        id="preserveDimensions"
                                         checked={preserveDimensions}
                                         onChange={(e) => setPreserveDimensions(e.target.checked)}
-                                        style={{ width: '1.2rem', height: '1.2rem', cursor: 'pointer', marginTop: '0.1rem', flexShrink: 0 }}
+                                        style={{ accentColor: 'var(--color-primary)', width: '16px', height: '16px' }}
                                     />
-                                    <label htmlFor="preserveDimensions" style={{ fontSize: '0.9rem', cursor: 'pointer', fontWeight: 500, lineHeight: '1.4' }}>
-                                        Strictly Preserve Original Resolution
-                                    </label>
-                                </div>
-                                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.75rem', lineHeight: '1.5', wordBreak: 'break-word' }}>
-                                    {preserveDimensions
-                                        ? 'Dimensions will never change (quality is compressed up to its technical limit).'
-                                        : '✨ Adaptive scaling enabled: If an image resolution is too high to fit in the target size, it will be automatically and crisply scaled down to strictly hit your target size.'}
-                                </p>
-                                {!preserveDimensions && (
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%', minWidth: 0 }}>
-                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', alignItems: 'center', width: '100%', minWidth: 0 }}>
-                                            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginRight: '0.25rem' }}>Max Resolution Cap:</span>
-                                            {[
-                                                { label: '4K (3840px)', w: 3840, h: 2160 },
-                                                { label: '1080p (1920px)', w: 1920, h: 1080 },
-                                                { label: '720p (1280px)', w: 1280, h: 720 },
-                                                { label: 'Compact (800px)', w: 800, h: 600 }
-                                            ].map(r => (
-                                                <button
-                                                    key={r.label}
-                                                    type="button"
-                                                    onClick={() => { setMaxWidth(r.w); setMaxHeight(r.h); }}
-                                                    className="glass-btn-secondary"
-                                                    style={{
-                                                        padding: '0.25rem 0.55rem',
-                                                        fontSize: '0.75rem',
-                                                        whiteSpace: 'nowrap',
-                                                        boxSizing: 'border-box',
-                                                        borderColor: maxWidth === r.w ? 'var(--color-primary)' : 'var(--glass-border)',
-                                                        color: maxWidth === r.w ? 'var(--color-primary)' : 'inherit'
-                                                    }}
-                                                >
-                                                    {r.label}
-                                                </button>
-                                            ))}
-                                        </div>
+                                    Strictly Preserve Original Pixel Dimensions
+                                </label>
 
-                                        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap', width: '100%', minWidth: 0 }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                                                <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Max Width:</label>
-                                                <input
-                                                    type="number"
-                                                    value={maxWidth}
-                                                    onChange={(e) => setMaxWidth(parseInt(e.target.value) || 0)}
-                                                    className="glass-input"
-                                                    style={{
-                                                        padding: '0.35rem 0.6rem',
-                                                        width: '85px',
-                                                        fontSize: '0.85rem',
-                                                        boxSizing: 'border-box'
-                                                    }}
-                                                />
-                                                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>px</span>
-                                            </div>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                                                <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Max Height:</label>
-                                                <input
-                                                    type="number"
-                                                    value={maxHeight}
-                                                    onChange={(e) => setMaxHeight(parseInt(e.target.value) || 0)}
-                                                    className="glass-input"
-                                                    style={{
-                                                        padding: '0.35rem 0.6rem',
-                                                        width: '85px',
-                                                        fontSize: '0.85rem',
-                                                        boxSizing: 'border-box'
-                                                    }}
-                                                />
-                                                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>px</span>
-                                            </div>
+                                {!preserveDimensions && (
+                                    <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', width: '100%', minWidth: 0 }}>
+                                        <div style={{ flex: '1 1 120px', minWidth: 0 }}>
+                                            <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.35rem' }}>Max Width (px)</label>
+                                            <input
+                                                type="number"
+                                                value={maxWidth}
+                                                onChange={(e) => setMaxWidth(parseInt(e.target.value) || 1920)}
+                                                className="glass-input"
+                                                style={{ width: '100%', padding: '0.55rem', boxSizing: 'border-box' }}
+                                            />
+                                        </div>
+                                        <div style={{ flex: '1 1 120px', minWidth: 0 }}>
+                                            <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.35rem' }}>Max Height (px)</label>
+                                            <input
+                                                type="number"
+                                                value={maxHeight}
+                                                onChange={(e) => setMaxHeight(parseInt(e.target.value) || 1080)}
+                                                className="glass-input"
+                                                style={{ width: '100%', padding: '0.55rem', boxSizing: 'border-box' }}
+                                            />
                                         </div>
                                     </div>
                                 )}
@@ -579,173 +655,7 @@ export const ImageCompressor = () => {
                         </div>
                     </div>
 
-                    {/* File List with Responsive Previews */}
-                    <div style={{ marginBottom: '2rem', maxHeight: '600px', overflowY: 'auto', width: '100%', minWidth: 0 }}>
-                        {files.map((processedFile) => (
-                            <div
-                                key={processedFile.file.name}
-                                className="glass-panel"
-                                style={{
-                                    border: '1px solid var(--glass-border)',
-                                    borderRadius: 'var(--radius-lg)',
-                                    padding: 'clamp(0.85rem, 2.5vw, 1.25rem)',
-                                    marginBottom: '1rem',
-                                    backgroundColor: 'rgba(255, 255, 255, 0.02)',
-                                    width: '100%',
-                                    maxWidth: '100%',
-                                    minWidth: 0,
-                                    boxSizing: 'border-box'
-                                }}
-                            >
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-                                    <div style={{ flex: '1 1 200px', minWidth: 0 }}>
-                                        <div style={{ fontWeight: 700, fontSize: '0.95rem', marginBottom: '0.25rem', wordBreak: 'break-word' }}>
-                                            {processedFile.file.name}
-                                        </div>
-                                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: '1.4', wordBreak: 'break-word' }}>
-                                            Original: {getFormattedSize(processedFile.file.size)}
-                                            {processedFile.result && (
-                                                <>
-                                                    {' → '}
-                                                    <span style={{ color: '#10b981', fontWeight: 700 }}>
-                                                        {getFormattedSize(processedFile.result.compressedSize)}
-                                                    </span>
-                                                    {' '}({processedFile.result.compressionRatio >= 1
-                                                        ? `${((1 - 1 / processedFile.result.compressionRatio) * 100).toFixed(0)}% smaller`
-                                                        : 'same size'})
-                                                    {' • '}{processedFile.result.dimensions.width}×{processedFile.result.dimensions.height}px
-                                                </>
-                                            )}
-                                        </div>
-                                    </div>
-                                    <button
-                                        onClick={() => removeFile(processedFile.file.name)}
-                                        style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', padding: '0.4rem', flexShrink: 0 }}
-                                        title="Remove file"
-                                    >
-                                        <FaTrash />
-                                    </button>
-                                </div>
-
-                                {/* Responsive Image Previews Grid */}
-                                <div style={{
-                                    display: 'grid',
-                                    gridTemplateColumns: processedFile.compressedPreview ? 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))' : '1fr',
-                                    gap: '1rem',
-                                    width: '100%',
-                                    minWidth: 0
-                                }}>
-                                    {/* Original Preview */}
-                                    <div style={{ width: '100%', minWidth: 0 }}>
-                                        <div style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.4rem', color: 'var(--text-muted)' }}>
-                                            ORIGINAL
-                                        </div>
-                                        <img
-                                            src={processedFile.preview}
-                                            alt="Original"
-                                            style={{
-                                                width: '100%',
-                                                height: '180px',
-                                                objectFit: 'contain',
-                                                borderRadius: 'var(--radius-sm)',
-                                                backgroundColor: 'rgba(0, 0, 0, 0.2)',
-                                                border: '1px solid var(--border-subtle)',
-                                                display: 'block'
-                                            }}
-                                        />
-                                    </div>
-
-                                    {/* Compressed Preview */}
-                                    {processedFile.compressedPreview && (
-                                        <div style={{ width: '100%', minWidth: 0 }}>
-                                            <div style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.4rem', color: '#10b981' }}>
-                                                COMPRESSED ({processedFile.result ? getFormattedSize(processedFile.result.compressedSize) : ''})
-                                            </div>
-                                            <img
-                                                src={processedFile.compressedPreview}
-                                                alt="Compressed"
-                                                style={{
-                                                    width: '100%',
-                                                    height: '180px',
-                                                    objectFit: 'contain',
-                                                    borderRadius: 'var(--radius-sm)',
-                                                    backgroundColor: 'rgba(0, 0, 0, 0.2)',
-                                                    border: '2px solid #10b981',
-                                                    display: 'block'
-                                                }}
-                                            />
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* Progress Indicator */}
-                                {processedFile.status === 'processing' && processedFile.progress && (
-                                    <div style={{ marginTop: '1rem', padding: '0.75rem', backgroundColor: 'rgba(255, 42, 68, 0.08)', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(255, 42, 68, 0.25)', width: '100%', boxSizing: 'border-box' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem', flexWrap: 'wrap', gap: '0.4rem' }}>
-                                            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-primary)' }}>
-                                                🔄 Optimizing quality... Pass {processedFile.progress.iteration}
-                                            </span>
-                                            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                                                Quality: {(processedFile.progress.quality * 100).toFixed(0)}%
-                                            </span>
-                                        </div>
-                                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                                            Current probe size: {getFormattedSize(processedFile.progress.currentSize)}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Status & Actions */}
-                                <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', width: '100%', minWidth: 0 }}>
-                                    <div>
-                                        {processedFile.status === 'done' && (
-                                            <span className="neon-badge neon-badge-success">
-                                                ✓ Compressed
-                                            </span>
-                                        )}
-                                        {processedFile.status === 'pending' && (
-                                            <span className="neon-badge" style={{ color: '#f59e0b', borderColor: 'rgba(245, 158, 11, 0.3)', background: 'rgba(245, 158, 11, 0.1)' }}>
-                                                ⏱ Ready
-                                            </span>
-                                        )}
-                                        {processedFile.status === 'error' && (
-                                            <span className="neon-badge" style={{ color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.3)', background: 'rgba(239, 68, 68, 0.1)' }}>
-                                                ✗ Error
-                                            </span>
-                                        )}
-                                    </div>
-                                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                                        {processedFile.status === 'done' && (
-                                            <>
-                                                <button
-                                                    onClick={() => resetFileToRecompress(processedFile.file.name)}
-                                                    className="glass-btn-secondary"
-                                                    style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem', whiteSpace: 'nowrap' }}
-                                                >
-                                                    <FaRedo /> Re-compress
-                                                </button>
-                                                <button
-                                                    onClick={() => downloadSingle(processedFile)}
-                                                    className="glass-btn-primary"
-                                                    style={{
-                                                        padding: '0.4rem 1rem',
-                                                        fontSize: '0.85rem',
-                                                        background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                                                        boxShadow: '0 0 15px -3px rgba(16, 185, 129, 0.4)',
-                                                        whiteSpace: 'nowrap'
-                                                    }}
-                                                >
-                                                    <FaDownload /> Download
-                                                </button>
-                                            </>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-
-                    {/* Action Buttons */}
+                    {/* Primary Action Buttons */}
                     <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', width: '100%', minWidth: 0 }}>
                         <button
                             onClick={handleCompressAll}
@@ -753,14 +663,14 @@ export const ImageCompressor = () => {
                             className="glass-btn-primary"
                             style={{
                                 flex: '1 1 200px',
-                                padding: '0.9rem',
+                                padding: '0.95rem',
                                 fontSize: '1rem',
                                 opacity: (isProcessing || files.every(f => f.status !== 'pending')) ? 0.6 : 1,
                                 boxSizing: 'border-box'
                             }}
                         >
                             <FaImage />
-                            {isProcessing ? 'Compressing...' : 'Compress All Images'}
+                            {isProcessing ? 'Compressing Images...' : `Compress ${files.filter(f => f.status === 'pending').length} Ready Images`}
                         </button>
 
                         {files.some(f => f.status === 'done') && (
@@ -769,7 +679,7 @@ export const ImageCompressor = () => {
                                 className="glass-btn-primary"
                                 style={{
                                     flex: '1 1 180px',
-                                    padding: '0.9rem 1.25rem',
+                                    padding: '0.95rem 1.25rem',
                                     fontSize: '1rem',
                                     background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
                                     boxShadow: '0 0 20px -3px rgba(16, 185, 129, 0.5)',
@@ -782,29 +692,6 @@ export const ImageCompressor = () => {
                     </div>
                 </div>
             )}
-
-            {/* How it Works Information Block */}
-            <div style={{
-                marginTop: '3rem',
-                backgroundColor: 'var(--bg-surface)',
-                padding: 'clamp(1rem, 3vw, 2rem)',
-                borderRadius: 'var(--radius-lg)',
-                border: '1px solid var(--border-subtle)',
-                width: '100%',
-                maxWidth: '100%',
-                minWidth: 0,
-                boxSizing: 'border-box'
-            }}>
-                <h3 style={{ marginBottom: '1rem', color: 'var(--text-main)', fontSize: 'clamp(1.1rem, 2.5vw, 1.3rem)', wordBreak: 'break-word' }}>
-                    Adaptive Compression Technology
-                </h3>
-                <ol style={{ paddingLeft: '1.25rem', color: 'var(--text-muted)', lineHeight: '1.8', fontSize: 'clamp(0.85rem, 2vw, 0.95rem)', wordBreak: 'break-word' }}>
-                    <li><strong>Exact Size Matching</strong>: Our 2-tier bisection algorithm iteratively tests quantization tables until your target size is reached within &le; 1% margin.</li>
-                    <li><strong>Bicubic Anti-Aliasing</strong>: Images downscaled by large ratios pass through stepped downsampling to eliminate moiré and edge artifacts.</li>
-                    <li><strong>Adaptive Resolution</strong>: If a high-megapixel image cannot reach extreme targets (e.g., 20KB or 50KB) through quality alone, it adaptively downscales resolution cleanly.</li>
-                    <li><strong>100% Privacy</strong>: No data is sent over the internet. Everything is computed in your browser using modern Web APIs.</li>
-                </ol>
-            </div>
         </div>
     );
 };

@@ -89,10 +89,14 @@ export const PdfStudio = () => {
                         const ctx = canvas.getContext('2d');
 
                         if (ctx) {
+                            ctx.fillStyle = '#ffffff';
+                            ctx.fillRect(0, 0, canvas.width, canvas.height);
                             ctx.imageSmoothingEnabled = true;
                             ctx.imageSmoothingQuality = 'high';
                             await page.render({ canvasContext: ctx, viewport } as any).promise;
-                            const thumbnail = canvas.toDataURL('image/jpeg', 0.7);
+                            const thumbnail = canvas.toDataURL('image/jpeg', 0.75);
+                            canvas.width = 0;
+                            canvas.height = 0;
 
                             newPageItems.push({
                                 id: `${fileId}-p${i}`,
@@ -471,17 +475,24 @@ export const PdfStudio = () => {
                                         cursor: 'pointer'
                                     }}
                                 >
-                                    <img
-                                        src={page.thumbnail}
-                                        alt={`Page ${index + 1}`}
-                                        style={{
-                                            maxWidth: '100%',
-                                            maxHeight: '100%',
-                                            objectFit: 'contain',
-                                            transform: `rotate(${page.rotation}deg)`,
-                                            transition: 'transform 0.25s ease'
-                                        }}
-                                    />
+                                    {page.thumbnail ? (
+                                        <img
+                                            src={page.thumbnail}
+                                            alt={`Page ${index + 1}`}
+                                            style={{
+                                                maxWidth: '100%',
+                                                maxHeight: '100%',
+                                                objectFit: 'contain',
+                                                transform: `rotate(${page.rotation}deg)`,
+                                                transition: 'transform 0.25s ease'
+                                            }}
+                                        />
+                                    ) : (
+                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', color: '#ef4444' }}>
+                                            <FaFilePdf style={{ fontSize: '2rem', marginBottom: '0.25rem' }} />
+                                            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>Page {index + 1}</span>
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Source File Info */}
