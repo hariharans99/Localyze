@@ -206,7 +206,7 @@ export const UpgradeModal = () => {
 
                     {/* 1-Week Sprint Pass (Featured) */}
                     <div className="glass-card" style={{
-                        padding: '1.5rem 1.25rem',
+                        padding: '1.75rem 1.25rem 1.5rem 1.25rem',
                         borderRadius: 'var(--radius-xl)',
                         border: '2px solid var(--color-primary)',
                         boxShadow: '0 0 30px -8px rgba(255, 42, 68, 0.5)',
@@ -214,22 +214,28 @@ export const UpgradeModal = () => {
                         flexDirection: 'column',
                         justifyContent: 'space-between',
                         position: 'relative',
+                        overflow: 'visible',
                         background: 'rgba(255, 42, 68, 0.04)'
                     }}>
                         <div style={{
                             position: 'absolute',
-                            top: '-12px',
+                            top: '-13px',
                             left: '50%',
                             transform: 'translateX(-50%)',
                             background: 'linear-gradient(135deg, #ff2a44 0%, #ff6b6b 100%)',
                             color: '#ffffff',
-                            fontSize: '0.7rem',
-                            fontWeight: 700,
-                            padding: '0.2rem 0.75rem',
+                            fontSize: '0.72rem',
+                            fontWeight: 800,
+                            letterSpacing: '0.04em',
+                            padding: '0.3rem 0.9rem',
                             borderRadius: 'var(--radius-full)',
-                            boxShadow: '0 4px 12px rgba(255, 42, 68, 0.6)',
+                            boxShadow: '0 4px 14px rgba(255, 42, 68, 0.75)',
                             whiteSpace: 'nowrap',
-                            zIndex: 10
+                            zIndex: 20,
+                            border: '1px solid rgba(255, 255, 255, 0.4)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.3rem'
                         }}>
                             ⭐ MOST POPULAR
                         </div>

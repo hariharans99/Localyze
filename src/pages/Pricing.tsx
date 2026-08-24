@@ -256,7 +256,7 @@ export const Pricing = () => {
 
                 {/* 1-Week Sprint Pass (Featured) */}
                 <div className="glass-card" style={{
-                    padding: '1.75rem 1.5rem',
+                    padding: '2rem 1.5rem 1.75rem 1.5rem',
                     borderRadius: 'var(--radius-xl)',
                     border: '2px solid var(--color-primary)',
                     boxShadow: '0 0 35px -8px rgba(255, 42, 68, 0.45)',
@@ -264,23 +264,29 @@ export const Pricing = () => {
                     flexDirection: 'column',
                     justifyContent: 'space-between',
                     position: 'relative',
+                    overflow: 'visible',
                     width: '100%',
                     boxSizing: 'border-box'
                 }}>
                     <div style={{
                         position: 'absolute',
-                        top: '-13px',
+                        top: '-14px',
                         left: '50%',
                         transform: 'translateX(-50%)',
                         background: 'linear-gradient(135deg, #ff2a44 0%, #ff6b6b 100%)',
                         color: '#ffffff',
-                        fontSize: '0.72rem',
-                        fontWeight: 700,
-                        padding: '0.25rem 0.85rem',
+                        fontSize: '0.75rem',
+                        fontWeight: 800,
+                        letterSpacing: '0.04em',
+                        padding: '0.35rem 1rem',
                         borderRadius: 'var(--radius-full)',
-                        boxShadow: '0 4px 15px rgba(255, 42, 68, 0.7)',
+                        boxShadow: '0 4px 16px rgba(255, 42, 68, 0.75)',
                         whiteSpace: 'nowrap',
-                        zIndex: 10
+                        zIndex: 20,
+                        border: '1px solid rgba(255, 255, 255, 0.4)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.35rem'
                     }}>
                         ⭐ MOST POPULAR
                     </div>
