@@ -139,6 +139,14 @@ export const verifyServerPayment = async (
     return true; // Fallback to client-verified state if offline
 };
 
+const getClientRazorpayKey = (): string => {
+    const rawKey = (import.meta.env.VITE_RAZORPAY_KEY_ID || '').trim();
+    const match = rawKey.match(/(rzp_(?:test|live)_[a-zA-Z0-9]+)/);
+    if (match) return match[1];
+    if (rawKey && rawKey !== 'rzp_test_localyzePublic') return rawKey;
+    return 'rzp_test_TTVaAFshs31QBq';
+};
+
 /**
  * Opens the Razorpay Checkout Modal with Serverless Order & Verification
  */
@@ -159,8 +167,8 @@ export const openRazorpayCheckout = async ({
     // 1. Fetch server order ID
     const serverOrderId = await createServerOrder(plan.id, userId);
 
-    // 2. Read Key ID from environment or default to user test key
-    const keyId = import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_TTVaAFshs31QBq';
+    // 2. Read sanitized Key ID from environment or user test key
+    const keyId = getClientRazorpayKey();
 
     const options = {
         key: keyId,
