@@ -17,9 +17,17 @@ export default async function handler(req: Request) {
     }
 
     try {
-        const body = await req.json();
-        const { planId, userId } = body;
+        let body: any = {};
+        try {
+            body = await req.json();
+        } catch {
+            return new Response(JSON.stringify({ error: 'Invalid JSON body' }), {
+                status: 400,
+                headers: { 'Content-Type': 'application/json' }
+            });
+        }
 
+        const { planId, userId } = body;
         const plan = PLANS[planId];
         if (!plan) {
             return new Response(JSON.stringify({ error: 'Invalid plan selected' }), {
@@ -31,21 +39,7 @@ export default async function handler(req: Request) {
         const keyId = (process.env.RAZORPAY_KEY_ID || process.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_TTVaAFshs31QBq').trim();
         const keySecret = (process.env.RAZORPAY_KEY_SECRET || 'VpeJSw6n0YKh4x5Tu8l8IVW4').trim();
 
-        // If credentials are completely empty, generate sandbox order ID for testing
-        if (!keyId || !keySecret) {
-            const mockOrderId = `order_test_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-            return new Response(JSON.stringify({
-                orderId: mockOrderId,
-                amount: plan.amountPaise,
-                currency: 'INR',
-                isSandbox: true
-            }), {
-                status: 200,
-                headers: { 'Content-Type': 'application/json' }
-            });
-        }
-
-        // Call Razorpay API to create official order
+        // Call official Razorpay API
         const basicAuth = btoa(`${keyId}:${keySecret}`);
         const response = await fetch('https://api.razorpay.com/v1/orders', {
             method: 'POST',
@@ -64,16 +58,26 @@ export default async function handler(req: Request) {
             })
         });
 
+        const resText = await response.text();
+        let orderData: any = {};
+        try {
+            orderData = JSON.parse(resText);
+        } catch {
+            console.error('Non-JSON response from Razorpay:', resText);
+            return new Response(JSON.stringify({ error: 'Non-JSON response from Razorpay', raw: resText }), {
+                status: 502,
+                headers: { 'Content-Type': 'application/json' }
+            });
+        }
+
         if (!response.ok) {
-            const errData = await response.json();
-            console.error('Razorpay order creation failed:', errData);
-            return new Response(JSON.stringify({ error: 'Failed to create Razorpay order', details: errData }), {
+            console.error('Razorpay order creation failed:', orderData);
+            return new Response(JSON.stringify({ error: 'Failed to create Razorpay order', details: orderData }), {
                 status: response.status,
                 headers: { 'Content-Type': 'application/json' }
             });
         }
 
-        const orderData = await response.json();
         return new Response(JSON.stringify({
             orderId: orderData.id,
             amount: orderData.amount,
@@ -84,7 +88,7 @@ export default async function handler(req: Request) {
         });
 
     } catch (err: any) {
-        console.error('Create order error:', err);
+        console.error('Create order exception:', err);
         return new Response(JSON.stringify({ error: err.message || 'Internal server error' }), {
             status: 500,
             headers: { 'Content-Type': 'application/json' }

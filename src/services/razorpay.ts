@@ -98,9 +98,12 @@ export const createServerOrder = async (planId: string, userId: string): Promise
         if (res.ok) {
             const data = await res.json();
             return data.orderId || null;
+        } else {
+            const errText = await res.text();
+            console.warn('Could not create server order (/api/create-order):', res.status, errText);
         }
     } catch (e) {
-        console.warn('Could not connect to /api/create-order (running client fallback):', e);
+        console.warn('Could not connect to /api/create-order:', e);
     }
     return null;
 };
