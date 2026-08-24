@@ -22,9 +22,25 @@ export class ErrorBoundary extends Component<Props, State> {
 
     public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
         console.error('Uncaught error in component tree:', error, errorInfo);
+
+        // If a new version was deployed while the user had the app open, chunk hashes change.
+        // Automatically reload once to fetch the latest deployment chunks seamlessly.
+        if (
+            error.message?.includes('dynamically imported module') ||
+            error.message?.includes('Failed to fetch dynamically imported module') ||
+            error.message?.includes('Loading chunk')
+        ) {
+            const hasReloaded = sessionStorage.getItem('chunk_reload_attempted');
+            if (!hasReloaded) {
+                sessionStorage.setItem('chunk_reload_attempted', 'true');
+                window.location.reload();
+                return;
+            }
+        }
     }
 
     private handleReset = () => {
+        sessionStorage.removeItem('chunk_reload_attempted');
         this.setState({ hasError: false, error: null });
         window.location.reload();
     };
