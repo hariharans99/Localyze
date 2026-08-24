@@ -9,15 +9,15 @@ const getRazorpayCredentials = () => {
     let rawKeySecret = (process.env.RAZORPAY_KEY_SECRET || '').trim();
 
     if (!rawKeyId || rawKeyId === 'rzp_test_localyzePublic' || rawKeyId.includes('localyzePublic')) {
-        rawKeyId = 'rzp_test_TTVaAFshs31QBq';
+        rawKeyId = 'rzp_live_TTWRSELDvdYygE';
     }
 
     const matchKey = rawKeyId.match(/(rzp_(?:test|live)_[a-zA-Z0-9]+)/);
-    let keyId = matchKey && matchKey[1] !== 'rzp_test_localyzePublic' ? matchKey[1] : 'rzp_test_TTVaAFshs31QBq';
+    let keyId = matchKey && matchKey[1] !== 'rzp_test_localyzePublic' ? matchKey[1] : 'rzp_live_TTWRSELDvdYygE';
 
     let keySecret = rawKeySecret.replace(/^(?:Key\s*Secret\s*:?|Secret\s*:?)\s*/i, '').trim();
     if (!keySecret || keySecret === 'rzp_test_secret') {
-        keySecret = 'VpeJSw6n0YKh4x5Tu8l8IVW4';
+        keySecret = 'mmeEi51sQW43DO491QrdVuYO';
     }
 
     return { keyId, keySecret };

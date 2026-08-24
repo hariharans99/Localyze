@@ -142,13 +142,13 @@ export const verifyServerPayment = async (
 const getClientRazorpayKey = (): string => {
     const rawKey = (import.meta.env.VITE_RAZORPAY_KEY_ID || '').trim();
     if (!rawKey || rawKey === 'rzp_test_localyzePublic' || rawKey.includes('localyzePublic')) {
-        return 'rzp_test_TTVaAFshs31QBq';
+        return 'rzp_live_TTWRSELDvdYygE';
     }
     const match = rawKey.match(/(rzp_(?:test|live)_[a-zA-Z0-9]+)/);
     if (match && match[1] !== 'rzp_test_localyzePublic') {
         return match[1];
     }
-    return 'rzp_test_TTVaAFshs31QBq';
+    return 'rzp_live_TTWRSELDvdYygE';
 };
 
 /**
