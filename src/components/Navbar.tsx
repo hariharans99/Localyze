@@ -139,7 +139,8 @@ export const Navbar = () => {
                         {isPro ? (
                             <>
                                 <FaCrown style={{ color: '#fbbf24', fontSize: '0.85rem' }} />
-                                <span>VIP</span>
+                                <span className="nav-btn-text-full">{activePass?.planName || 'VIP'} ({usageCount})</span>
+                                <span className="nav-btn-text-short">VIP ({usageCount})</span>
                             </>
                         ) : isFreeLimitReached ? (
                             <>
@@ -193,7 +194,8 @@ export const Navbar = () => {
                                     color: '#ffffff',
                                     fontSize: '0.65rem',
                                     flexShrink: 0
-                                }}>
+                                }}
+                                >
                                     {user.email ? user.email.charAt(0).toUpperCase() : <FaUser />}
                                 </div>
                                 <span className="nav-btn-text-full" style={{ maxWidth: '80px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -220,11 +222,18 @@ export const Navbar = () => {
                                     <div style={{ paddingBottom: '0.5rem', marginBottom: '0.5rem', borderBottom: '1px solid var(--border-subtle)' }}>
                                         <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Signed in as</div>
                                         <div style={{ fontSize: '0.85rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.email}</div>
-                                        {isPro && (
+                                        {isPro ? (
                                             <div style={{ fontSize: '0.75rem', color: 'var(--color-primary)', fontWeight: 600, marginTop: '0.2rem' }}>
                                                 👑 {activePass?.planName}
                                             </div>
+                                        ) : (
+                                            <div style={{ fontSize: '0.75rem', color: isFreeLimitReached ? '#ef4444' : 'var(--text-muted)', fontWeight: 500, marginTop: '0.2rem' }}>
+                                                ⚡ Free Tier: {usageCount}/{freeLimit}
+                                            </div>
                                         )}
+                                        <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', marginTop: '0.25rem' }}>
+                                            Total DB Operations: <strong style={{ color: 'var(--text-main)' }}>{usageCount}</strong>
+                                        </div>
                                     </div>
 
                                     <button
