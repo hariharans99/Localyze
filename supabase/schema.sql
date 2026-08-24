@@ -1,6 +1,5 @@
 -- ==============================================================================
 -- Localyze Supabase Database Schema (Idempotent & Production-Ready)
--- Run this script in your Supabase SQL Editor: https://supabase.com/dashboard/project/_/sql
 -- ==============================================================================
 
 -- 1. Create the user_subscriptions table
@@ -24,28 +23,28 @@ create index if not exists idx_user_subscriptions_expires_at on public.user_subs
 -- 3. Enable Row Level Security (RLS)
 alter table public.user_subscriptions enable row level security;
 
--- 4. Idempotent Policy: Users can view only their own subscriptions
+-- 4. Policy: Users can view only their own subscriptions
 drop policy if exists "Users can view own subscription" on public.user_subscriptions;
 create policy "Users can view own subscription"
 on public.user_subscriptions for select
 to authenticated
 using (auth.uid() = user_id);
 
--- 5. Idempotent Policy: Users can insert their own subscriptions
+-- 5. Policy: Users can insert their own subscriptions
 drop policy if exists "Users can insert own subscription" on public.user_subscriptions;
 create policy "Users can insert own subscription"
 on public.user_subscriptions for insert
 to authenticated
 with check (auth.uid() = user_id);
 
--- 6. Idempotent Policy: Users can update their own subscriptions
+-- 6. Policy: Users can update their own subscriptions
 drop policy if exists "Users can update own subscription" on public.user_subscriptions;
 create policy "Users can update own subscription"
 on public.user_subscriptions for update
 to authenticated
 using (auth.uid() = user_id);
 
--- 7. Fix Security Definer Warning (if function exists)
+-- 7. Fix Security Definer (if any legacy trigger existed)
 do $$
 begin
     if exists (select 1 from pg_proc where proname = 'rls_auto_enable') then
