@@ -16,6 +16,7 @@ const PdfMerge = lazy(() => import('./pages/tools/PdfMerge').then(module => ({ d
 const PdfSplit = lazy(() => import('./pages/tools/PdfSplit').then(module => ({ default: module.PdfSplit })));
 const PdfToJpg = lazy(() => import('./pages/tools/PdfToJpg').then(module => ({ default: module.PdfToJpg })));
 const PdfRemovePages = lazy(() => import('./pages/tools/PdfRemovePages').then(module => ({ default: module.PdfRemovePages })));
+const PdfStudio = lazy(() => import('./pages/tools/PdfStudio').then(module => ({ default: module.PdfStudio })));
 
 // Frosted Glass Glowing Loading Component
 const LoadingSpinner = () => (
@@ -122,6 +123,16 @@ function App() {
               <Route path="remove-pages" element={
                 <Suspense fallback={<LoadingSpinner />}>
                   <PdfRemovePages />
+                </Suspense>
+              } />
+              <Route path="pdf-studio" element={
+                <Suspense fallback={<LoadingSpinner />}>
+                  <PdfStudio />
+                </Suspense>
+              } />
+              <Route path="organize-pdf" element={
+                <Suspense fallback={<LoadingSpinner />}>
+                  <PdfStudio />
                 </Suspense>
               } />
             </Route>

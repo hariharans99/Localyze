@@ -30,6 +30,17 @@ export const Home = () => {
             glowColor: 'rgba(255, 42, 68, 0.45)'
         },
         {
+            id: 'pdf-studio',
+            name: 'All-in-One PDF Studio',
+            category: 'PDF Tools',
+            desc: 'Organize, merge, rotate, reorder, and delete pages visually across multiple documents.',
+            icon: <FaLayerGroup />,
+            path: '/tools/pdf-studio',
+            badge: 'Pro All-in-One',
+            color: '#ff2a44',
+            glowColor: 'rgba(255, 42, 68, 0.45)'
+        },
+        {
             id: 'compress-pdf',
             name: 'PDF Compressor',
             category: 'PDF Tools',
@@ -173,10 +184,13 @@ export const Home = () => {
                     marginBottom: '3rem'
                 }}>
                     <Link to="/tools/compress" className="glass-btn-primary" style={{ padding: '0.85rem 1.75rem', fontSize: '1rem' }}>
-                        <FaImage /> Launch Image Compressor <FaArrowRight style={{ fontSize: '0.85rem' }} />
+                        <FaImage /> Image Compressor <FaArrowRight style={{ fontSize: '0.85rem' }} />
+                    </Link>
+                    <Link to="/tools/pdf-studio" className="glass-btn-secondary" style={{ padding: '0.85rem 1.75rem', fontSize: '1rem', borderColor: 'rgba(255, 42, 68, 0.4)', color: 'var(--color-primary)' }}>
+                        <FaLayerGroup /> All-in-One PDF Studio
                     </Link>
                     <Link to="/tools/compress-pdf" className="glass-btn-secondary" style={{ padding: '0.85rem 1.75rem', fontSize: '1rem' }}>
-                        <FaFilePdf style={{ color: '#ef4444' }} /> Compress PDF for Portals
+                        <FaFilePdf style={{ color: '#ef4444' }} /> Compress PDF
                     </Link>
                 </div>
             </div>
