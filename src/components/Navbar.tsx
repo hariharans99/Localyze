@@ -25,34 +25,46 @@ export const Navbar = () => {
     return (
         <header style={{
             position: 'sticky',
-            top: '1rem',
+            top: '0.75rem',
             zIndex: 100,
-            padding: '0 1rem',
-            marginBottom: '1rem'
+            padding: '0 clamp(0.5rem, 2.5vw, 1rem)',
+            marginBottom: '1rem',
+            width: '100%',
+            maxWidth: '100%',
+            boxSizing: 'border-box'
         }}>
             <nav className="container glass-panel" style={{
-                height: '68px',
+                minHeight: '62px',
+                height: 'auto',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                padding: '0 1.5rem',
+                padding: '0.5rem clamp(0.75rem, 2.5vw, 1.25rem)',
                 borderRadius: 'var(--radius-xl)',
                 border: '1px solid var(--glass-border)',
                 background: 'var(--glass-bg)',
                 backdropFilter: 'var(--glass-blur-lg)',
                 WebkitBackdropFilter: 'var(--glass-blur-lg)',
-                boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.25), var(--glass-highlight)'
+                boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.25), var(--glass-highlight)',
+                width: '100%',
+                boxSizing: 'border-box',
+                gap: '0.5rem'
             }}>
-                <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', textDecoration: 'none' }}>
-                    <div style={{
-                        width: '42px',
-                        height: '42px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        filter: 'drop-shadow(0 0 12px rgba(255, 42, 68, 0.5))',
-                        transition: 'transform 0.25s ease'
-                    }}>
+                {/* Logo & Brand */}
+                <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', textDecoration: 'none', minWidth: 0, flexShrink: 0 }}>
+                    <div
+                        className="nav-logo-icon"
+                        style={{
+                            width: '38px',
+                            height: '38px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            filter: 'drop-shadow(0 0 10px rgba(255, 42, 68, 0.45))',
+                            transition: 'transform 0.25s ease',
+                            flexShrink: 0
+                        }}
+                    >
                         <img
                             src="/logo.png"
                             alt="Localyze Logo"
@@ -63,40 +75,47 @@ export const Navbar = () => {
                             }}
                         />
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                        <span style={{
-                            fontFamily: 'var(--font-display)',
-                            fontSize: '1.4rem',
-                            fontWeight: 800,
-                            letterSpacing: '-0.02em',
-                            background: 'linear-gradient(135deg, #ff2a44 0%, #ff6b6b 50%, #ffa07a 100%)',
-                            WebkitBackgroundClip: 'text',
-                            WebkitTextFillColor: 'transparent'
-                        }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                        <span
+                            className="nav-brand-text"
+                            style={{
+                                fontFamily: 'var(--font-display)',
+                                fontSize: '1.3rem',
+                                fontWeight: 800,
+                                letterSpacing: '-0.02em',
+                                background: 'linear-gradient(135deg, #ff2a44 0%, #ff6b6b 50%, #ffa07a 100%)',
+                                WebkitBackgroundClip: 'text',
+                                WebkitTextFillColor: 'transparent',
+                                whiteSpace: 'nowrap'
+                            }}
+                        >
                             Localyze
                         </span>
                     </div>
                 </Link>
 
-                <div style={{ display: 'flex', gap: '0.65rem', alignItems: 'center' }}>
+                {/* Right Action Items */}
+                <div style={{ display: 'flex', gap: 'clamp(0.35rem, 1.5vw, 0.6rem)', alignItems: 'center', flexShrink: 0 }}>
                     {/* Pricing / VIP Badge */}
                     <Link
                         to="/pricing"
+                        className="nav-action-btn"
                         style={{
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '0.4rem',
-                            padding: '0.45rem 0.9rem',
+                            gap: '0.35rem',
+                            padding: '0.4rem 0.85rem',
                             borderRadius: 'var(--radius-full)',
                             fontSize: '0.82rem',
                             fontWeight: 600,
                             textDecoration: 'none',
                             transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                            whiteSpace: 'nowrap',
                             ...(isPro ? {
                                 background: 'linear-gradient(135deg, rgba(255, 42, 68, 0.2) 0%, rgba(255, 107, 107, 0.2) 100%)',
                                 border: '1px solid var(--color-primary)',
                                 color: '#ffffff',
-                                boxShadow: '0 0 16px -2px rgba(255, 42, 68, 0.5)'
+                                boxShadow: '0 0 14px -2px rgba(255, 42, 68, 0.45)'
                             } : {
                                 background: 'rgba(255, 255, 255, 0.05)',
                                 border: '1px solid var(--glass-border)',
@@ -116,12 +135,13 @@ export const Navbar = () => {
                         {isPro ? (
                             <>
                                 <FaCrown style={{ color: '#fbbf24', fontSize: '0.85rem' }} />
-                                <span>VIP Pass</span>
+                                <span>VIP</span>
                             </>
                         ) : (
                             <>
                                 <FaBolt style={{ color: 'var(--color-primary)', fontSize: '0.8rem' }} />
-                                <span>Plans from ₹9</span>
+                                <span className="nav-btn-text-full">Plans from ₹9</span>
+                                <span className="nav-btn-text-short">₹9</span>
                             </>
                         )}
                     </Link>
@@ -131,34 +151,36 @@ export const Navbar = () => {
                         <div ref={menuRef} style={{ position: 'relative' }}>
                             <button
                                 onClick={() => setIsMenuOpen(!isMenuOpen)}
+                                className="nav-action-btn"
                                 style={{
                                     display: 'flex',
                                     alignItems: 'center',
-                                    gap: '0.5rem',
-                                    padding: '0.4rem 0.75rem',
+                                    gap: '0.4rem',
+                                    padding: '0.35rem 0.65rem',
                                     borderRadius: 'var(--radius-full)',
                                     background: 'rgba(255, 255, 255, 0.06)',
                                     border: '1px solid var(--glass-border)',
                                     color: 'var(--text-main)',
                                     cursor: 'pointer',
-                                    fontSize: '0.82rem',
+                                    fontSize: '0.8rem',
                                     fontWeight: 500
                                 }}
                             >
                                 <div style={{
-                                    width: '24px',
-                                    height: '24px',
+                                    width: '22px',
+                                    height: '22px',
                                     borderRadius: '50%',
                                     background: 'var(--color-primary)',
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
                                     color: '#ffffff',
-                                    fontSize: '0.7rem'
+                                    fontSize: '0.65rem',
+                                    flexShrink: 0
                                 }}>
                                     {user.email ? user.email.charAt(0).toUpperCase() : <FaUser />}
                                 </div>
-                                <span style={{ maxWidth: '90px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                <span className="nav-btn-text-full" style={{ maxWidth: '80px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                     {user.email?.split('@')[0]}
                                 </span>
                             </button>
@@ -217,24 +239,26 @@ export const Navbar = () => {
                     ) : (
                         <button
                             onClick={() => openAuthModal('login')}
+                            className="nav-action-btn"
                             style={{
                                 display: 'flex',
                                 alignItems: 'center',
-                                gap: '0.4rem',
-                                padding: '0.45rem 0.85rem',
+                                gap: '0.35rem',
+                                padding: '0.4rem 0.75rem',
                                 borderRadius: 'var(--radius-full)',
                                 background: 'rgba(255, 255, 255, 0.05)',
                                 border: '1px solid var(--glass-border)',
                                 color: 'var(--text-main)',
-                                fontSize: '0.82rem',
+                                fontSize: '0.8rem',
                                 fontWeight: 500,
                                 cursor: 'pointer',
-                                transition: 'all 0.2s'
+                                transition: 'all 0.2s',
+                                whiteSpace: 'nowrap'
                             }}
                             onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--color-primary)'; }}
                             onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--glass-border)'; }}
                         >
-                            <FaShieldAlt style={{ color: 'var(--color-primary)' }} />
+                            <FaShieldAlt style={{ color: 'var(--color-primary)', fontSize: '0.78rem' }} />
                             <span>Sign In</span>
                         </button>
                     )}
@@ -242,9 +266,10 @@ export const Navbar = () => {
                     {/* Theme Toggle */}
                     <button
                         onClick={toggleTheme}
+                        className="nav-theme-btn"
                         style={{
-                            width: '38px',
-                            height: '38px',
+                            width: '36px',
+                            height: '36px',
                             borderRadius: 'var(--radius-full)',
                             display: 'flex',
                             alignItems: 'center',
@@ -254,7 +279,8 @@ export const Navbar = () => {
                             border: '1px solid var(--glass-border)',
                             cursor: 'pointer',
                             transition: 'all 0.25s ease',
-                            fontSize: '0.9rem'
+                            fontSize: '0.85rem',
+                            flexShrink: 0
                         }}
                         onMouseEnter={(e) => {
                             e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';

@@ -110,13 +110,7 @@ export const Home = () => {
             />
 
             {/* Minimalist Category Filter Pills */}
-            <div style={{
-                display: 'flex',
-                justifyContent: 'center',
-                gap: '0.6rem',
-                marginBottom: '1.75rem',
-                flexWrap: 'wrap'
-            }}>
+            <div className="category-pills-container">
                 {(['All', 'Image Tools', 'PDF Tools'] as const).map((cat) => {
                     const isActive = selectedCategory === cat;
                     const count = cat === 'All' ? tools.length : tools.filter(t => t.category === cat).length;
@@ -125,6 +119,7 @@ export const Home = () => {
                             key={cat}
                             type="button"
                             onClick={() => setSelectedCategory(cat)}
+                            className="category-pill-btn"
                             style={{
                                 padding: '0.45rem 1.15rem',
                                 borderRadius: 'var(--radius-full)',
