@@ -36,8 +36,8 @@ const LoadingSpinner = () => (
         position: 'absolute',
         inset: 0,
         borderRadius: '50%',
-        background: 'linear-gradient(135deg, var(--color-primary), #9d50bb)',
-        opacity: 0.3,
+        background: 'linear-gradient(135deg, var(--color-primary), #ff6b6b)',
+        opacity: 0.35,
         filter: 'blur(10px)',
         animation: 'pulseGlow 2s ease-in-out infinite alternate'
       }} />
@@ -46,7 +46,7 @@ const LoadingSpinner = () => (
         height: '100%',
         border: '3px solid rgba(255, 255, 255, 0.1)',
         borderTopColor: 'var(--color-primary)',
-        borderRightColor: '#9d50bb',
+        borderRightColor: '#ff6b6b',
         borderRadius: '50%',
         animation: 'spin 0.8s cubic-bezier(0.4, 0, 0.2, 1) infinite'
       }} />

@@ -26,8 +26,8 @@ export const Home = () => {
             icon: <FaImage />,
             path: '/tools/compress',
             badge: 'High Precision',
-            color: '#00d2ff',
-            glowColor: 'rgba(0, 210, 255, 0.4)'
+            color: '#ff2a44',
+            glowColor: 'rgba(255, 42, 68, 0.45)'
         },
         {
             id: 'compress-pdf',

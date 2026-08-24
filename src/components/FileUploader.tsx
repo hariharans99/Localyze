@@ -75,7 +75,7 @@ export const FileUploader: React.FC<FileUploaderProps> = ({
                 padding: 'clamp(2.5rem, 5vw, 4rem) 2rem',
                 textAlign: 'center',
                 cursor: 'pointer',
-                backgroundColor: isDragOver ? 'rgba(0, 210, 255, 0.08)' : 'var(--glass-bg)',
+                backgroundColor: isDragOver ? 'rgba(255, 42, 68, 0.08)' : 'var(--glass-bg)',
                 backdropFilter: 'var(--glass-blur)',
                 WebkitBackdropFilter: 'var(--glass-blur)',
                 boxShadow: isDragOver ? 'var(--shadow-glow)' : 'var(--glass-highlight), var(--shadow-md)',
@@ -89,7 +89,7 @@ export const FileUploader: React.FC<FileUploaderProps> = ({
             }}
             onMouseEnter={(e) => {
                 if (!isDragOver) {
-                    e.currentTarget.style.borderColor = 'rgba(0, 210, 255, 0.5)';
+                    e.currentTarget.style.borderColor = 'rgba(255, 42, 68, 0.5)';
                     e.currentTarget.style.transform = 'translateY(-2px)';
                 }
             }}
@@ -109,16 +109,16 @@ export const FileUploader: React.FC<FileUploaderProps> = ({
                 style={{ display: 'none' }}
             />
 
-            {/* Glowing Icon Container */}
+            {/* Glowing Icon Container with Crimson Specular */}
             <div style={{
                 width: '76px',
                 height: '76px',
                 borderRadius: 'var(--radius-lg)',
                 background: isDragOver
-                    ? 'linear-gradient(135deg, rgba(0, 210, 255, 0.3), rgba(99, 102, 241, 0.3))'
-                    : 'linear-gradient(135deg, rgba(0, 210, 255, 0.12), rgba(99, 102, 241, 0.12))',
-                border: '1px solid rgba(0, 210, 255, 0.3)',
-                boxShadow: '0 0 24px -4px rgba(0, 210, 255, 0.3)',
+                    ? 'linear-gradient(135deg, rgba(255, 42, 68, 0.35), rgba(255, 107, 107, 0.35))'
+                    : 'linear-gradient(135deg, rgba(255, 42, 68, 0.14), rgba(225, 29, 72, 0.14))',
+                border: '1px solid rgba(255, 42, 68, 0.35)',
+                boxShadow: '0 0 24px -4px rgba(255, 42, 68, 0.35)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',

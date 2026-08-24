@@ -1,33 +1,33 @@
 :root {
-  /* Cosmic Dark Base (Default) */
-  --bg-app: #0a0c14;
-  --bg-surface: rgba(22, 27, 46, 0.65);
-  --bg-surface-elevated: rgba(30, 38, 64, 0.75);
-  --bg-surface-hover: rgba(45, 55, 92, 0.5);
+  /* Cosmic Obsidian Dark Base (Matching Logo) */
+  --bg-app: #0b0d13;
+  --bg-surface: rgba(22, 25, 36, 0.65);
+  --bg-surface-elevated: rgba(28, 32, 46, 0.78);
+  --bg-surface-hover: rgba(45, 50, 70, 0.5);
 
   /* Glassmorphism Variables */
   --glass-bg: rgba(255, 255, 255, 0.04);
   --glass-bg-hover: rgba(255, 255, 255, 0.08);
   --glass-border: rgba(255, 255, 255, 0.1);
-  --glass-border-hover: rgba(255, 255, 255, 0.22);
+  --glass-border-hover: rgba(255, 42, 68, 0.4);
   --glass-highlight: inset 0 1px 1px 0 rgba(255, 255, 255, 0.2);
   --glass-blur: blur(20px);
   --glass-blur-lg: blur(32px);
 
-  /* Neon & Gradient Accents */
-  --color-primary: #00d2ff;
-  --color-primary-hover: #47d6ff;
-  --color-secondary: #9d50bb;
-  --color-accent: #6366f1;
-  --color-accent-pink: #f43f5e;
+  /* Logo-Matching Scarlet & Crimson Accents */
+  --color-primary: #ff2a44;
+  --color-primary-hover: #ff4d64;
+  --color-secondary: #ff6b6b;
+  --color-accent: #e11d48;
+  --color-accent-pink: #ff3366;
   --color-success: #10b981;
   --color-warning: #f59e0b;
 
   /* Atmospheric Gradients */
-  --gradient-primary: linear-gradient(135deg, #00d2ff 0%, #6366f1 50%, #9d50bb 100%);
-  --gradient-card: linear-gradient(135deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0.02) 100%);
-  --gradient-button: linear-gradient(135deg, #00d2ff 0%, #6366f1 100%);
-  --gradient-glow: linear-gradient(135deg, rgba(0, 210, 255, 0.4), rgba(157, 80, 187, 0.4));
+  --gradient-primary: linear-gradient(135deg, #ff2a44 0%, #ff6b6b 50%, #ffa07a 100%);
+  --gradient-card: linear-gradient(135deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 42, 68, 0.02) 100%);
+  --gradient-button: linear-gradient(135deg, #ff2a44 0%, #e11d48 100%);
+  --gradient-glow: linear-gradient(135deg, rgba(255, 42, 68, 0.45), rgba(255, 107, 107, 0.3));
 
   /* Typography Colors */
   --text-main: #f8fafc;
@@ -36,13 +36,13 @@
 
   /* Borders & Glows */
   --border-subtle: rgba(255, 255, 255, 0.08);
-  --border-focus: #00d2ff;
+  --border-focus: #ff2a44;
 
-  --shadow-sm: 0 2px 8px 0 rgba(0, 0, 0, 0.2);
-  --shadow-md: 0 8px 24px -4px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 16px 40px -8px rgba(0, 0, 0, 0.6);
-  --shadow-glow: 0 0 30px -5px rgba(0, 210, 255, 0.35);
-  --shadow-glow-purple: 0 0 30px -5px rgba(157, 80, 187, 0.35);
+  --shadow-sm: 0 2px 8px 0 rgba(0, 0, 0, 0.25);
+  --shadow-md: 0 8px 24px -4px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 16px 40px -8px rgba(0, 0, 0, 0.65);
+  --shadow-glow: 0 0 30px -5px rgba(255, 42, 68, 0.45);
+  --shadow-glow-purple: 0 0 30px -5px rgba(255, 107, 107, 0.35);
 
   /* Spacing */
   --spacing-xs: 0.25rem;
@@ -66,29 +66,29 @@
 }
 
 [data-theme="light"] {
-  --bg-app: #f0f4f9;
-  --bg-surface: rgba(255, 255, 255, 0.75);
-  --bg-surface-elevated: rgba(255, 255, 255, 0.9);
-  --bg-surface-hover: rgba(241, 245, 249, 0.9);
+  --bg-app: #f4f6fa;
+  --bg-surface: rgba(255, 255, 255, 0.82);
+  --bg-surface-elevated: rgba(255, 255, 255, 0.95);
+  --bg-surface-hover: rgba(245, 247, 250, 0.95);
 
-  --glass-bg: rgba(255, 255, 255, 0.65);
-  --glass-bg-hover: rgba(255, 255, 255, 0.85);
-  --glass-border: rgba(255, 255, 255, 0.8);
-  --glass-border-hover: rgba(0, 210, 255, 0.4);
-  --glass-highlight: inset 0 1px 2px 0 rgba(255, 255, 255, 0.9);
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-bg-hover: rgba(255, 255, 255, 0.9);
+  --glass-border: rgba(0, 0, 0, 0.08);
+  --glass-border-hover: rgba(255, 42, 68, 0.4);
+  --glass-highlight: inset 0 1px 2px 0 rgba(255, 255, 255, 0.95);
 
   --text-main: #0f172a;
   --text-muted: #475569;
   --text-dim: #94a3b8;
 
-  --border-subtle: rgba(226, 232, 240, 0.8);
-  --border-focus: #6366f1;
+  --border-subtle: rgba(0, 0, 0, 0.06);
+  --border-focus: #ff2a44;
 
   --shadow-sm: 0 2px 8px 0 rgba(0, 0, 0, 0.04);
   --shadow-md: 0 8px 24px -4px rgba(0, 0, 0, 0.08);
   --shadow-lg: 0 16px 40px -8px rgba(0, 0, 0, 0.12);
-  --shadow-glow: 0 0 30px -5px rgba(99, 102, 241, 0.25);
-  --shadow-glow-purple: 0 0 30px -5px rgba(157, 80, 187, 0.2);
+  --shadow-glow: 0 0 30px -5px rgba(255, 42, 68, 0.25);
+  --shadow-glow-purple: 0 0 30px -5px rgba(255, 107, 107, 0.2);
 }
 
 body {
@@ -113,10 +113,10 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 42, 68, 0.25);
   border-radius: var(--radius-full);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 42, 68, 0.5);
 }

@@ -54,23 +54,23 @@ h1, h2, h3, h4, .font-display {
   justify-content: center;
 }
 
-/* Text Gradients */
+/* Logo-Matched Text Gradients */
 .text-gradient {
-  background: linear-gradient(135deg, #00d2ff 0%, #a855f7 50%, #ec4899 100%);
+  background: linear-gradient(135deg, #ff2a44 0%, #ff6b6b 50%, #ffa07a 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 .text-gradient-cyan {
-  background: linear-gradient(135deg, #00d2ff 0%, #3b82f6 100%);
+  background: linear-gradient(135deg, #ff2a44 0%, #e11d48 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 .text-gradient-purple {
-  background: linear-gradient(135deg, #c084fc 0%, #ec4899 100%);
+  background: linear-gradient(135deg, #ff6b6b 0%, #ff2a44 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -128,10 +128,10 @@ h1, h2, h3, h4, .font-display {
 
 /* Glass Buttons */
 .glass-btn-primary {
-  background: linear-gradient(135deg, rgba(0, 210, 255, 0.85) 0%, rgba(99, 102, 241, 0.85) 100%);
+  background: linear-gradient(135deg, #ff2a44 0%, #e11d48 100%);
   color: #ffffff;
   border: 1px solid rgba(255, 255, 255, 0.3);
-  box-shadow: 0 0 20px -5px rgba(0, 210, 255, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.4);
+  box-shadow: 0 0 20px -4px rgba(255, 42, 68, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.4);
   border-radius: var(--radius-md);
   font-weight: 600;
   padding: 0.75rem 1.5rem;
@@ -144,9 +144,9 @@ h1, h2, h3, h4, .font-display {
 }
 
 .glass-btn-primary:hover {
-  background: linear-gradient(135deg, #00d2ff 0%, #6366f1 100%);
+  background: linear-gradient(135deg, #ff415a 0%, #f43f5e 100%);
   transform: translateY(-2px);
-  box-shadow: 0 0 30px -4px rgba(0, 210, 255, 0.7), inset 0 1px 2px rgba(255, 255, 255, 0.6);
+  box-shadow: 0 0 30px -3px rgba(255, 42, 68, 0.7), inset 0 1px 2px rgba(255, 255, 255, 0.6);
 }
 
 .glass-btn-secondary {
@@ -187,11 +187,11 @@ h1, h2, h3, h4, .font-display {
 
 .glass-input:focus {
   border-color: var(--color-primary);
-  box-shadow: 0 0 15px -3px rgba(0, 210, 255, 0.3);
+  box-shadow: 0 0 15px -3px rgba(255, 42, 68, 0.35);
   background: rgba(255, 255, 255, 0.08);
 }
 
-/* Background Ambient Orbs */
+/* Background Ambient Orbs (Scarlet / Coral / Ruby Glows) */
 .ambient-orb-container {
   position: fixed;
   inset: 0;
@@ -209,16 +209,16 @@ h1, h2, h3, h4, .font-display {
 }
 
 [data-theme="light"] .ambient-orb {
-  opacity: 0.22;
+  opacity: 0.18;
   filter: blur(100px);
 }
 
 .ambient-orb-1 {
-  width: 500px;
-  height: 500px;
+  width: 520px;
+  height: 520px;
   top: -100px;
   left: 15%;
-  background: radial-gradient(circle, #00d2ff 0%, #3b82f6 70%, transparent 100%);
+  background: radial-gradient(circle, #ff2a44 0%, #e11d48 70%, transparent 100%);
   animation-duration: 18s;
 }
 
@@ -227,17 +227,17 @@ h1, h2, h3, h4, .font-display {
   height: 600px;
   top: 30%;
   right: -100px;
-  background: radial-gradient(circle, #9d50bb 0%, #6366f1 70%, transparent 100%);
+  background: radial-gradient(circle, #ff6b6b 0%, #ffa07a 70%, transparent 100%);
   animation-duration: 24s;
   animation-delay: -5s;
 }
 
 .ambient-orb-3 {
-  width: 450px;
-  height: 450px;
+  width: 460px;
+  height: 460px;
   bottom: 5%;
   left: -50px;
-  background: radial-gradient(circle, #10b981 0%, #06b6d4 70%, transparent 100%);
+  background: radial-gradient(circle, #ff3366 0%, #be123c 70%, transparent 100%);
   animation-duration: 22s;
   animation-delay: -10s;
 }
@@ -263,10 +263,10 @@ h1, h2, h3, h4, .font-display {
   border-radius: var(--radius-full);
   font-size: 0.8rem;
   font-weight: 600;
-  background: rgba(0, 210, 255, 0.1);
-  border: 1px solid rgba(0, 210, 255, 0.3);
+  background: rgba(255, 42, 68, 0.12);
+  border: 1px solid rgba(255, 42, 68, 0.35);
   color: var(--color-primary);
-  box-shadow: 0 0 12px -2px rgba(0, 210, 255, 0.2);
+  box-shadow: 0 0 14px -2px rgba(255, 42, 68, 0.25);
 }
 
 .neon-badge-success {
@@ -277,21 +277,21 @@ h1, h2, h3, h4, .font-display {
 }
 
 .neon-badge-purple {
-  background: rgba(168, 85, 247, 0.1);
-  border: 1px solid rgba(168, 85, 247, 0.3);
-  color: #c084fc;
-  box-shadow: 0 0 12px -2px rgba(168, 85, 247, 0.2);
+  background: rgba(255, 107, 107, 0.12);
+  border: 1px solid rgba(255, 107, 107, 0.35);
+  color: #ff6b6b;
+  box-shadow: 0 0 12px -2px rgba(255, 107, 107, 0.25);
 }
 
 /* Pulse animation for drag zones */
 @keyframes pulseGlow {
   0%, 100% {
-    box-shadow: 0 0 15px 2px rgba(0, 210, 255, 0.3);
-    border-color: rgba(0, 210, 255, 0.8);
+    box-shadow: 0 0 15px 2px rgba(255, 42, 68, 0.3);
+    border-color: rgba(255, 42, 68, 0.8);
   }
   50% {
-    box-shadow: 0 0 35px 8px rgba(0, 210, 255, 0.6);
-    border-color: rgba(0, 210, 255, 1);
+    box-shadow: 0 0 35px 8px rgba(255, 42, 68, 0.6);
+    border-color: rgba(255, 42, 68, 1);
   }
 }
 

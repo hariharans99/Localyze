@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { FaSun, FaMoon, FaLayerGroup, FaShieldAlt } from 'react-icons/fa';
+import { FaSun, FaMoon, FaShieldAlt } from 'react-icons/fa';
 import { useTheme } from '../contexts/ThemeContext';
 
 export const Navbar = () => {
@@ -27,28 +27,33 @@ export const Navbar = () => {
                 WebkitBackdropFilter: 'var(--glass-blur-lg)',
                 boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.25), var(--glass-highlight)'
             }}>
-                <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
                     <div style={{
-                        width: '38px',
-                        height: '38px',
-                        borderRadius: 'var(--radius-md)',
-                        background: 'linear-gradient(135deg, #00d2ff 0%, #6366f1 50%, #9d50bb 100%)',
+                        width: '42px',
+                        height: '42px',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        color: '#ffffff',
-                        fontSize: '1.15rem',
-                        boxShadow: '0 0 16px -2px rgba(0, 210, 255, 0.6)'
+                        filter: 'drop-shadow(0 0 12px rgba(255, 42, 68, 0.5))',
+                        transition: 'transform 0.25s ease'
                     }}>
-                        <FaLayerGroup />
+                        <img
+                            src="/logo.png"
+                            alt="Localyze Logo"
+                            style={{
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'contain'
+                            }}
+                        />
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
                         <span style={{
                             fontFamily: 'var(--font-display)',
-                            fontSize: '1.35rem',
+                            fontSize: '1.4rem',
                             fontWeight: 800,
                             letterSpacing: '-0.02em',
-                            background: 'linear-gradient(135deg, #00d2ff 0%, #a855f7 50%, #ec4899 100%)',
+                            background: 'linear-gradient(135deg, #ff2a44 0%, #ff6b6b 50%, #ffa07a 100%)',
                             WebkitBackgroundClip: 'text',
                             WebkitTextFillColor: 'transparent'
                         }}>
@@ -66,8 +71,8 @@ export const Navbar = () => {
                             fontSize: '0.9rem',
                             fontWeight: 600,
                             color: location.pathname === '/' ? 'var(--color-primary)' : 'var(--text-muted)',
-                            backgroundColor: location.pathname === '/' ? 'rgba(0, 210, 255, 0.12)' : 'transparent',
-                            border: `1px solid ${location.pathname === '/' ? 'rgba(0, 210, 255, 0.3)' : 'transparent'}`,
+                            backgroundColor: location.pathname === '/' ? 'rgba(255, 42, 68, 0.12)' : 'transparent',
+                            border: `1px solid ${location.pathname === '/' ? 'rgba(255, 42, 68, 0.35)' : 'transparent'}`,
                             transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
                             display: 'flex',
                             alignItems: 'center',
@@ -121,7 +126,7 @@ export const Navbar = () => {
                         aria-label="Toggle dark/light theme"
                         title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
                     >
-                        {theme === 'dark' ? <FaSun style={{ color: '#fbbf24' }} /> : <FaMoon style={{ color: '#6366f1' }} />}
+                        {theme === 'dark' ? <FaSun style={{ color: '#fbbf24' }} /> : <FaMoon style={{ color: '#ff2a44' }} />}
                     </button>
                 </div>
             </nav>
