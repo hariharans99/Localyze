@@ -3,7 +3,6 @@ import * as pdfjsLib from 'pdfjs-dist';
 import { jsPDF } from 'jspdf';
 import { FileUploader } from '../../components/FileUploader';
 import { useToast } from '../../contexts/ToastContext';
-import { AdBanner } from '../../components/AdBanner';
 import { FaDownload, FaCog, FaRedo, FaExclamationTriangle, FaFilePdf } from 'react-icons/fa';
 import { SEO } from '../../components/SEO';
 
@@ -251,8 +250,6 @@ export const PdfCompressor = () => {
             <h1 className="text-gradient" style={{ fontSize: '2rem', marginBottom: '2rem', textAlign: 'center' }}>
                 Precision PDF Compressor
             </h1>
-
-            <AdBanner style={{ marginBottom: '2rem' }} />
 
             <div style={{ marginBottom: '2rem' }}>
                 {!file ? (
@@ -540,8 +537,6 @@ export const PdfCompressor = () => {
                     <li><strong>Client-Side Security</strong>: No uploads to cloud servers. Fast, secure, and private.</li>
                 </ol>
             </div>
-
-            <AdBanner />
         </div>
     );
 };

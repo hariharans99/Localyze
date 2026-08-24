@@ -6,7 +6,6 @@ import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
 import { FileUploader } from '../../components/FileUploader';
 import { useToast } from '../../contexts/ToastContext';
-import { AdBanner } from '../../components/AdBanner';
 import { FaTrash, FaArrowUp, FaArrowDown, FaDownload, FaLayerGroup } from 'react-icons/fa';
 import { SEO } from '../../components/SEO';
 
@@ -131,8 +130,6 @@ export const PdfMerge = () => {
             <h1 className="text-gradient" style={{ fontSize: '2rem', marginBottom: '2rem', textAlign: 'center' }}>
                 Merge PDF Files
             </h1>
-
-            <AdBanner style={{ marginBottom: '2rem' }} />
 
             <div style={{ marginBottom: '2rem' }}>
                 {files.length === 0 ? (
@@ -324,8 +321,6 @@ export const PdfMerge = () => {
                     <li><strong>Download</strong>: Save your new merged PDF file.</li>
                 </ol>
             </div>
-
-            <AdBanner />
         </div >
     );
 };

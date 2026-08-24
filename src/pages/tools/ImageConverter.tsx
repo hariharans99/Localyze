@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { FileUploader } from '../../components/FileUploader';
-import { AdBanner } from '../../components/AdBanner';
 import { useToast } from '../../contexts/ToastContext';
 import { FaDownload, FaRandom } from 'react-icons/fa';
 
@@ -187,8 +186,6 @@ export const ImageConverter = () => {
             <h1 className="text-gradient" style={{ fontSize: '2rem', marginBottom: '2rem', textAlign: 'center' }}>
                 Format Converter
             </h1>
-
-            <AdBanner style={{ marginBottom: '2rem' }} />
 
             <div style={{ marginBottom: '2rem' }}>
                 {!file ? (
@@ -436,8 +433,6 @@ export const ImageConverter = () => {
                     <li><strong>Download:</strong> Save the converted image immediately.</li>
                 </ol>
             </div>
-
-            <AdBanner />
         </div >
     );
 };

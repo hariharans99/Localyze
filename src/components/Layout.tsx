@@ -1,6 +1,5 @@
 import { Outlet, Link } from 'react-router-dom';
 import { Navbar } from './Navbar';
-import { AdBanner } from './AdBanner';
 import { FaShieldAlt, FaBolt, FaLock } from 'react-icons/fa';
 
 export const Layout = () => {
@@ -44,8 +43,6 @@ export const Layout = () => {
                             <FaShieldAlt style={{ fontSize: '0.75rem' }} /> Free Forever
                         </span>
                     </div>
-
-                    <AdBanner slot="1234567890" style={{ maxWidth: '728px', margin: '0 auto 2rem' }} />
 
                     <div style={{ display: 'flex', justifyContent: 'center', gap: '2rem', marginBottom: '1.5rem', fontWeight: 500 }}>
                         <Link to="/" style={{ color: 'var(--text-main)', transition: 'color 0.2s' }}>All Tools</Link>

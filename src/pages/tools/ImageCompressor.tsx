@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { FileUploader } from '../../components/FileUploader';
 import { useToast } from '../../contexts/ToastContext';
-import { AdBanner } from '../../components/AdBanner';
 import { FaDownload, FaCog, FaRedo, FaTrash, FaFileArchive, FaImage, FaMagic } from 'react-icons/fa';
 import JSZip from 'jszip';
 import { SEO } from '../../components/SEO';
@@ -241,8 +240,6 @@ export const ImageCompressor = () => {
             <h1 className="text-gradient" style={{ fontSize: '2rem', marginBottom: '2rem', textAlign: 'center' }}>
                 Precision Image Compressor
             </h1>
-
-            <AdBanner style={{ marginBottom: '2rem' }} />
 
             {files.length === 0 ? (
                 <FileUploader
@@ -735,8 +732,6 @@ export const ImageCompressor = () => {
                     <li><strong>100% Privacy</strong>: No data is sent over the internet. Everything is computed in your browser using modern Web APIs.</li>
                 </ol>
             </div>
-
-            <AdBanner />
         </div>
     );
 };
