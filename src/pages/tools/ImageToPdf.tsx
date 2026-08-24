@@ -198,6 +198,10 @@ export const ImageToPdf = () => {
                 ctx.imageSmoothingEnabled = true;
                 ctx.imageSmoothingQuality = 'high';
 
+                // Fill clean white background so transparent PNGs never render black in PDF
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
                 // Apply rotation
                 ctx.translate(canvasWidth / 2, canvasHeight / 2);
                 ctx.rotate((rotation * Math.PI) / 180);

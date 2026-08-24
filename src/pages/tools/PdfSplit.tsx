@@ -23,7 +23,8 @@ export const PdfSplit = () => {
 
     const handleFileSelect = async (selectedFile: File | File[]) => {
         const fileToLoad = Array.isArray(selectedFile) ? selectedFile[0] : selectedFile;
-        if (fileToLoad.type !== 'application/pdf') {
+        if (!fileToLoad) return;
+        if (fileToLoad.type !== 'application/pdf' && !fileToLoad.name.toLowerCase().endsWith('.pdf')) {
             toast.error('Please upload a valid PDF file');
             return;
         }
@@ -54,8 +55,12 @@ export const PdfSplit = () => {
                     canvas.width = viewport.width;
 
                     if (context) {
+                        context.fillStyle = '#ffffff';
+                        context.fillRect(0, 0, canvas.width, canvas.height);
                         await page.render({ canvasContext: context, viewport } as any).promise;
                         newPreviews.push(canvas.toDataURL());
+                        canvas.width = 0;
+                        canvas.height = 0;
                     } else {
                         newPreviews.push('');
                     }
@@ -147,70 +152,70 @@ export const PdfSplit = () => {
         return Array.from(pages).sort((a, b) => a - b);
     };
 
+    const handleRangeInputChange = (value: string) => {
+        setRangeInput(value);
+        const parsed = parsePageRanges(value, pageCount);
+        setSelectedPages(new Set(parsed));
+    };
+
     const handleSplit = async () => {
-        if (!file || !rangeInput.trim()) return;
-
-        const indicesToKeep = parsePageRanges(rangeInput, pageCount);
-
-        if (indicesToKeep.length === 0) {
-            toast.error('Invalid page range. Please check your input.');
+        if (!file || selectedPages.size === 0) {
+            toast.error('Please select at least one page to extract');
             return;
         }
 
         setIsProcessing(true);
-        setSplitPdfUrl(null);
-        setZipDownloadUrl(null);
-
         try {
             const arrayBuffer = await file.arrayBuffer();
-            const srcPdf = await PDFDocument.load(arrayBuffer);
+            const srcDoc = await PDFDocument.load(arrayBuffer);
+            const indices = Array.from(selectedPages).sort((a, b) => a - b);
 
             if (exportMode === 'single') {
-                // Merge all selected into 1 PDF
-                const newPdf = await PDFDocument.create();
-                const copiedPages = await newPdf.copyPages(srcPdf, indicesToKeep);
-                copiedPages.forEach(page => newPdf.addPage(page));
+                const newDoc = await PDFDocument.create();
+                const copiedPages = await newDoc.copyPages(srcDoc, indices);
+                copiedPages.forEach(p => newDoc.addPage(p));
 
-                const pdfBytes = await newPdf.save({ useObjectStreams: false, addDefaultPage: false });
+                const pdfBytes = await newDoc.save({ useObjectStreams: false });
                 const blob = new Blob([pdfBytes as any], { type: 'application/pdf' });
                 setSplitPdfUrl(URL.createObjectURL(blob));
-                toast.success(`Extracted ${indicesToKeep.length} pages into one PDF!`);
+                toast.success(`Extracted ${indices.length} pages into a single PDF!`);
             } else {
-                // ZIP of individual PDFs
                 const JSZip = (await import('jszip')).default;
                 const zip = new JSZip();
+                const originalName = file.name.replace(/\.[^/.]+$/, '');
 
-                for (let idx of indicesToKeep) {
+                for (let i = 0; i < indices.length; i++) {
+                    const pageIndex = indices[i];
                     const singleDoc = await PDFDocument.create();
-                    const [copiedPage] = await singleDoc.copyPages(srcPdf, [idx]);
-                    singleDoc.addPage(copiedPage);
-                    const bytes = await singleDoc.save({ useObjectStreams: false, addDefaultPage: false });
-                    zip.file(`page-${idx + 1}.pdf`, bytes);
+                    const [copied] = await singleDoc.copyPages(srcDoc, [pageIndex]);
+                    singleDoc.addPage(copied);
+                    const bytes = await singleDoc.save({ useObjectStreams: false });
+                    zip.file(`${originalName}-page-${pageIndex + 1}.pdf`, bytes);
                 }
 
                 const zipBlob = await zip.generateAsync({ type: 'blob' });
                 setZipDownloadUrl(URL.createObjectURL(zipBlob));
-                toast.success(`Created ZIP with ${indicesToKeep.length} individual page PDFs!`);
+                toast.success(`Created ZIP with ${indices.length} individual PDF files!`);
             }
         } catch (error) {
             console.error('Error splitting PDF:', error);
-            toast.error('Failed to split PDF.');
+            toast.error('Failed to split PDF. Please try again.');
         } finally {
             setIsProcessing(false);
         }
     };
 
     return (
-        <div className="container" style={{ maxWidth: '950px' }}>
+        <div className="container" style={{ maxWidth: '900px', width: '100%', minWidth: 0, boxSizing: 'border-box' }}>
             <SEO
-                title="Split PDF Pages - Extract Single or Multiple PDF Pages"
-                description="Extract specific pages or ranges from PDF documents. Batch select even/odd pages, or export pages individually as a ZIP."
+                title="Split PDF - Extract Pages or Split by Ranges"
+                description="Split PDF pages by range, select odd/even pages, or extract individual pages to a ZIP archive locally."
             />
-            <h1 className="text-gradient" style={{ fontSize: '2.25rem', marginBottom: '0.5rem', textAlign: 'center' }}>
-                Precision PDF Splitter
+            <h1 className="text-gradient" style={{ fontSize: 'clamp(1.75rem, 4vw, 2.25rem)', marginBottom: '0.5rem', textAlign: 'center', wordBreak: 'break-word' }}>
+                Split & Extract PDF Pages
             </h1>
-            <p style={{ textAlign: 'center', color: 'var(--text-muted)', marginBottom: '2.5rem' }}>
-                Extract, re-bundle, or separate individual PDF pages with 1-click batch selection shortcuts.
+            <p style={{ textAlign: 'center', color: 'var(--text-muted)', marginBottom: '2rem', fontSize: 'clamp(0.85rem, 2vw, 0.95rem)' }}>
+                Extract specific pages, page ranges, or split entire documents with instant visual selection.
             </p>
 
             <div style={{ marginBottom: '2rem' }}>
@@ -219,33 +224,32 @@ export const PdfSplit = () => {
                         onFileSelect={handleFileSelect}
                         accept=".pdf,application/pdf"
                         label="Upload PDF to Split"
-                        multiple={false}
+                        maxSizeMB={100}
                     />
                 ) : (
                     <div className="glass-panel" style={{
-                        padding: 'clamp(1.5rem, 4vw, 2.5rem)',
-                        borderRadius: 'var(--radius-xl)'
+                        padding: 'clamp(1rem, 3.5vw, 2.25rem)',
+                        borderRadius: 'var(--radius-xl)',
+                        width: '100%',
+                        maxWidth: '100%',
+                        minWidth: 0,
+                        boxSizing: 'border-box'
                     }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.75rem', flexWrap: 'wrap', gap: '1rem' }}>
-                            <div>
-                                <h3 style={{ marginBottom: '0.25rem', fontSize: '1.25rem' }}>{file.name}</h3>
-                                <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-                                    {pageCount} total pages • {selectedPages.size} pages selected
-                                </p>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.75rem', flexWrap: 'wrap', gap: '1rem', width: '100%', minWidth: 0 }}>
+                            <div style={{ flex: '1 1 200px', minWidth: 0 }}>
+                                <h3 style={{ marginBottom: '0.25rem', fontSize: 'clamp(1.1rem, 3vw, 1.35rem)', wordBreak: 'break-word' }}>{file.name}</h3>
+                                <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>{pageCount} total pages detected</p>
                             </div>
                             <button
                                 onClick={() => {
                                     setFile(null);
                                     setSplitPdfUrl(null);
                                     setZipDownloadUrl(null);
-                                    setRangeInput('');
-                                    setPreviews([]);
-                                    setSelectedPages(new Set());
                                 }}
                                 className="glass-btn-secondary"
-                                style={{ padding: '0.45rem 1rem', fontSize: '0.85rem' }}
+                                style={{ padding: '0.45rem 0.9rem', fontSize: '0.85rem', whiteSpace: 'nowrap' }}
                             >
-                                Change File
+                                Change PDF
                             </button>
                         </div>
 
@@ -257,229 +261,192 @@ export const PdfSplit = () => {
                             backgroundColor: 'rgba(0, 0, 0, 0.25)',
                             borderRadius: 'var(--radius-md)',
                             marginBottom: '1.5rem',
-                            width: 'fit-content'
+                            width: 'fit-content',
+                            flexWrap: 'wrap'
                         }}>
                             <button
                                 type="button"
-                                onClick={() => setExportMode('single')}
+                                onClick={() => { setExportMode('single'); setSplitPdfUrl(null); setZipDownloadUrl(null); }}
                                 className={exportMode === 'single' ? 'glass-btn-primary' : 'glass-btn-secondary'}
-                                style={{ padding: '0.45rem 1rem', fontSize: '0.85rem' }}
+                                style={{ padding: '0.45rem 1rem', fontSize: '0.85rem', whiteSpace: 'nowrap' }}
                             >
-                                Combine Selected into 1 PDF
+                                Single Combined PDF
                             </button>
                             <button
                                 type="button"
-                                onClick={() => setExportMode('individual')}
+                                onClick={() => { setExportMode('individual'); setSplitPdfUrl(null); setZipDownloadUrl(null); }}
                                 className={exportMode === 'individual' ? 'glass-btn-primary' : 'glass-btn-secondary'}
-                                style={{ padding: '0.45rem 1rem', fontSize: '0.85rem' }}
+                                style={{ padding: '0.45rem 1rem', fontSize: '0.85rem', whiteSpace: 'nowrap' }}
                             >
-                                Separate Pages (ZIP File)
+                                Individual PDFs (ZIP)
                             </button>
                         </div>
 
-                        {/* Page Selection Controls & Quick Chips */}
-                        <div style={{
-                            marginBottom: '1.5rem',
-                            padding: '1.25rem',
-                            borderRadius: 'var(--radius-lg)',
-                            background: 'rgba(255, 255, 255, 0.02)',
-                            border: '1px solid var(--glass-border)'
-                        }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-                                <label style={{ fontWeight: 600, fontSize: '0.9rem' }}>
-                                    Page Range or Expression
-                                </label>
-                                <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
-                                    <button type="button" onClick={selectAll} className="glass-btn-secondary" style={{ padding: '0.25rem 0.55rem', fontSize: '0.75rem' }}>
-                                        <FaCheckSquare /> All
-                                    </button>
-                                    <button type="button" onClick={clearAll} className="glass-btn-secondary" style={{ padding: '0.25rem 0.55rem', fontSize: '0.75rem' }}>
-                                        <FaSquare /> Clear
-                                    </button>
-                                    <button type="button" onClick={invertSelection} className="glass-btn-secondary" style={{ padding: '0.25rem 0.55rem', fontSize: '0.75rem' }}>
-                                        <FaExchangeAlt /> Invert
-                                    </button>
-                                    <button type="button" onClick={selectOddPages} className="glass-btn-secondary" style={{ padding: '0.25rem 0.55rem', fontSize: '0.75rem' }}>
-                                        Odd Pages
-                                    </button>
-                                    <button type="button" onClick={selectEvenPages} className="glass-btn-secondary" style={{ padding: '0.25rem 0.55rem', fontSize: '0.75rem' }}>
-                                        Even Pages
-                                    </button>
-                                </div>
-                            </div>
-
+                        {/* Range Input & Helper Buttons */}
+                        <div style={{ marginBottom: '1.5rem', width: '100%', minWidth: 0 }}>
+                            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.4rem' }}>
+                                Selected Page Range (e.g. 1-3, 5, 8-10):
+                            </label>
                             <input
                                 type="text"
                                 value={rangeInput}
-                                onChange={(e) => {
-                                    setRangeInput(e.target.value);
-                                    const parsed = parsePageRanges(e.target.value, pageCount);
-                                    setSelectedPages(new Set(parsed));
-                                }}
-                                placeholder="e.g. 1-3, 5, 8-10"
+                                onChange={(e) => handleRangeInputChange(e.target.value)}
+                                placeholder={`1-${pageCount}`}
                                 className="glass-input"
-                                style={{
-                                    width: '100%',
-                                    padding: '0.85rem',
-                                    fontSize: '0.95rem'
-                                }}
+                                style={{ width: '100%', padding: '0.65rem', marginBottom: '0.75rem', boxSizing: 'border-box' }}
                             />
+
+                            <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                                <button type="button" onClick={selectAll} className="glass-btn-secondary" style={{ padding: '0.3rem 0.65rem', fontSize: '0.78rem' }}>
+                                    <FaCheckSquare /> All Pages
+                                </button>
+                                <button type="button" onClick={selectOddPages} className="glass-btn-secondary" style={{ padding: '0.3rem 0.65rem', fontSize: '0.78rem' }}>
+                                    Odd Pages
+                                </button>
+                                <button type="button" onClick={selectEvenPages} className="glass-btn-secondary" style={{ padding: '0.3rem 0.65rem', fontSize: '0.78rem' }}>
+                                    Even Pages
+                                </button>
+                                <button type="button" onClick={invertSelection} className="glass-btn-secondary" style={{ padding: '0.3rem 0.65rem', fontSize: '0.78rem' }}>
+                                    <FaExchangeAlt /> Invert
+                                </button>
+                                <button type="button" onClick={clearAll} className="glass-btn-secondary" style={{ padding: '0.3rem 0.65rem', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                                    <FaSquare /> Clear
+                                </button>
+                            </div>
                         </div>
 
-                        {/* Page Selection Grid */}
-                        {previews.length > 0 && (
-                            <div style={{ marginBottom: '1.75rem' }}>
-                                <label style={{ display: 'block', marginBottom: '0.75rem', fontWeight: 600, fontSize: '0.9rem' }}>
-                                    Click Pages to Toggle Selection:
-                                </label>
-                                <div style={{
-                                    display: 'grid',
-                                    gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))',
-                                    gap: '0.85rem',
-                                    maxHeight: '420px',
-                                    overflowY: 'auto',
-                                    padding: '0.75rem',
-                                    border: '1px solid var(--glass-border)',
-                                    borderRadius: 'var(--radius-lg)',
-                                    backgroundColor: 'rgba(0, 0, 0, 0.15)'
-                                }}>
-                                    {previews.map((src, idx) => (
-                                        <div
-                                            key={idx}
-                                            onClick={() => togglePageSelection(idx)}
-                                            style={{
-                                                position: 'relative',
-                                                cursor: 'pointer',
-                                                border: selectedPages.has(idx) ? '3px solid var(--color-primary)' : '1px solid var(--glass-border)',
-                                                borderRadius: 'var(--radius-md)',
-                                                overflow: 'hidden',
-                                                opacity: selectedPages.has(idx) ? 1 : 0.6,
-                                                transform: selectedPages.has(idx) ? 'scale(1.03)' : 'scale(1)',
-                                                transition: 'all 0.2s',
-                                                boxShadow: selectedPages.has(idx) ? '0 0 15px rgba(0, 210, 255, 0.3)' : 'none',
-                                                backgroundColor: '#ffffff'
-                                            }}
-                                        >
-                                            <img src={src} alt={`Page ${idx + 1}`} style={{ width: '100%', display: 'block' }} />
-                                            <div style={{
-                                                position: 'absolute',
-                                                bottom: 0,
-                                                right: 0,
-                                                background: selectedPages.has(idx) ? 'var(--color-primary)' : 'rgba(0,0,0,0.7)',
-                                                color: 'white',
-                                                padding: '2px 6px',
-                                                fontSize: '0.75rem',
-                                                borderTopLeftRadius: '4px',
-                                                fontWeight: 700
-                                            }}>
-                                                {idx + 1}
-                                            </div>
-                                            {selectedPages.has(idx) && (
-                                                <div style={{
-                                                    position: 'absolute',
-                                                    top: '4px',
-                                                    right: '4px',
-                                                    color: '#ffffff',
-                                                    backgroundColor: 'var(--color-primary)',
-                                                    borderRadius: '50%',
-                                                    width: '20px',
-                                                    height: '20px',
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center',
-                                                    fontSize: '0.8rem',
-                                                    fontWeight: 'bold',
-                                                    boxShadow: '0 2px 4px rgba(0,0,0,0.3)'
-                                                }}>✓</div>
-                                            )}
+                        {/* Visual Thumbnail Grid */}
+                        <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 110px), 1fr))',
+                            gap: '0.75rem',
+                            maxHeight: '380px',
+                            overflowY: 'auto',
+                            padding: '0.75rem',
+                            border: '1px solid var(--glass-border)',
+                            borderRadius: 'var(--radius-lg)',
+                            backgroundColor: 'rgba(0, 0, 0, 0.15)',
+                            marginBottom: '1.75rem',
+                            boxSizing: 'border-box'
+                        }}>
+                            {previews.map((preview, index) => {
+                                const isSelected = selectedPages.has(index);
+                                return (
+                                    <div
+                                        key={index}
+                                        onClick={() => togglePageSelection(index)}
+                                        style={{
+                                            border: isSelected ? '2px solid var(--color-primary)' : '1px solid var(--glass-border)',
+                                            borderRadius: 'var(--radius-md)',
+                                            padding: '0.45rem',
+                                            backgroundColor: isSelected ? 'rgba(255, 42, 68, 0.06)' : 'rgba(255, 255, 255, 0.02)',
+                                            textAlign: 'center',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.2s ease',
+                                            position: 'relative'
+                                        }}
+                                    >
+                                        <div style={{ position: 'absolute', top: '6px', right: '6px', color: isSelected ? 'var(--color-primary)' : 'var(--text-muted)' }}>
+                                            {isSelected ? <FaCheckSquare /> : <FaSquare />}
                                         </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
+                                        <img
+                                            src={preview}
+                                            alt={`Page ${index + 1}`}
+                                            style={{
+                                                width: '100%',
+                                                height: '100px',
+                                                objectFit: 'contain',
+                                                backgroundColor: '#ffffff',
+                                                borderRadius: 'var(--radius-sm)',
+                                                marginBottom: '0.35rem'
+                                            }}
+                                        />
+                                        <div style={{ fontSize: '0.78rem', fontWeight: 600 }}>
+                                            Page {index + 1}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
 
-                        <button
-                            onClick={handleSplit}
-                            disabled={isProcessing || !rangeInput.trim()}
-                            className="glass-btn-primary"
-                            style={{
-                                width: '100%',
-                                padding: '1rem',
-                                fontSize: '1rem',
-                                opacity: isProcessing || !rangeInput.trim() ? 0.5 : 1
-                            }}
-                        >
-                            {isProcessing ? 'Processing...' : (
-                                <>
-                                    <FaCut /> {exportMode === 'single' ? `Extract ${selectedPages.size} Pages to PDF` : `Extract ${selectedPages.size} Pages as ZIP`}
-                                </>
-                            )}
-                        </button>
-
-                        {/* Single Download Link */}
-                        {splitPdfUrl && (
+                        {/* Action Buttons & Results */}
+                        {splitPdfUrl ? (
                             <div style={{
-                                marginTop: '2rem',
-                                textAlign: 'center',
-                                padding: '2rem',
                                 backgroundColor: 'rgba(16, 185, 129, 0.08)',
+                                padding: '1.75rem',
                                 borderRadius: 'var(--radius-lg)',
+                                marginBottom: '1rem',
                                 border: '1px solid rgba(16, 185, 129, 0.4)',
-                                boxShadow: '0 0 25px -5px rgba(16, 185, 129, 0.2)'
+                                boxShadow: '0 0 25px -5px rgba(16, 185, 129, 0.2)',
+                                textAlign: 'center'
                             }}>
-                                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.75rem' }}>
+                                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
                                     <span className="neon-badge neon-badge-success">
-                                        ✓ PDF Extracted Successfully!
+                                        ✓ Extracted {selectedPages.size} Pages Successfully
                                     </span>
                                 </div>
                                 <a
                                     href={splitPdfUrl}
-                                    download={`split-${file.name}`}
+                                    download={`extracted-${file.name}`}
                                     className="glass-btn-primary"
                                     style={{
                                         background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
                                         boxShadow: '0 0 20px -3px rgba(16, 185, 129, 0.5)',
                                         padding: '0.85rem 1.75rem',
                                         fontSize: '1rem',
-                                        textDecoration: 'none'
+                                        textDecoration: 'none',
+                                        display: 'inline-flex'
                                     }}
                                 >
                                     <FaDownload /> Download Extracted PDF
                                 </a>
                             </div>
-                        )}
-
-                        {/* ZIP Download Link */}
-                        {zipDownloadUrl && (
+                        ) : zipDownloadUrl ? (
                             <div style={{
-                                marginTop: '2rem',
-                                textAlign: 'center',
-                                padding: '2rem',
                                 backgroundColor: 'rgba(16, 185, 129, 0.08)',
+                                padding: '1.75rem',
                                 borderRadius: 'var(--radius-lg)',
+                                marginBottom: '1rem',
                                 border: '1px solid rgba(16, 185, 129, 0.4)',
-                                boxShadow: '0 0 25px -5px rgba(16, 185, 129, 0.2)'
+                                boxShadow: '0 0 25px -5px rgba(16, 185, 129, 0.2)',
+                                textAlign: 'center'
                             }}>
-                                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.75rem' }}>
+                                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
                                     <span className="neon-badge neon-badge-success">
-                                        ✓ ZIP Archive Ready!
+                                        ✓ Created {selectedPages.size} Standalone PDFs
                                     </span>
                                 </div>
                                 <a
                                     href={zipDownloadUrl}
-                                    download={`pages-${file.name.replace('.pdf', '')}.zip`}
+                                    download={`split-${file.name.replace(/\.[^/.]+$/, '')}.zip`}
                                     className="glass-btn-primary"
                                     style={{
                                         background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
                                         boxShadow: '0 0 20px -3px rgba(16, 185, 129, 0.5)',
                                         padding: '0.85rem 1.75rem',
                                         fontSize: '1rem',
-                                        textDecoration: 'none'
+                                        textDecoration: 'none',
+                                        display: 'inline-flex'
                                     }}
                                 >
-                                    <FaFileArchive /> Download Individual Pages (ZIP)
+                                    <FaFileArchive /> Download All PDFs (ZIP)
                                 </a>
                             </div>
+                        ) : (
+                            <button
+                                onClick={handleSplit}
+                                disabled={isProcessing || selectedPages.size === 0}
+                                className="glass-btn-primary"
+                                style={{
+                                    width: '100%',
+                                    padding: '1rem',
+                                    fontSize: '1rem',
+                                    opacity: isProcessing || selectedPages.size === 0 ? 0.6 : 1
+                                }}
+                            >
+                                <FaCut />
+                                {isProcessing ? 'Processing PDF Split...' : `Extract ${selectedPages.size} Selected Page${selectedPages.size > 1 ? 's' : ''}`}
+                            </button>
                         )}
                     </div>
                 )}

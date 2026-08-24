@@ -6,7 +6,7 @@ import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
 import { FileUploader } from '../../components/FileUploader';
 import { useToast } from '../../contexts/ToastContext';
-import { FaDownload, FaTrash, FaSquare } from 'react-icons/fa';
+import { FaDownload, FaTrash, FaSquare, FaTimesCircle } from 'react-icons/fa';
 import { SEO } from '../../components/SEO';
 
 export const PdfRemovePages = () => {
@@ -21,7 +21,8 @@ export const PdfRemovePages = () => {
 
     const handleFileSelect = async (selectedFile: File | File[]) => {
         const fileToLoad = Array.isArray(selectedFile) ? selectedFile[0] : selectedFile;
-        if (fileToLoad.type !== 'application/pdf') {
+        if (!fileToLoad) return;
+        if (fileToLoad.type !== 'application/pdf' && !fileToLoad.name.toLowerCase().endsWith('.pdf')) {
             toast.error('Please upload a valid PDF file');
             return;
         }
@@ -51,8 +52,12 @@ export const PdfRemovePages = () => {
                     canvas.width = viewport.width;
 
                     if (context) {
+                        context.fillStyle = '#ffffff';
+                        context.fillRect(0, 0, canvas.width, canvas.height);
                         await page.render({ canvasContext: context, viewport } as any).promise;
                         newPreviews.push(canvas.toDataURL());
+                        canvas.width = 0;
+                        canvas.height = 0;
                     } else {
                         newPreviews.push('');
                     }
@@ -143,58 +148,63 @@ export const PdfRemovePages = () => {
         return Array.from(pages).sort((a, b) => a - b);
     };
 
+    const handleRangeInputChange = (value: string) => {
+        setRangeInput(value);
+        const parsed = parsePageRanges(value, pageCount);
+        setSelectedPages(new Set(parsed));
+    };
+
     const handleRemovePages = async () => {
-        if (!file || !rangeInput.trim()) return;
-
-        const indicesToRemove = parsePageRanges(rangeInput, pageCount);
-
-        if (indicesToRemove.length === 0) {
-            toast.error('No pages selected for removal.');
+        if (!file || selectedPages.size === 0) {
+            toast.error('Please select at least one page to delete');
             return;
         }
 
-        if (indicesToRemove.length === pageCount) {
-            toast.error('Cannot remove all pages from the document.');
+        if (selectedPages.size >= pageCount) {
+            toast.error('Cannot remove all pages. At least one page must remain.');
             return;
         }
 
         setIsProcessing(true);
         try {
             const arrayBuffer = await file.arrayBuffer();
-            const srcPdf = await PDFDocument.load(arrayBuffer);
-            const newPdf = await PDFDocument.create();
+            const srcDoc = await PDFDocument.load(arrayBuffer);
+            const newDoc = await PDFDocument.create();
 
-            const allIndices = Array.from({ length: pageCount }, (_, i) => i);
-            const indicesToKeep = allIndices.filter(i => !indicesToRemove.includes(i));
+            // Calculate remaining pages
+            const remainingIndices: number[] = [];
+            for (let i = 0; i < pageCount; i++) {
+                if (!selectedPages.has(i)) {
+                    remainingIndices.push(i);
+                }
+            }
 
-            const copiedPages = await newPdf.copyPages(srcPdf, indicesToKeep);
-            copiedPages.forEach(page => newPdf.addPage(page));
+            const copiedPages = await newDoc.copyPages(srcDoc, remainingIndices);
+            copiedPages.forEach(p => newDoc.addPage(p));
 
-            const pdfBytes = await newPdf.save({ useObjectStreams: false, addDefaultPage: false });
+            const pdfBytes = await newDoc.save({ useObjectStreams: false });
             const blob = new Blob([pdfBytes as any], { type: 'application/pdf' });
-            const url = URL.createObjectURL(blob);
-
-            setResultPdfUrl(url);
-            toast.success(`Removed ${indicesToRemove.length} pages. Saved ${indicesToKeep.length} pages!`);
+            setResultPdfUrl(URL.createObjectURL(blob));
+            toast.success(`Removed ${selectedPages.size} pages! ${remainingIndices.length} pages remaining.`);
         } catch (error) {
             console.error('Error removing pages:', error);
-            toast.error('Failed to process PDF.');
+            toast.error('Failed to remove pages. Please try again.');
         } finally {
             setIsProcessing(false);
         }
     };
 
     return (
-        <div className="container" style={{ maxWidth: '950px' }}>
+        <div className="container" style={{ maxWidth: '900px', width: '100%', minWidth: 0, boxSizing: 'border-box' }}>
             <SEO
-                title="Remove PDF Pages - Delete Specific Pages Online"
-                description="Select and delete unwanted pages from your PDF document. Use quick filters for odd/even pages with live thumbnail preview."
+                title="Remove Pages from PDF - Delete Unwanted Pages"
+                description="Select and delete unwanted, duplicate, or blank pages from any PDF document locally in your browser."
             />
-            <h1 className="text-gradient" style={{ fontSize: '2.25rem', marginBottom: '0.5rem', textAlign: 'center' }}>
+            <h1 className="text-gradient" style={{ fontSize: 'clamp(1.75rem, 4vw, 2.25rem)', marginBottom: '0.5rem', textAlign: 'center', wordBreak: 'break-word' }}>
                 Remove PDF Pages
             </h1>
-            <p style={{ textAlign: 'center', color: 'var(--text-muted)', marginBottom: '2.5rem' }}>
-                Visually select pages to discard, or use quick batch removal chips to produce a streamlined document.
+            <p style={{ textAlign: 'center', color: 'var(--text-muted)', marginBottom: '2rem', fontSize: 'clamp(0.85rem, 2vw, 0.95rem)' }}>
+                Visually select pages to permanently remove and generate a clean, trimmed PDF.
             </p>
 
             <div style={{ marginBottom: '2rem' }}>
@@ -202,210 +212,172 @@ export const PdfRemovePages = () => {
                     <FileUploader
                         onFileSelect={handleFileSelect}
                         accept=".pdf,application/pdf"
-                        label="Upload PDF to Remove Pages"
-                        multiple={false}
+                        label="Upload PDF to Delete Pages"
+                        maxSizeMB={100}
                     />
                 ) : (
                     <div className="glass-panel" style={{
-                        padding: 'clamp(1.5rem, 4vw, 2.5rem)',
-                        borderRadius: 'var(--radius-xl)'
+                        padding: 'clamp(1rem, 3.5vw, 2.25rem)',
+                        borderRadius: 'var(--radius-xl)',
+                        width: '100%',
+                        maxWidth: '100%',
+                        minWidth: 0,
+                        boxSizing: 'border-box'
                     }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.75rem', flexWrap: 'wrap', gap: '1rem' }}>
-                            <div>
-                                <h3 style={{ marginBottom: '0.25rem', fontSize: '1.25rem' }}>{file.name}</h3>
-                                <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-                                    {pageCount} total pages • <span style={{ color: '#ef4444', fontWeight: 600 }}>{selectedPages.size} marked for removal</span> • <span style={{ color: '#10b981', fontWeight: 600 }}>{pageCount - selectedPages.size} pages remaining</span>
-                                </p>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.75rem', flexWrap: 'wrap', gap: '1rem', width: '100%', minWidth: 0 }}>
+                            <div style={{ flex: '1 1 200px', minWidth: 0 }}>
+                                <h3 style={{ marginBottom: '0.25rem', fontSize: 'clamp(1.1rem, 3vw, 1.35rem)', wordBreak: 'break-word' }}>{file.name}</h3>
+                                <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>{pageCount} total pages detected</p>
                             </div>
                             <button
                                 onClick={() => {
                                     setFile(null);
                                     setResultPdfUrl(null);
-                                    setRangeInput('');
-                                    setPreviews([]);
-                                    setSelectedPages(new Set());
                                 }}
                                 className="glass-btn-secondary"
-                                style={{ padding: '0.45rem 1rem', fontSize: '0.85rem' }}
+                                style={{ padding: '0.45rem 0.9rem', fontSize: '0.85rem', whiteSpace: 'nowrap' }}
                             >
-                                Change File
+                                Change PDF
                             </button>
                         </div>
 
-                        {/* Page Selection Controls & Quick Chips */}
-                        <div style={{
-                            marginBottom: '1.5rem',
-                            padding: '1.25rem',
-                            borderRadius: 'var(--radius-lg)',
-                            background: 'rgba(255, 255, 255, 0.02)',
-                            border: '1px solid var(--glass-border)'
-                        }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-                                <label style={{ fontWeight: 600, fontSize: '0.9rem', color: '#ef4444' }}>
-                                    Pages to Remove (e.g. 1-3, 5, 8-10)
-                                </label>
-                                <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
-                                    <button type="button" onClick={selectOddPages} className="glass-btn-secondary" style={{ padding: '0.25rem 0.55rem', fontSize: '0.75rem' }}>
-                                        Remove Odd
-                                    </button>
-                                    <button type="button" onClick={selectEvenPages} className="glass-btn-secondary" style={{ padding: '0.25rem 0.55rem', fontSize: '0.75rem' }}>
-                                        Remove Even
-                                    </button>
-                                    <button type="button" onClick={selectFirstPage} className="glass-btn-secondary" style={{ padding: '0.25rem 0.55rem', fontSize: '0.75rem' }}>
-                                        First Page
-                                    </button>
-                                    <button type="button" onClick={selectLastPage} className="glass-btn-secondary" style={{ padding: '0.25rem 0.55rem', fontSize: '0.75rem' }}>
-                                        Last Page
-                                    </button>
-                                    <button type="button" onClick={clearAll} className="glass-btn-secondary" style={{ padding: '0.25rem 0.55rem', fontSize: '0.75rem' }}>
-                                        <FaSquare /> Clear
-                                    </button>
-                                </div>
-                            </div>
-
+                        {/* Range Input & Helper Buttons */}
+                        <div style={{ marginBottom: '1.5rem', width: '100%', minWidth: 0 }}>
+                            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.4rem' }}>
+                                Pages to Delete (e.g. 1, 3-5):
+                            </label>
                             <input
                                 type="text"
                                 value={rangeInput}
-                                onChange={(e) => {
-                                    setRangeInput(e.target.value);
-                                    const parsed = parsePageRanges(e.target.value, pageCount);
-                                    setSelectedPages(new Set(parsed));
-                                }}
-                                placeholder="e.g. 1-3, 5, 8-10"
+                                onChange={(e) => handleRangeInputChange(e.target.value)}
+                                placeholder="Click thumbnails below or type page numbers..."
                                 className="glass-input"
-                                style={{
-                                    width: '100%',
-                                    padding: '0.85rem',
-                                    fontSize: '0.95rem'
-                                }}
+                                style={{ width: '100%', padding: '0.65rem', marginBottom: '0.75rem', boxSizing: 'border-box' }}
                             />
+
+                            <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                                <button type="button" onClick={selectFirstPage} className="glass-btn-secondary" style={{ padding: '0.3rem 0.65rem', fontSize: '0.78rem' }}>
+                                    First Page
+                                </button>
+                                <button type="button" onClick={selectLastPage} className="glass-btn-secondary" style={{ padding: '0.3rem 0.65rem', fontSize: '0.78rem' }}>
+                                    Last Page
+                                </button>
+                                <button type="button" onClick={selectOddPages} className="glass-btn-secondary" style={{ padding: '0.3rem 0.65rem', fontSize: '0.78rem' }}>
+                                    Odd Pages
+                                </button>
+                                <button type="button" onClick={selectEvenPages} className="glass-btn-secondary" style={{ padding: '0.3rem 0.65rem', fontSize: '0.78rem' }}>
+                                    Even Pages
+                                </button>
+                                <button type="button" onClick={clearAll} className="glass-btn-secondary" style={{ padding: '0.3rem 0.65rem', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                                    <FaSquare /> Clear Selection
+                                </button>
+                            </div>
                         </div>
 
-                        {/* Page Selection Grid */}
-                        {previews.length > 0 && (
-                            <div style={{ marginBottom: '1.75rem' }}>
-                                <label style={{ display: 'block', marginBottom: '0.75rem', fontWeight: 600, fontSize: '0.9rem' }}>
-                                    Click Pages to Mark for Deletion:
-                                </label>
-                                <div style={{
-                                    display: 'grid',
-                                    gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))',
-                                    gap: '0.85rem',
-                                    maxHeight: '420px',
-                                    overflowY: 'auto',
-                                    padding: '0.75rem',
-                                    border: '1px solid var(--glass-border)',
-                                    borderRadius: 'var(--radius-lg)',
-                                    backgroundColor: 'rgba(0, 0, 0, 0.15)'
-                                }}>
-                                    {previews.map((src, idx) => (
-                                        <div
-                                            key={idx}
-                                            onClick={() => togglePageSelection(idx)}
-                                            style={{
-                                                position: 'relative',
-                                                cursor: 'pointer',
-                                                border: selectedPages.has(idx) ? '3px solid #ef4444' : '1px solid var(--glass-border)',
-                                                borderRadius: 'var(--radius-md)',
-                                                overflow: 'hidden',
-                                                opacity: selectedPages.has(idx) ? 0.45 : 1,
-                                                transform: selectedPages.has(idx) ? 'scale(0.95)' : 'scale(1)',
-                                                transition: 'all 0.2s',
-                                                boxShadow: selectedPages.has(idx) ? '0 0 15px rgba(239, 68, 68, 0.4)' : 'none',
-                                                backgroundColor: '#ffffff'
-                                            }}
-                                        >
-                                            <img src={src} alt={`Page ${idx + 1}`} style={{ width: '100%', display: 'block' }} />
-                                            <div style={{
-                                                position: 'absolute',
-                                                bottom: 0,
-                                                right: 0,
-                                                background: selectedPages.has(idx) ? '#ef4444' : 'rgba(0,0,0,0.7)',
-                                                color: 'white',
-                                                padding: '2px 6px',
-                                                fontSize: '0.75rem',
-                                                borderTopLeftRadius: '4px',
-                                                fontWeight: 700
-                                            }}>
-                                                {idx + 1}
-                                            </div>
-                                            {selectedPages.has(idx) && (
-                                                <div style={{
-                                                    position: 'absolute',
-                                                    top: '50%',
-                                                    left: '50%',
-                                                    transform: 'translate(-50%, -50%)',
-                                                    color: '#ef4444',
-                                                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                                                    borderRadius: '50%',
-                                                    width: '38px',
-                                                    height: '38px',
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center',
-                                                    fontSize: '1.2rem',
-                                                    fontWeight: 'bold',
-                                                    boxShadow: '0 2px 4px rgba(0,0,0,0.3)'
-                                                }}>
-                                                    <FaTrash />
-                                                </div>
-                                            )}
+                        {/* Visual Thumbnail Grid */}
+                        <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 110px), 1fr))',
+                            gap: '0.75rem',
+                            maxHeight: '380px',
+                            overflowY: 'auto',
+                            padding: '0.75rem',
+                            border: '1px solid var(--glass-border)',
+                            borderRadius: 'var(--radius-lg)',
+                            backgroundColor: 'rgba(0, 0, 0, 0.15)',
+                            marginBottom: '1.75rem',
+                            boxSizing: 'border-box'
+                        }}>
+                            {previews.map((preview, index) => {
+                                const isMarkedForDeletion = selectedPages.has(index);
+                                return (
+                                    <div
+                                        key={index}
+                                        onClick={() => togglePageSelection(index)}
+                                        style={{
+                                            border: isMarkedForDeletion ? '2px solid #ef4444' : '1px solid var(--glass-border)',
+                                            borderRadius: 'var(--radius-md)',
+                                            padding: '0.45rem',
+                                            backgroundColor: isMarkedForDeletion ? 'rgba(239, 68, 68, 0.1)' : 'rgba(255, 255, 255, 0.02)',
+                                            textAlign: 'center',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.2s ease',
+                                            position: 'relative',
+                                            opacity: isMarkedForDeletion ? 0.65 : 1
+                                        }}
+                                    >
+                                        <div style={{ position: 'absolute', top: '6px', right: '6px', color: isMarkedForDeletion ? '#ef4444' : 'var(--text-muted)' }}>
+                                            {isMarkedForDeletion ? <FaTimesCircle /> : <FaSquare />}
                                         </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
+                                        <img
+                                            src={preview}
+                                            alt={`Page ${index + 1}`}
+                                            style={{
+                                                width: '100%',
+                                                height: '100px',
+                                                objectFit: 'contain',
+                                                backgroundColor: '#ffffff',
+                                                borderRadius: 'var(--radius-sm)',
+                                                marginBottom: '0.35rem'
+                                            }}
+                                        />
+                                        <div style={{ fontSize: '0.78rem', fontWeight: 600, color: isMarkedForDeletion ? '#ef4444' : 'inherit' }}>
+                                            {isMarkedForDeletion ? `Delete P.${index + 1}` : `Page ${index + 1}`}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
 
-                        <button
-                            onClick={handleRemovePages}
-                            disabled={isProcessing || selectedPages.size === 0 || selectedPages.size === pageCount}
-                            className="glass-btn-primary"
-                            style={{
-                                width: '100%',
-                                padding: '1rem',
-                                fontSize: '1rem',
-                                background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
-                                boxShadow: '0 0 20px -3px rgba(239, 68, 68, 0.4)',
-                                opacity: isProcessing || selectedPages.size === 0 || selectedPages.size === pageCount ? 0.5 : 1
-                            }}
-                        >
-                            {isProcessing ? 'Processing...' : (
-                                <>
-                                    <FaTrash /> Remove {selectedPages.size} Marked Pages
-                                </>
-                            )}
-                        </button>
-
-                        {resultPdfUrl && (
+                        {/* Action Buttons & Results */}
+                        {resultPdfUrl ? (
                             <div style={{
-                                marginTop: '2rem',
-                                textAlign: 'center',
-                                padding: '2rem',
                                 backgroundColor: 'rgba(16, 185, 129, 0.08)',
+                                padding: '1.75rem',
                                 borderRadius: 'var(--radius-lg)',
+                                marginBottom: '1rem',
                                 border: '1px solid rgba(16, 185, 129, 0.4)',
-                                boxShadow: '0 0 25px -5px rgba(16, 185, 129, 0.2)'
+                                boxShadow: '0 0 25px -5px rgba(16, 185, 129, 0.2)',
+                                textAlign: 'center'
                             }}>
-                                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.75rem' }}>
+                                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
                                     <span className="neon-badge neon-badge-success">
-                                        ✓ Document Saved ({pageCount - selectedPages.size} Pages)
+                                        ✓ Removed {selectedPages.size} Pages ({pageCount - selectedPages.size} pages remaining)
                                     </span>
                                 </div>
                                 <a
                                     href={resultPdfUrl}
-                                    download={`edited-${file.name}`}
+                                    download={`trimmed-${file.name}`}
                                     className="glass-btn-primary"
                                     style={{
                                         background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
                                         boxShadow: '0 0 20px -3px rgba(16, 185, 129, 0.5)',
                                         padding: '0.85rem 1.75rem',
                                         fontSize: '1rem',
-                                        textDecoration: 'none'
+                                        textDecoration: 'none',
+                                        display: 'inline-flex'
                                     }}
                                 >
-                                    <FaDownload /> Download Edited PDF
+                                    <FaDownload /> Download Trimmed PDF
                                 </a>
                             </div>
+                        ) : (
+                            <button
+                                onClick={handleRemovePages}
+                                disabled={isProcessing || selectedPages.size === 0 || selectedPages.size >= pageCount}
+                                className="glass-btn-primary"
+                                style={{
+                                    width: '100%',
+                                    padding: '1rem',
+                                    fontSize: '1rem',
+                                    background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                                    boxShadow: '0 0 20px -3px rgba(239, 68, 68, 0.5)',
+                                    opacity: isProcessing || selectedPages.size === 0 || selectedPages.size >= pageCount ? 0.6 : 1
+                                }}
+                            >
+                                <FaTrash />
+                                {isProcessing ? 'Removing Pages...' : `Delete ${selectedPages.size} Selected Page${selectedPages.size > 1 ? 's' : ''}`}
+                            </button>
                         )}
                     </div>
                 )}

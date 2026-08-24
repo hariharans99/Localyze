@@ -59,30 +59,52 @@ export const ImageResizer = () => {
     };
 
     const handleWidthChange = (w: number) => {
-        setWidth(w);
+        const validW = Math.max(1, w || 1);
+        setWidth(validW);
         if (maintainAspect && aspectRatio > 0) {
-            setHeight(Math.round(w / aspectRatio));
+            setHeight(Math.round(validW / aspectRatio));
         }
     };
 
     const handleHeightChange = (h: number) => {
-        setHeight(h);
+        const validH = Math.max(1, h || 1);
+        setHeight(validH);
         if (maintainAspect && aspectRatio > 0) {
-            setWidth(Math.round(h * aspectRatio));
+            setWidth(Math.round(validH * aspectRatio));
         }
     };
 
     const handlePercentageChange = (pct: number) => {
         setPercentage(pct);
         const factor = pct / 100;
-        setWidth(Math.round(originalWidth * factor));
-        setHeight(Math.round(originalHeight * factor));
+        setWidth(Math.max(1, Math.round(originalWidth * factor)));
+        setHeight(Math.max(1, Math.round(originalHeight * factor)));
     };
 
     const applyAspectRatioPreset = (wRatio: number, hRatio: number) => {
         const newRatio = wRatio / hRatio;
         setAspectRatio(newRatio);
-        setHeight(Math.round(width / newRatio));
+        setHeight(Math.max(1, Math.round(width / newRatio)));
+    };
+
+    const applyExactDimensionPreset = (targetW: number, targetH: number) => {
+        setWidth(targetW);
+        setHeight(targetH);
+        setAspectRatio(targetW / targetH);
+    };
+
+    const handleRotate = () => {
+        setRotation((prev) => {
+            const nextRot = (prev + 90) % 360;
+            // Swap width & height if maintaining aspect ratio
+            if (maintainAspect) {
+                setWidth(height);
+                setHeight(width);
+                setAspectRatio(height / width);
+            }
+            return nextRot;
+        });
+        setResizedImage(null);
     };
 
     const handleResize = async () => {
@@ -109,6 +131,12 @@ export const ImageResizer = () => {
             const tCtx = transformCanvas.getContext('2d')!;
             tCtx.imageSmoothingEnabled = true;
             tCtx.imageSmoothingQuality = 'high';
+
+            // Fill solid white background if exporting to JPEG to prevent black transparent areas
+            if (outputFormat === 'image/jpeg') {
+                tCtx.fillStyle = '#ffffff';
+                tCtx.fillRect(0, 0, tWidth, tHeight);
+            }
 
             tCtx.translate(tWidth / 2, tHeight / 2);
             if (flipH) tCtx.scale(-1, 1);
@@ -147,15 +175,15 @@ export const ImageResizer = () => {
     };
 
     return (
-        <div className="container" style={{ maxWidth: '850px' }}>
+        <div className="container" style={{ maxWidth: '850px', width: '100%', minWidth: 0, boxSizing: 'border-box' }}>
             <SEO
                 title="Precision Image Resizer - Dimensions, Percentage & Aspect Ratios"
                 description="Resize images accurately with aspect ratio presets, pixel or percentage scaling, 90° rotation, and anti-aliased stepped downsampling."
             />
-            <h1 className="text-gradient" style={{ fontSize: '2.25rem', marginBottom: '0.5rem', textAlign: 'center' }}>
+            <h1 className="text-gradient" style={{ fontSize: 'clamp(1.75rem, 4vw, 2.25rem)', marginBottom: '0.5rem', textAlign: 'center', wordBreak: 'break-word' }}>
                 Precision Image Resizer
             </h1>
-            <p style={{ textAlign: 'center', color: 'var(--text-muted)', marginBottom: '2.5rem' }}>
+            <p style={{ textAlign: 'center', color: 'var(--text-muted)', marginBottom: '2rem', fontSize: 'clamp(0.85rem, 2vw, 0.95rem)' }}>
                 Resize, crop-align, flip, and transform images locally with zero quality loss.
             </p>
 
@@ -164,21 +192,25 @@ export const ImageResizer = () => {
                     <FileUploader onFileSelect={handleFileSelect} accept="image/*" label="Upload Image to Resize" />
                 ) : (
                     <div className="glass-panel" style={{
-                        padding: 'clamp(1.5rem, 4vw, 2.5rem)',
-                        borderRadius: 'var(--radius-xl)'
+                        padding: 'clamp(1rem, 3.5vw, 2.25rem)',
+                        borderRadius: 'var(--radius-xl)',
+                        width: '100%',
+                        maxWidth: '100%',
+                        minWidth: 0,
+                        boxSizing: 'border-box'
                     }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
-                            <div>
-                                <h3 style={{ marginBottom: '0.25rem', fontSize: '1.25rem' }}>{file.name}</h3>
-                                <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.75rem', flexWrap: 'wrap', gap: '1rem', width: '100%', minWidth: 0 }}>
+                            <div style={{ flex: '1 1 200px', minWidth: 0 }}>
+                                <h3 style={{ marginBottom: '0.25rem', fontSize: 'clamp(1.1rem, 3vw, 1.35rem)', wordBreak: 'break-word' }}>{file.name}</h3>
+                                <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
                                     Original: {originalWidth} × {originalHeight}px • {(file.size / 1024 / 1024).toFixed(2)} MB
                                 </p>
                             </div>
-                            <div style={{ display: 'flex', gap: '0.75rem' }}>
+                            <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap', alignItems: 'center' }}>
                                 <button
                                     onClick={() => document.getElementById('change-file-input')?.click()}
                                     className="glass-btn-secondary"
-                                    style={{ padding: '0.45rem 1rem', fontSize: '0.85rem' }}
+                                    style={{ padding: '0.45rem 0.9rem', fontSize: '0.85rem', whiteSpace: 'nowrap' }}
                                 >
                                     Change File
                                 </button>
@@ -202,7 +234,7 @@ export const ImageResizer = () => {
                                         setFlipH(false);
                                         setResizedImage(null);
                                     }}
-                                    style={{ color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                                    style={{ color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.45rem 0.6rem', fontSize: '0.85rem' }}
                                 >
                                     <FaRedo /> Reset
                                 </button>
@@ -213,7 +245,7 @@ export const ImageResizer = () => {
                         {originalPreview && (
                             <div style={{
                                 width: '100%',
-                                height: '180px',
+                                height: '200px',
                                 backgroundColor: 'rgba(0, 0, 0, 0.25)',
                                 borderRadius: 'var(--radius-lg)',
                                 border: '1px solid var(--glass-border)',
@@ -222,7 +254,8 @@ export const ImageResizer = () => {
                                 justifyContent: 'center',
                                 overflow: 'hidden',
                                 marginBottom: '1.75rem',
-                                padding: '0.5rem'
+                                padding: '0.5rem',
+                                boxSizing: 'border-box'
                             }}>
                                 <img
                                     src={originalPreview}
@@ -268,9 +301,9 @@ export const ImageResizer = () => {
 
                         {/* Resolution Inputs & Presets */}
                         {mode === 'pixels' ? (
-                            <div style={{ marginBottom: '1.75rem' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
-                                    <div style={{ flex: 1, minWidth: '130px' }}>
+                            <div style={{ marginBottom: '1.75rem', width: '100%', minWidth: 0 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem', flexWrap: 'wrap', width: '100%', minWidth: 0 }}>
+                                    <div style={{ flex: '1 1 130px', minWidth: 0 }}>
                                         <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.4rem' }}>
                                             Width (px)
                                         </label>
@@ -279,7 +312,7 @@ export const ImageResizer = () => {
                                             value={width}
                                             onChange={(e) => handleWidthChange(parseInt(e.target.value) || 1)}
                                             className="glass-input"
-                                            style={{ width: '100%', padding: '0.65rem' }}
+                                            style={{ width: '100%', padding: '0.65rem', boxSizing: 'border-box' }}
                                         />
                                     </div>
 
@@ -289,18 +322,19 @@ export const ImageResizer = () => {
                                         className="glass-btn-secondary"
                                         style={{
                                             padding: '0.65rem 0.85rem',
-                                            marginTop: '1.5rem',
+                                            marginTop: '1.4rem',
                                             display: 'flex',
                                             alignItems: 'center',
                                             gap: '0.4rem',
-                                            color: maintainAspect ? 'var(--color-primary)' : 'var(--text-muted)'
+                                            color: maintainAspect ? 'var(--color-primary)' : 'var(--text-muted)',
+                                            borderColor: maintainAspect ? 'var(--color-primary)' : 'var(--glass-border)'
                                         }}
                                         title={maintainAspect ? 'Lock Aspect Ratio (Active)' : 'Unlock Aspect Ratio (Freeform)'}
                                     >
                                         {maintainAspect ? <FaLock /> : <FaUnlock />}
                                     </button>
 
-                                    <div style={{ flex: 1, minWidth: '130px' }}>
+                                    <div style={{ flex: '1 1 130px', minWidth: 0 }}>
                                         <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.4rem' }}>
                                             Height (px)
                                         </label>
@@ -309,43 +343,59 @@ export const ImageResizer = () => {
                                             value={height}
                                             onChange={(e) => handleHeightChange(parseInt(e.target.value) || 1)}
                                             className="glass-input"
-                                            style={{ width: '100%', padding: '0.65rem' }}
+                                            style={{ width: '100%', padding: '0.65rem', boxSizing: 'border-box' }}
                                         />
                                     </div>
                                 </div>
 
                                 {/* Aspect Ratio & Quick Standard Resolution Presets */}
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' }}>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.45rem', alignItems: 'center', width: '100%', minWidth: 0 }}>
                                     <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginRight: '0.25rem' }}>Presets:</span>
                                     <button
                                         type="button"
-                                        onClick={() => { setWidth(1920); setHeight(1080); }}
+                                        onClick={() => applyExactDimensionPreset(1080, 1080)}
                                         className="glass-btn-secondary"
-                                        style={{ padding: '0.3rem 0.65rem', fontSize: '0.75rem' }}
+                                        style={{ padding: '0.3rem 0.65rem', fontSize: '0.75rem', whiteSpace: 'nowrap' }}
+                                    >
+                                        Instagram (1080×1080)
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => applyExactDimensionPreset(1080, 1920)}
+                                        className="glass-btn-secondary"
+                                        style={{ padding: '0.3rem 0.65rem', fontSize: '0.75rem', whiteSpace: 'nowrap' }}
+                                    >
+                                        Story / Reel (1080×1920)
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => applyExactDimensionPreset(1920, 1080)}
+                                        className="glass-btn-secondary"
+                                        style={{ padding: '0.3rem 0.65rem', fontSize: '0.75rem', whiteSpace: 'nowrap' }}
                                     >
                                         1080p FHD
                                     </button>
                                     <button
                                         type="button"
-                                        onClick={() => { setWidth(1280); setHeight(720); }}
+                                        onClick={() => applyExactDimensionPreset(1200, 675)}
                                         className="glass-btn-secondary"
-                                        style={{ padding: '0.3rem 0.65rem', fontSize: '0.75rem' }}
+                                        style={{ padding: '0.3rem 0.65rem', fontSize: '0.75rem', whiteSpace: 'nowrap' }}
                                     >
-                                        720p HD
+                                        Twitter / Web (1200×675)
                                     </button>
                                     <button
                                         type="button"
-                                        onClick={() => { setWidth(3840); setHeight(2160); }}
+                                        onClick={() => applyExactDimensionPreset(600, 600)}
                                         className="glass-btn-secondary"
-                                        style={{ padding: '0.3rem 0.65rem', fontSize: '0.75rem' }}
+                                        style={{ padding: '0.3rem 0.65rem', fontSize: '0.75rem', whiteSpace: 'nowrap' }}
                                     >
-                                        4K Ultra
+                                        Passport (600×600)
                                     </button>
                                     <button
                                         type="button"
                                         onClick={() => applyAspectRatioPreset(1, 1)}
                                         className="glass-btn-secondary"
-                                        style={{ padding: '0.3rem 0.65rem', fontSize: '0.75rem' }}
+                                        style={{ padding: '0.3rem 0.65rem', fontSize: '0.75rem', whiteSpace: 'nowrap' }}
                                     >
                                         1:1 Square
                                     </button>
@@ -353,22 +403,22 @@ export const ImageResizer = () => {
                                         type="button"
                                         onClick={() => applyAspectRatioPreset(16, 9)}
                                         className="glass-btn-secondary"
-                                        style={{ padding: '0.3rem 0.65rem', fontSize: '0.75rem' }}
+                                        style={{ padding: '0.3rem 0.65rem', fontSize: '0.75rem', whiteSpace: 'nowrap' }}
                                     >
-                                        16:9 Widescreen
+                                        16:9 Wide
                                     </button>
                                     <button
                                         type="button"
                                         onClick={() => applyAspectRatioPreset(9, 16)}
                                         className="glass-btn-secondary"
-                                        style={{ padding: '0.3rem 0.65rem', fontSize: '0.75rem' }}
+                                        style={{ padding: '0.3rem 0.65rem', fontSize: '0.75rem', whiteSpace: 'nowrap' }}
                                     >
-                                        9:16 Story
+                                        9:16 Vertical
                                     </button>
                                 </div>
                             </div>
                         ) : (
-                            <div style={{ marginBottom: '1.75rem' }}>
+                            <div style={{ marginBottom: '1.75rem', width: '100%', minWidth: 0 }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.9rem' }}>
                                     <span style={{ fontWeight: 600 }}>Scale: {percentage}%</span>
                                     <span style={{ color: 'var(--text-muted)' }}>{width} × {height} px</span>
@@ -382,7 +432,7 @@ export const ImageResizer = () => {
                                     onChange={(e) => handlePercentageChange(parseInt(e.target.value))}
                                     style={{ width: '100%', marginBottom: '1rem', accentColor: 'var(--color-primary)' }}
                                 />
-                                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                <div style={{ display: 'flex', gap: '0.45rem', flexWrap: 'wrap' }}>
                                     {[25, 50, 75, 100, 150, 200].map(pct => (
                                         <button
                                             key={pct}
@@ -405,24 +455,26 @@ export const ImageResizer = () => {
                         {/* Transform Options: Rotate & Flip & Output Format */}
                         <div style={{
                             display: 'grid',
-                            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',
                             gap: '1rem',
                             marginBottom: '1.75rem',
                             padding: '1.25rem',
                             borderRadius: 'var(--radius-lg)',
                             background: 'rgba(255, 255, 255, 0.02)',
-                            border: '1px solid var(--glass-border)'
+                            border: '1px solid var(--glass-border)',
+                            width: '100%',
+                            boxSizing: 'border-box'
                         }}>
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.5rem' }}>
                                     Transform Orientation
                                 </label>
-                                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                                     <button
                                         type="button"
-                                        onClick={() => setRotation((prev) => (prev + 90) % 360)}
+                                        onClick={handleRotate}
                                         className="glass-btn-secondary"
-                                        style={{ padding: '0.45rem 0.85rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                                        style={{ padding: '0.45rem 0.85rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.35rem', whiteSpace: 'nowrap' }}
                                     >
                                         <FaSyncAlt /> Rotate {rotation > 0 ? `(${rotation}°)` : '90°'}
                                     </button>
@@ -436,7 +488,8 @@ export const ImageResizer = () => {
                                             display: 'flex',
                                             alignItems: 'center',
                                             gap: '0.35rem',
-                                            color: flipH ? 'var(--color-primary)' : 'var(--text-main)'
+                                            color: flipH ? 'var(--color-primary)' : 'var(--text-main)',
+                                            whiteSpace: 'nowrap'
                                         }}
                                     >
                                         <FaExchangeAlt /> Flip H
@@ -452,7 +505,7 @@ export const ImageResizer = () => {
                                     value={outputFormat}
                                     onChange={(e) => setOutputFormat(e.target.value)}
                                     className="glass-input"
-                                    style={{ width: '100%', padding: '0.5rem' }}
+                                    style={{ width: '100%', padding: '0.5rem', boxSizing: 'border-box' }}
                                 >
                                     <option value="original">Keep Original</option>
                                     <option value="image/jpeg">JPEG (.jpg)</option>
@@ -487,9 +540,10 @@ export const ImageResizer = () => {
                                 borderRadius: 'var(--radius-lg)',
                                 marginBottom: '1rem',
                                 border: '1px solid rgba(16, 185, 129, 0.4)',
-                                boxShadow: '0 0 25px -5px rgba(16, 185, 129, 0.2)'
+                                boxShadow: '0 0 25px -5px rgba(16, 185, 129, 0.2)',
+                                textAlign: 'center'
                             }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
                                     <span className="neon-badge neon-badge-success">
                                         ✓ Resize Complete ({width} × {height} px)
                                     </span>
@@ -503,7 +557,8 @@ export const ImageResizer = () => {
                                         boxShadow: '0 0 20px -3px rgba(16, 185, 129, 0.5)',
                                         padding: '0.85rem 1.75rem',
                                         fontSize: '1rem',
-                                        textDecoration: 'none'
+                                        textDecoration: 'none',
+                                        display: 'inline-flex'
                                     }}
                                 >
                                     <FaDownload /> Download Resized Image
