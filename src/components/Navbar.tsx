@@ -55,12 +55,12 @@ export const Navbar = () => {
                     <div
                         className="nav-logo-icon"
                         style={{
-                            width: '38px',
-                            height: '38px',
+                            width: '42px',
+                            height: '42px',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            filter: 'drop-shadow(0 0 10px rgba(255, 42, 68, 0.45))',
+                            filter: 'drop-shadow(0 4px 14px rgba(255, 42, 68, 0.45))',
                             transition: 'transform 0.25s ease',
                             flexShrink: 0
                         }}

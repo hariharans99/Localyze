@@ -105,6 +105,25 @@ export const UpgradeModal = () => {
                 {/* Header */}
                 <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
                     <div style={{
+                        width: '56px',
+                        height: '56px',
+                        margin: '0 auto 0.75rem auto',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        filter: 'drop-shadow(0 6px 14px rgba(255, 42, 68, 0.45))'
+                    }}>
+                        <img
+                            src="/logo.png"
+                            alt="Localyze Logo"
+                            style={{
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'contain'
+                            }}
+                        />
+                    </div>
+                    <div style={{
                         display: 'inline-flex',
                         alignItems: 'center',
                         gap: '0.5rem',

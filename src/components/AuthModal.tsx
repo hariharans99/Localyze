@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FaTimes, FaShieldAlt, FaGoogle } from 'react-icons/fa';
+import { FaTimes, FaGoogle } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 
@@ -81,21 +81,25 @@ export const AuthModal = () => {
                     <FaTimes />
                 </button>
 
-                {/* Header Badge */}
+                {/* Header Logo */}
                 <div style={{
-                    width: '56px',
-                    height: '56px',
-                    borderRadius: 'var(--radius-xl)',
-                    background: 'radial-gradient(circle, rgba(255, 42, 68, 0.25) 0%, rgba(255, 42, 68, 0.05) 100%)',
-                    border: '1px solid rgba(255, 42, 68, 0.4)',
+                    width: '68px',
+                    height: '68px',
+                    margin: '0 auto 1.25rem auto',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    color: 'var(--color-primary)',
-                    fontSize: '1.5rem',
-                    margin: '0 auto 1.25rem auto'
+                    filter: 'drop-shadow(0 8px 20px rgba(255, 42, 68, 0.45))'
                 }}>
-                    <FaShieldAlt />
+                    <img
+                        src="/logo.png"
+                        alt="Localyze Logo"
+                        style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'contain'
+                        }}
+                    />
                 </div>
 
                 <h2 style={{ fontSize: '1.4rem', fontWeight: 800, marginBottom: '0.5rem', color: 'var(--text-main)' }}>
