@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { 
     FaImage, 
@@ -13,7 +14,11 @@ import {
 import { SEO } from '../components/SEO';
 
 export const Home = () => {
+    const [selectedCategory, setSelectedCategory] = useState<'All' | 'Image Tools' | 'PDF Tools'>('All');
+
+    // Cleanly Ordered: Image Tools Group followed by PDF Tools Group
     const tools = [
+        // ================= IMAGE TOOLS =================
         {
             id: 'compress',
             name: 'Image Compressor',
@@ -25,6 +30,41 @@ export const Home = () => {
             color: '#ff2a44',
             glowColor: 'rgba(255, 42, 68, 0.45)'
         },
+        {
+            id: 'resize',
+            name: 'Image Resizer',
+            category: 'Image Tools',
+            desc: 'Resize images to exact pixel bounds or social media dimensions with anti-aliasing.',
+            icon: <FaExpandArrowsAlt />,
+            path: '/tools/resize',
+            badge: 'Anti-Aliased',
+            color: '#a855f7',
+            glowColor: 'rgba(168, 85, 247, 0.4)'
+        },
+        {
+            id: 'convert',
+            name: 'Format Converter',
+            category: 'Image Tools',
+            desc: 'Fast batch conversion between PNG, JPG, WebP, AVIF, HEIC, TIFF, BMP, SVG & ICO.',
+            icon: <FaRandom />,
+            path: '/tools/convert',
+            badge: '9 Formats',
+            color: '#10b981',
+            glowColor: 'rgba(16, 185, 129, 0.4)'
+        },
+        {
+            id: 'pdf',
+            name: 'Image to PDF',
+            category: 'Image Tools',
+            desc: 'Turn photos and scans into multi-page PDF documents with custom margins and fit.',
+            icon: <FaFilePdf />,
+            path: '/tools/pdf',
+            badge: 'Instant Fit',
+            color: '#f59e0b',
+            glowColor: 'rgba(245, 158, 11, 0.4)'
+        },
+
+        // ================= PDF TOOLS =================
         {
             id: 'pdf-studio',
             name: 'All-in-One PDF Studio',
@@ -48,28 +88,6 @@ export const Home = () => {
             glowColor: 'rgba(239, 68, 68, 0.4)'
         },
         {
-            id: 'convert',
-            name: 'Format Converter',
-            category: 'Image Tools',
-            desc: 'Fast batch conversion between PNG, JPG, WebP, AVIF, HEIC, TIFF, BMP, SVG & ICO.',
-            icon: <FaRandom />,
-            path: '/tools/convert',
-            badge: '9 Formats',
-            color: '#10b981',
-            glowColor: 'rgba(16, 185, 129, 0.4)'
-        },
-        {
-            id: 'pdf',
-            name: 'Image to PDF',
-            category: 'PDF Tools',
-            desc: 'Turn photos and scans into multi-page PDF documents with custom margins and fit.',
-            icon: <FaFilePdf />,
-            path: '/tools/pdf',
-            badge: 'Instant Fit',
-            color: '#f59e0b',
-            glowColor: 'rgba(245, 158, 11, 0.4)'
-        },
-        {
             id: 'pdf-to-jpg',
             name: 'PDF to Image',
             category: 'PDF Tools',
@@ -79,17 +97,6 @@ export const Home = () => {
             badge: 'Up to 300 DPI',
             color: '#06b6d4',
             glowColor: 'rgba(6, 182, 212, 0.4)'
-        },
-        {
-            id: 'resize',
-            name: 'Image Resizer',
-            category: 'Image Tools',
-            desc: 'Resize images to exact pixel bounds or social media dimensions with anti-aliasing.',
-            icon: <FaExpandArrowsAlt />,
-            path: '/tools/resize',
-            badge: 'Anti-Aliased',
-            color: '#a855f7',
-            glowColor: 'rgba(168, 85, 247, 0.4)'
         },
         {
             id: 'merge-pdf',
@@ -126,12 +133,60 @@ export const Home = () => {
         }
     ];
 
+    const filteredTools = selectedCategory === 'All'
+        ? tools
+        : tools.filter(t => t.category === selectedCategory);
+
     return (
         <div className="container" style={{ margin: '1rem auto 3rem', width: '100%', minWidth: 0, boxSizing: 'border-box' }}>
             <SEO
                 title="Localyze - Free, Private & High-Precision Image & PDF Tools"
                 description="Modern in-browser image compressor, resizer, format converter and PDF toolkit. 100% private with no server uploads."
             />
+
+            {/* Minimalist Category Filter Pills */}
+            <div style={{
+                display: 'flex',
+                justifyContent: 'center',
+                gap: '0.6rem',
+                marginBottom: '1.75rem',
+                flexWrap: 'wrap'
+            }}>
+                {(['All', 'Image Tools', 'PDF Tools'] as const).map((cat) => {
+                    const isActive = selectedCategory === cat;
+                    const count = cat === 'All' ? tools.length : tools.filter(t => t.category === cat).length;
+                    return (
+                        <button
+                            key={cat}
+                            type="button"
+                            onClick={() => setSelectedCategory(cat)}
+                            style={{
+                                padding: '0.45rem 1.15rem',
+                                borderRadius: 'var(--radius-full)',
+                                border: `1px solid ${isActive ? 'var(--color-primary)' : 'var(--glass-border)'}`,
+                                backgroundColor: isActive ? 'rgba(255, 42, 68, 0.14)' : 'var(--glass-bg)',
+                                color: isActive ? 'var(--color-primary)' : 'var(--text-muted)',
+                                fontWeight: isActive ? 600 : 500,
+                                fontSize: '0.85rem',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                                boxShadow: isActive ? '0 0 16px -3px rgba(255, 42, 68, 0.4)' : 'none'
+                            }}
+                        >
+                            {cat === 'All' && '✨ All Tools'}
+                            {cat === 'Image Tools' && '🖼️ Image Tools'}
+                            {cat === 'PDF Tools' && '📄 PDF Tools'}
+                            <span style={{
+                                marginLeft: '0.4rem',
+                                fontSize: '0.75rem',
+                                opacity: 0.75
+                            }}>
+                                ({count})
+                            </span>
+                        </button>
+                    );
+                })}
+            </div>
 
             {/* Minimalist Glassmorphic Tools Grid */}
             <div style={{
@@ -142,7 +197,7 @@ export const Home = () => {
                 width: '100%',
                 minWidth: 0
             }}>
-                {tools.map(tool => (
+                {filteredTools.map(tool => (
                     <Link
                         to={tool.path}
                         key={tool.id}
