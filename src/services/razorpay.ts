@@ -141,9 +141,13 @@ export const verifyServerPayment = async (
 
 const getClientRazorpayKey = (): string => {
     const rawKey = (import.meta.env.VITE_RAZORPAY_KEY_ID || '').trim();
+    if (!rawKey || rawKey === 'rzp_test_localyzePublic' || rawKey.includes('localyzePublic')) {
+        return 'rzp_test_TTVaAFshs31QBq';
+    }
     const match = rawKey.match(/(rzp_(?:test|live)_[a-zA-Z0-9]+)/);
-    if (match) return match[1];
-    if (rawKey && rawKey !== 'rzp_test_localyzePublic') return rawKey;
+    if (match && match[1] !== 'rzp_test_localyzePublic') {
+        return match[1];
+    }
     return 'rzp_test_TTVaAFshs31QBq';
 };
 
@@ -176,7 +180,7 @@ export const openRazorpayCheckout = async ({
         currency: 'INR',
         name: 'Localyze',
         description: `${plan.name} (${plan.durationDays} Days)`,
-        image: '/logo.png',
+        image: `${window.location.origin}/logo.png`,
         order_id: serverOrderId || undefined,
         handler: async function (response: RazorpayPaymentSuccessResponse) {
             // Verify HMAC signature on backend
