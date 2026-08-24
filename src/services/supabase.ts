@@ -69,8 +69,41 @@ export const fetchUserActiveSubscription = async (userId: string): Promise<Subsc
     }
 };
 
+export interface SubscriptionPlanRow {
+    id: string;
+    name: string;
+    price_inr: number;
+    duration_hours: number;
+    description: string | null;
+    is_active: boolean;
+    created_at: string;
+}
+
 /**
- * Record a verified Razorpay subscription into Supabase
+ * Fetch authoritative active subscription plans from Supabase
+ */
+export const fetchSubscriptionPlans = async (): Promise<SubscriptionPlanRow[]> => {
+    if (!isSupabaseConfigured) return [];
+    try {
+        const { data, error } = await supabase
+            .from('subscription_plans')
+            .select('*')
+            .eq('is_active', true)
+            .order('price_inr', { ascending: true });
+
+        if (error) {
+            console.warn('Failed to fetch subscription plans from DB:', error.message);
+            return [];
+        }
+        return (data || []) as SubscriptionPlanRow[];
+    } catch (err) {
+        console.error('Error fetching subscription plans:', err);
+        return [];
+    }
+};
+
+/**
+ * Record a verified Razorpay subscription into Supabase using server-side activation
  */
 export const recordVerifiedSubscription = async (
     user: User,
@@ -83,7 +116,7 @@ export const recordVerifiedSubscription = async (
         ? new Date(expiresAtTimestamp)
         : new Date(now.getTime() + plan.durationDays * 24 * 60 * 60 * 1000);
 
-    const record: SubscriptionRecord = {
+    const fallbackRecord: SubscriptionRecord = {
         user_id: user.id,
         user_email: user.email,
         plan_id: plan.id,
@@ -96,25 +129,36 @@ export const recordVerifiedSubscription = async (
 
     if (!isSupabaseConfigured) {
         console.info('Supabase not configured in .env; saving subscription to local state.');
-        return record;
+        return fallbackRecord;
     }
 
     try {
-        const { data, error } = await supabase
-            .from('user_subscriptions')
-            .insert(record)
-            .select()
-            .single();
+        // Secure server-side activation via Postgres stored procedure
+        const { data, error } = await supabase.rpc('activate_user_subscription', {
+            p_plan_id: plan.id,
+            p_payment_id: paymentId,
+            p_user_email: user.email || null
+        });
 
         if (error) {
-            console.error('Failed to insert subscription into Supabase:', error.message);
-            return record; // Return local copy so user still gets instant access
+            console.error('Failed to activate subscription via RPC:', error.message);
+            const { data: insertData, error: insertError } = await supabase
+                .from('user_subscriptions')
+                .insert(fallbackRecord)
+                .select()
+                .single();
+
+            if (insertError) {
+                console.error('Fallback insert failed:', insertError.message);
+                return fallbackRecord;
+            }
+            return insertData as SubscriptionRecord;
         }
 
         return data as SubscriptionRecord;
     } catch (err) {
         console.error('Error saving subscription to Supabase:', err);
-        return record;
+        return fallbackRecord;
     }
 };
 
